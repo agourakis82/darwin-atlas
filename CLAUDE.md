@@ -13,9 +13,12 @@
 
 Build a reproducible, DOI-versioned database of operator-defined symmetries in complete bacterial replicons, implementing a hybrid Demetrios + Julia architecture with cross-validation between implementations.
 
+**NO PYTHON**. This project uses exclusively Julia (Layers 0-1) and Demetrios (Layer 2).
+
 ---
 
 ## Architecture Overview
+
 ```
 Layer 3: Artifacts     → CSV/JSONL/Parquet (Zenodo DOI)
 Layer 2: Demetrios     → High-performance kernels with epistemic computing
@@ -23,34 +26,37 @@ Layer 1: Julia         → Orchestration, NCBI fetch, validation
 Layer 0: Julia Pure    → Reference implementation (fallback, cross-validation)
 ```
 
+### Why This Architecture?
+
+1. **Demetrios (Layer 2)**: Showcases the language's units of measure, refinement types, and epistemic computing for scientific applications
+2. **Julia (Layers 0-1)**: Provides reproducibility guarantee for Scientific Data reviewers who may not have Demetrios installed
+3. **Cross-validation**: Ensures both implementations produce **identical** results, catching bugs in either
+
 ---
 
 ## Directory Structure (Canonical)
+
 ```
 darwin-atlas/
-├── CLAUDE.md                     # THIS FILE
+├── CLAUDE.md                     # THIS FILE - READ FIRST
 ├── README.md                     # Project documentation
 ├── Makefile                      # Build orchestration
 ├── .zenodo.json                  # DOI metadata
-├── justfile                      # Alternative to Make (optional)
 │
 ├── demetrios/                    # Layer 2: Demetrios Kernels
 │   ├── demetrios.toml            # Project config
 │   ├── src/
 │   │   ├── lib.d                 # Library root, exports
-│   │   ├── operators.d           # S/R/K/RC/M/D/I/V definitions
+│   │   ├── operators.d           # S/R/K/RC definitions with units
 │   │   ├── exact_symmetry.d      # Fixed points, orbit ratio
-│   │   ├── approx_metric.d       # d_min/L with units
+│   │   ├── approx_metric.d       # d_min/L with refinement types
 │   │   ├── quaternion.d          # Dic_n lift verification
 │   │   └── ffi.d                 # C ABI exports for Julia
 │   └── tests/
-│       ├── test_operators.d
-│       ├── test_symmetry.d
-│       └── test_quaternion.d
 │
 ├── julia/                        # Layers 0 + 1
 │   ├── Project.toml
-│   ├── Manifest.toml             # MUST BE COMMITTED
+│   ├── Manifest.toml             # MUST BE COMMITTED (reproducibility)
 │   ├── src/
 │   │   ├── DarwinAtlas.jl        # Module root
 │   │   ├── Types.jl              # Shared type definitions
@@ -63,40 +69,28 @@ darwin-atlas/
 │   │   ├── DemetriosFFI.jl       # ccall wrappers (Layer 1→2)
 │   │   └── CrossValidation.jl    # Demetrios vs Julia comparison
 │   ├── test/
-│   │   ├── runtests.jl
-│   │   ├── test_operators.jl
-│   │   ├── test_symmetry.jl
-│   │   ├── test_ffi.jl
-│   │   └── test_cross_validation.jl
+│   │   └── runtests.jl
 │   └── scripts/
-│       ├── fetch_ncbi.jl
 │       ├── run_pipeline.jl
-│       ├── generate_tables.jl
-│       └── technical_validation.jl
+│       └── cross_validation.jl
 │
 ├── data/                         # Layer 3: Outputs
 │   ├── raw/                      # Downloaded sequences (gitignored)
 │   ├── manifest/
 │   │   ├── manifest.jsonl
-│   │   ├── checksums.sha256
-│   │   └── pipeline_metadata.json
+│   │   └── checksums.sha256
 │   └── tables/
 │       ├── atlas_replicons.csv
 │       ├── atlas_windows_exact.csv
 │       ├── approx_symmetry_stats.csv
-│       ├── approx_symmetry_summary.csv
 │       ├── dicyclic_lifts.csv
 │       └── quaternion_results.csv
 │
 ├── paper/                        # Scientific Data manuscript
 │   ├── main.tex
-│   ├── references.bib
-│   ├── figures/
-│   └── supplementary/
+│   └── figures/
 │
-└── .github/
-    └── workflows/
-        └── ci.yml                # Automated testing
+└── .github/workflows/ci.yml      # Automated testing
 ```
 
 ---
@@ -111,192 +105,143 @@ darwin-atlas/
 | R | Reverse | σ(i) = s_{n-1-i} | D_4 |
 | K | Complement | σ(i) = complement(s_i) | D_4 |
 | RC | Rev-Comp | σ(i) = complement(s_{n-1-i}) | D_4 |
-| S | Shift | σ(i) = s_{(i+1) mod n} | Cyclic |
-| M | Mirror | Context-dependent | — |
-| D | Dihedral | Full D_n action | D_n |
-| V | Vertical | Strand swap | — |
 
 ### Data Schema (Canonical)
 
 #### atlas_replicons.csv
-```
-assembly_accession: String (GCF_...)
-replicon_id: String (internal stable ID)
-replicon_accession: String? (RefSeq/GenBank)
-replicon_type: Enum {chromosome, plasmid, other}
-length_bp: Int64 (> 0)
-gc_fraction: Float64 (0.0 ≤ x ≤ 1.0)
-taxonomy_id: Int64
-taxonomy_name: String
-source_db: Enum {RefSeq, GenBank}
-download_date: Date (ISO 8601)
-checksum_sha256: String
-```
+| Field | Type | Constraint |
+|-------|------|------------|
+| assembly_accession | String | GCF_... format |
+| replicon_id | String | Internal stable ID |
+| replicon_type | Enum | {chromosome, plasmid, other} |
+| length_bp | Int64 | > 0 |
+| gc_fraction | Float64 | 0.0 ≤ x ≤ 1.0 |
+| taxonomy_id | Int64 | NCBI taxid |
+| checksum_sha256 | String | 64 hex chars |
 
 #### atlas_windows_exact.csv
-```
-replicon_id: String (FK → atlas_replicons)
-window_length: Int64 (bp)
-window_start: Int64 (0-indexed, circular)
-orbit_ratio: Float64 (0.25 ≤ x ≤ 1.0)
-is_palindrome_R: Bool
-is_fixed_RC: Bool
-orbit_size: Int64 (1, 2, or 4)
-```
+| Field | Type | Constraint |
+|-------|------|------------|
+| replicon_id | String | FK → atlas_replicons |
+| window_length | Int64 | bp |
+| window_start | Int64 | 0-indexed, circular |
+| orbit_ratio | Float64 | 0.25 ≤ x ≤ 1.0 |
+| is_palindrome_R | Bool | |
+| is_fixed_RC | Bool | |
+| orbit_size | Int64 | ∈ {1, 2, 4} |
 
 #### approx_symmetry_stats.csv
-```
-replicon_id: String
-window_length: Int64
-window_start: Int64
-d_min: Float64 (≥ 0)
-d_min_over_L: Float64 (0 ≤ x ≤ 1)
-transform_family: Enum {dihedral, RC, identity}
-nearest_transform: String
-```
+| Field | Type | Constraint |
+|-------|------|------------|
+| replicon_id | String | |
+| window_length | Int64 | |
+| d_min | Float64 | ≥ 0 |
+| d_min_over_L | Float64 | 0 ≤ x ≤ 1 |
+| transform_family | Enum | {dihedral, RC, identity} |
 
 #### dicyclic_lifts.csv
-```
-replicon_id: String
-dihedral_order: Int64 (4, 8, 16)
-verified_double_cover: Bool
-lift_group: String (Dic_n notation)
-verification_method: String
-num_elements_checked: Int64
-relations_satisfied: Bool
-```
-
-#### quaternion_results.csv
-```
-experiment_id: String
-condition: Enum {group, semigroup}
-chain_length: Int64
-n_trials: Int64
-seed: Int64
-baseline_markov1_acc: Float64
-baseline_markov2_acc: Float64
-quaternion_acc: Float64
-p_value_vs_markov2: Float64
-```
+| Field | Type | Constraint |
+|-------|------|------------|
+| dihedral_order | Int64 | 4, 8, 16 |
+| verified_double_cover | Bool | |
+| lift_group | String | Dic_n notation |
+| relations_satisfied | Bool | |
 
 ---
 
-## Implementation Priorities
+## Implementation Phases
 
-### Phase 1: Foundation (Week 1)
-1. [ ] Initialize Julia project with dependencies
-2. [ ] Implement `Types.jl` with all data structures
-3. [ ] Implement `Operators.jl` (pure Julia, Layer 0)
-4. [ ] Unit tests for operators (property-based)
-5. [ ] Initialize Demetrios project structure
+### Phase 1: Foundation
+- [ ] Julia `Project.toml` with all dependencies
+- [ ] `Types.jl` — all data structures with validation
+- [ ] `Operators.jl` — pure Julia R/K/RC operators
+- [ ] Unit tests for operators
+- [ ] Demetrios project scaffold
 
-### Phase 2: Core Algorithms (Week 2)
-1. [ ] `ExactSymmetry.jl` — orbit computation, fixed points
-2. [ ] `ApproxMetric.jl` — d_min calculation, baseline shuffle
-3. [ ] `QuaternionLift.jl` — Dic_n verification
-4. [ ] Corresponding Demetrios implementations
-5. [ ] `DemetriosFFI.jl` — ccall wrappers
+### Phase 2: Core Algorithms
+- [ ] `ExactSymmetry.jl` — orbit computation, fixed points
+- [ ] `ApproxMetric.jl` — d_min, baseline shuffle
+- [ ] `QuaternionLift.jl` — Dic_n verification
+- [ ] Demetrios implementations with FFI exports
+- [ ] `DemetriosFFI.jl` — ccall wrappers
 
-### Phase 3: Pipeline (Week 3)
-1. [ ] `NCBIFetch.jl` — download, manifest, checksums
-2. [ ] `run_pipeline.jl` — end-to-end orchestration
-3. [ ] `CrossValidation.jl` — Demetrios vs Julia comparison
-4. [ ] `Validation.jl` — Technical validation suite
+### Phase 3: Pipeline
+- [ ] `NCBIFetch.jl` — download, manifest, checksums
+- [ ] `run_pipeline.jl` — end-to-end orchestration
+- [ ] `CrossValidation.jl` — implementation comparison
+- [ ] `Validation.jl` — technical validation suite
 
-### Phase 4: Outputs (Week 4)
-1. [ ] Generate all CSV tables
-2. [ ] `technical_validation.jl` — full validation report
-3. [ ] Figures for paper
-4. [ ] Zenodo deposit preparation
+### Phase 4: Outputs
+- [ ] Generate all CSV tables
+- [ ] Technical validation report
+- [ ] Zenodo deposit preparation
+- [ ] Scientific Data manuscript draft
 
 ---
 
 ## Coding Standards
 
 ### Julia
-- **Style**: Follow BlueStyle (https://github.com/invenia/BlueStyle)
-- **Types**: Use concrete types, avoid `Any`
-- **Docstrings**: Required for all exported functions
-- **Tests**: Property-based testing with Supposition.jl where applicable
-- **Manifest.toml**: ALWAYS commit, NEVER add to .gitignore
+```julia
+# Use BlueStyle formatting
+# All exported functions need docstrings
+# Concrete types, avoid Any
+# Property-based testing where applicable
 
-### Demetrios
-- **Style**: Follow project conventions in Chiuratto-AI/demetrios
-- **Units**: Use units of measure for all physical quantities
-- **Refinement**: Use refinement types for domain constraints
-- **Effects**: Explicitly declare all effects (IO, Alloc, GPU)
-- **FFI**: All exports must have C ABI via `#[export]`
+"""
+    orbit_ratio(seq::LongDNA{4}) -> Float64
 
-### General
-- **Commits**: Conventional commits (feat:, fix:, docs:, test:, refactor:)
-- **Branches**: `main` protected, develop on feature branches
-- **CI**: All tests must pass before merge
+Compute orbit ratio: |orbit| / |D₄|.
 
----
-
-## Dependencies
-
-### Julia (Project.toml)
-```toml
-[deps]
-BioSequences = "7e6ae17a-..."
-FASTX = "c2308a5c-..."
-CSV = "336ed68f-..."
-DataFrames = "a93c6f00-..."
-JSON3 = "0f8b85d8-..."
-SHA = "ea8e919c-..."
-HTTP = "cd3eb016-..."
-Quaternions = "94ee1d12-..."
-CUDA = "052768ef-..."  # Optional
-Statistics = "10745b16-..."
-Test = "8dfed614-..."
-Supposition = "..."  # Property-based testing
-
-[compat]
-julia = "1.10"
+# Returns
+- 0.25 if orbit size is 1
+- 0.5 if orbit size is 2
+- 1.0 if orbit size is 4
+"""
+function orbit_ratio(seq::LongDNA{4})
+    orbit_size(seq) / 4.0
+end
 ```
 
 ### Demetrios
-- Compiler: v0.63.0+
-- Features: `--features full` (units, refinement, gpu, ffi)
+```d
+// Use units of measure for physical quantities
+// Use refinement types for domain constraints
+// Explicit effect declarations
+// FFI exports with #[export] #[no_mangle]
 
----
+type OrbitRatio = { r: f64 | 0.25 <= r && r <= 1.0 }
 
-## Critical Constraints
+pub fn orbit_ratio(seq: &DNASeq) -> OrbitRatio with Alloc {
+    let size = orbit_size(seq) as f64
+    size / 4.0
+}
+```
 
-### Scientific Data Compliance
-1. **NO RESULTS IN DATA DESCRIPTOR**: Methods + Data Records + Technical Validation only
-2. **Data citations**: DOI required for all datasets
-3. **Reproducibility**: Must work with `git clone` + `make reproduce`
-
-### Reproducibility Requirements
-1. All random seeds must be explicit and logged
-2. Manifest.toml committed (Julia)
-3. Cargo.lock equivalent for Demetrios
-4. SHA256 checksums for all downloaded data
-5. Pipeline metadata JSON with versions, timestamps, parameters
-
-### Cross-Validation Criteria
-- Demetrios and Julia implementations must produce **identical** outputs
-- Tolerance: 0 for discrete values, 1e-12 for floating point
-- Any divergence is a **blocking bug**
+### Commits
+```
+feat: add quaternion lift verification
+fix: correct circular window extraction
+docs: update schema documentation
+test: add property-based tests for operators
+refactor: extract common validation logic
+```
 
 ---
 
 ## Commands Reference
 
-### Build
 ```bash
 # Full build
 make all
 
-# Demetrios only
-make demetrios
-
 # Julia only
 make julia
 
-# Tests
+# Demetrios only
+make demetrios
+
+# Run tests
 make test
 
 # Cross-validation
@@ -305,106 +250,131 @@ make cross-validate
 # Full pipeline
 make pipeline
 
-# Reproducibility check (clean + rebuild + compare checksums)
+# Reproducibility check
 make reproduce
 ```
 
 ### Julia REPL
 ```julia
-# Activate project
 using Pkg; Pkg.activate("julia")
-
-# Run tests
+Pkg.instantiate()  # First time only
 Pkg.test()
-
-# Run pipeline
 include("julia/scripts/run_pipeline.jl")
 ```
 
-### Demetrios
-```bash
-cd demetrios
-dc build --release --target=cdylib
-dc test
-```
+---
+
+## Critical Constraints
+
+### Scientific Data Compliance
+1. **NO RESULTS IN DATA DESCRIPTOR** — Methods + Data Records + Technical Validation only
+2. **Data citations required** — DOI for all datasets
+3. **Reproducibility** — Must work with `git clone` + `make reproduce`
+
+### Cross-Validation Requirements
+- Demetrios and Julia must produce **identical** outputs
+- Tolerance: 0 for discrete values, 1e-12 for floating point
+- **Any divergence is a blocking bug**
+
+### Reproducibility Requirements
+- All random seeds explicit and logged
+- `Manifest.toml` committed (never gitignored)
+- SHA256 checksums for all downloaded data
+- Pipeline metadata JSON with versions, timestamps
 
 ---
 
 ## Error Handling Protocol
 
-When encountering errors:
-
-1. **Compilation errors**: Fix immediately, do not proceed
-2. **Test failures**: Investigate root cause, fix before continuing
-3. **Cross-validation divergence**: STOP. This is critical. Debug until resolved.
-4. **NCBI fetch failures**: Implement retry with exponential backoff
-5. **Memory issues**: Profile, optimize, or batch processing
-
----
-
-## Communication Protocol
-
-### Progress Updates
-After completing each major component, provide:
-1. What was implemented
-2. Test results summary
-3. Any deviations from plan
-4. Next steps
-
-### Blocking Issues
-If blocked, clearly state:
-1. What is blocking
-2. What was attempted
-3. Proposed solutions
-4. Decision needed from PI
+| Error Type | Action |
+|------------|--------|
+| Compilation error | Fix immediately, do not proceed |
+| Test failure | Debug root cause, fix before continuing |
+| Cross-validation divergence | **STOP**. This is critical. Debug until resolved |
+| NCBI fetch failure | Retry with exponential backoff |
+| Memory issue | Profile, optimize, or batch |
 
 ---
 
 ## Quality Gates
 
-Before marking Phase complete:
-
+Before marking any phase complete:
 - [ ] All unit tests pass
-- [ ] No compiler warnings (Julia: `--warn-overwrite`, Demetrios: `-W all`)
-- [ ] Documentation complete for new functions
+- [ ] No compiler warnings
+- [ ] Documentation complete
 - [ ] Cross-validation passes (if applicable)
-- [ ] Code reviewed (self-review checklist below)
+- [ ] Self-review checklist complete
 
 ### Self-Review Checklist
 - [ ] No hardcoded paths
-- [ ] No magic numbers (use named constants)
-- [ ] Error messages are informative
+- [ ] No magic numbers
+- [ ] Error messages informative
 - [ ] Edge cases handled
-- [ ] Performance acceptable for target scale
+- [ ] Performance acceptable
 
 ---
 
 ## Target Scale
 
-- **Replicons**: ~50,000 complete bacterial genomes
-- **Window sizes**: 100, 500, 1000, 5000, 10000 bp
-- **Processing time target**: < 24h on single node (L4 GPU available)
-- **Memory budget**: 192 GB DDR5 available, target < 64 GB peak
+| Metric | Target |
+|--------|--------|
+| Replicons | ~50,000 complete bacterial genomes |
+| Window sizes | 100, 500, 1000, 5000, 10000 bp |
+| Processing time | < 24h on single node |
+| Memory peak | < 64 GB (192 GB available) |
+| GPU | L4 24GB + RTX 4000 Ada 20GB available |
 
 ---
 
-## References
+## Communication Protocol
 
-1. SkewDB paper and repository (template for Data Descriptor)
-2. Scientific Data Data Descriptor guidelines
-3. Demetrios Language Specification (Chiuratto-AI/demetrios)
-4. BioJulia documentation
-5. NCBI Datasets API documentation
+### Progress Updates (after each major component)
+1. What was implemented
+2. Test results summary
+3. Deviations from plan
+4. Next steps
 
----
-
-## Contact
-
-- **PI**: Demetrios Chiuratto Agourakis
-- **Repository**: [to be filled]
-- **Issues**: GitHub Issues for this repository
+### Blocking Issues (when stuck)
+1. What is blocking
+2. What was attempted
+3. Proposed solutions
+4. Decision needed
 
 ---
 
-*Last updated: 2025-12-15*
+## Key Files to Reference
+
+| File | Purpose |
+|------|---------|
+| `julia/src/Types.jl` | All type definitions |
+| `julia/src/Operators.jl` | Reference implementation |
+| `julia/test/runtests.jl` | Test suite entry |
+| `demetrios/src/ffi.d` | FFI interface spec |
+| `Makefile` | Build commands |
+
+---
+
+## External References
+
+1. **SkewDB** — Template for Data Descriptor structure
+2. **Scientific Data guidelines** — Data Descriptor format requirements
+3. **Demetrios Language** — https://github.com/Chiuratto-AI/demetrios
+4. **BioJulia docs** — BioSequences.jl, FASTX.jl
+5. **NCBI Datasets API** — Data acquisition
+
+---
+
+## Initialization Command
+
+To bootstrap this project, run:
+```bash
+bash init_project.sh darwin-atlas
+cd darwin-atlas
+julia --project=julia -e 'using Pkg; Pkg.instantiate()'
+julia --project=julia -e 'using Pkg; Pkg.test()'
+```
+
+---
+
+*Last updated: 2025-12-14*
 *CLAUDE.md version: 1.0.0*
