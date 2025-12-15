@@ -7,7 +7,7 @@ Implements the double cover Dic_n → D_n for verifying
 algebraic structure of genomic symmetries.
 """
 
-using Quaternions: Quaternion, quat
+using Rotations: QuatRotation
 
 """
     DicyclicGroup
@@ -43,7 +43,7 @@ order(g::DicyclicGroup) = 4 * g.n
 Element of Dic_n represented as a unit quaternion.
 """
 struct DicyclicElement
-    q::Quaternion{Float64}
+    q::QuatRotation{Float64}
 end
 
 """
@@ -64,12 +64,12 @@ function dicyclic_element(g::DicyclicGroup, k::Int, is_reflection::Bool)::Dicycl
     n = g.n
     θ = π * k / n
 
-    # a = exp(πi/n) as unit quaternion
-    a_k = quat(cos(θ), sin(θ), 0.0, 0.0)
+    # a = exp(πi/n) as unit quaternion (w, x, y, z) = (cos θ, sin θ, 0, 0)
+    a_k = QuatRotation(cos(θ), sin(θ), 0.0, 0.0)
 
     if is_reflection
-        # b = j in quaternion representation
-        b = quat(0.0, 0.0, 1.0, 0.0)
+        # b = j in quaternion representation (w, x, y, z) = (0, 0, 1, 0)
+        b = QuatRotation(0.0, 0.0, 1.0, 0.0)
         return DicyclicElement(a_k * b)
     else
         return DicyclicElement(a_k)
@@ -91,17 +91,14 @@ function project_to_dihedral(elem::DicyclicElement, g::DicyclicGroup)::Tuple{Int
     n = g.n
 
     # Check if reflection (has j or k component)
-    is_reflection = abs(imag_part(q)[2]) > 1e-10 || abs(imag_part(q)[3]) > 1e-10
+    is_reflection = abs(q.q.v2) > 1e-10 || abs(q.q.v3) > 1e-10
 
     # Extract rotation angle from w + xi part
-    angle = atan(imag_part(q)[1], real(q))
+    angle = atan(q.q.v1, q.q.s)
     k = mod(round(Int, angle * n / π), n)
 
     return (k, is_reflection)
 end
-
-# Helper to extract imaginary parts
-imag_part(q::Quaternion) = (q.v1, q.v2, q.v3)
 
 """
     verify_double_cover(g::DicyclicGroup) -> Bool
@@ -117,7 +114,8 @@ function verify_double_cover(g::DicyclicGroup)::Bool
     for k in 0:(2*n - 1)
         for is_ref in [false, true]
             elem = dicyclic_element(g, k, is_ref)
-            neg_elem = DicyclicElement(quat(-real(elem.q), -imag_part(elem.q)...))
+            q = elem.q
+            neg_elem = DicyclicElement(QuatRotation(-q.q.s, -q.q.v1, -q.q.v2, -q.q.v3))
 
             proj1 = project_to_dihedral(elem, g)
             proj2 = project_to_dihedral(neg_elem, g)

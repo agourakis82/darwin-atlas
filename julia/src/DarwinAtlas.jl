@@ -87,8 +87,9 @@ export compute_symmetry_stats
 export dmin, dmin_normalized, nearest_transform
 
 # Exports - Quaternion
-export DicyclicGroup, dicyclic_element, verify_double_cover
-export project_to_dihedral
+export DicyclicGroup, DicyclicElement, order
+export dicyclic_element, verify_double_cover
+export project_to_dihedral, all_elements
 
 # Exports - Pipeline
 export fetch_ncbi, run_pipeline, generate_tables
