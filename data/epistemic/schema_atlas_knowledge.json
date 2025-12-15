@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/agourakis82/darwin-atlas/epistemic/atlas_knowledge",
+  "title": "Atlas Knowledge Record",
+  "description": "Demetrios epistemic Knowledge[T] record for Atlas pipeline outputs",
+  "type": "object",
+  "required": ["record_type", "metric_name", "value", "validity", "provenance"],
+  "properties": {
+    "record_type": {
+      "type": "string",
+      "enum": ["replicon_metric", "window_metric", "approx_symmetry", "dicyclic_lift", "quaternion_result"],
+      "description": "Classification of the knowledge record"
+    },
+    "metric_name": {
+      "type": "string",
+      "description": "Name of the metric (e.g., gc_fraction, orbit_ratio, dmin_over_L)"
+    },
+    "value": {
+      "description": "The metric value (number, string, or structured object)",
+      "oneOf": [
+        {"type": "number"},
+        {"type": "string"},
+        {"type": "boolean"},
+        {"type": "object"}
+      ]
+    },
+    "epsilon": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Error bound / uncertainty. Null if unknown, 0 if deterministic exact."
+    },
+    "confidence": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Epistemic confidence in [0,1]. Null if unknown, 1.0 if deterministic."
+    },
+    "validity": {
+      "type": "object",
+      "required": ["holds"],
+      "properties": {
+        "holds": {
+          "type": "boolean",
+          "description": "Whether validity predicate is satisfied"
+        },
+        "predicate": {
+          "type": "string",
+          "description": "Human-readable constraint (e.g., '0 <= x <= 1')"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["atlas_git_sha", "timestamp_utc"],
+      "properties": {
+        "assembly_accession": {"type": ["string", "null"]},
+        "replicon_id": {"type": ["string", "null"]},
+        "replicon_accession": {"type": ["string", "null"]},
+        "window_length": {"type": ["integer", "null"]},
+        "pipeline_max": {"type": "integer"},
+        "pipeline_seed": {"type": "integer"},
+        "atlas_git_sha": {"type": "string"},
+        "atlas_version": {"type": "string"},
+        "demetrios_schema_version": {"type": "string"},
+        "timestamp_utc": {"type": "string", "format": "date-time"},
+        "ncbi_filter": {
+          "type": "object",
+          "properties": {
+            "assembly_level": {"type": "string"},
+            "source": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}
