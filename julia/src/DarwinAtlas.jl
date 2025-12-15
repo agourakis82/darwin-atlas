@@ -96,5 +96,6 @@ export fetch_ncbi, run_pipeline, generate_tables
 
 # Exports - Validation
 export validate_operators, validate_symmetry, run_technical_validation
+export generate_tables, generate_theoretical_tables
 
 end # module

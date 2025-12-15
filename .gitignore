@@ -5,7 +5,8 @@ data/manifest/*.sha256
 data/tables/*.csv
 
 # Julia
-julia/Manifest.toml
+# NOTE: Manifest.toml MUST be committed for reproducibility (Scientific Data requirement)
+# julia/Manifest.toml  <- DISABLED: reproducibility requires exact versions
 *.jl.cov
 *.jl.*.cov
 *.jl.mem

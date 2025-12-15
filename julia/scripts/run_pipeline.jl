@@ -84,7 +84,7 @@ function main()
 
     # Step 3: Generate tables
     println("\n[Step 3] Generating output tables...")
-    # generate_tables(data_dir)
+    generate_tables(data_dir)
 
     println("\n" * "="^60)
     println("PIPELINE COMPLETE")

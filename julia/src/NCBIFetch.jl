@@ -11,8 +11,11 @@ using HTTP
 using JSON3
 using SHA
 using Dates
-using CodecZlib
+using CodecZlib: GzipDecompressorStream
 using ProgressMeter
+using Random
+using FASTX: FASTA
+using BioSequences: LongDNA
 
 const NCBI_DATASETS_API = "https://api.ncbi.nlm.nih.gov/datasets/v2alpha"
 const NCBI_FTP_BASE = "https://ftp.ncbi.nlm.nih.gov/genomes/all"
@@ -180,8 +183,56 @@ Parse a genome FASTA file and extract replicon metadata.
 function parse_genome_fasta(path::String, assembly, checksum::String)::Vector{RepliconRecord}
     records = RepliconRecord[]
 
-    # Would parse FASTA here and create RepliconRecord for each sequence
-    # Simplified for structure
+    accession = get(assembly, "accession", "unknown")
+    taxid = get(assembly, "taxid", 0)
+    organism_name = get(assembly, "organism_name", "Unknown organism")
+    source = get(assembly, "source", "REFSEQ")
+
+    # Open gzipped FASTA file
+    open(path, "r") do io
+        reader = FASTA.Reader(GzipDecompressorStream(io))
+
+        replicon_idx = 0
+        for record in reader
+            replicon_idx += 1
+
+            # Extract sequence
+            seq = LongDNA{4}(FASTA.sequence(record))
+            header = FASTA.description(record)
+
+            # Parse replicon type from header
+            rtype = if occursin(r"plasmid"i, header)
+                PLASMID
+            elseif occursin(r"chromosome"i, header) || replicon_idx == 1
+                CHROMOSOME
+            else
+                OTHER
+            end
+
+            # Extract replicon accession if present
+            replicon_acc = match(r"^([A-Z]{1,2}_?[0-9]+(?:\.[0-9]+)?)", header)
+            replicon_accession = replicon_acc !== nothing ? replicon_acc.match : nothing
+
+            # Generate stable replicon ID
+            replicon_id = "$(accession)_rep$(replicon_idx)"
+
+            push!(records, RepliconRecord(
+                accession,
+                replicon_id,
+                replicon_accession,
+                rtype,
+                length(seq),
+                gc_content(seq),
+                Int64(taxid),
+                organism_name,
+                source == "REFSEQ" ? REFSEQ : GENBANK,
+                today(),
+                checksum
+            ))
+        end
+
+        close(reader)
+    end
 
     return records
 end

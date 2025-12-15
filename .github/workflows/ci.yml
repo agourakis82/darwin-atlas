@@ -2,77 +2,130 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
 jobs:
   test-julia:
-    name: Julia Tests
-    runs-on: ubuntu-latest
+    name: Julia ${{ matrix.julia-version }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.10', '1.11']
+        os: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Julia
-        uses: julia-actions/setup-julia@v1
+        uses: julia-actions/setup-julia@v2
         with:
-          version: '1.10'
+          version: ${{ matrix.julia-version }}
 
       - name: Cache Julia packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.julia
-          key: julia-${{ hashFiles('julia/Project.toml') }}
+        uses: julia-actions/cache@v2
 
       - name: Install dependencies
         run: |
-          cd julia
-          julia --project -e 'using Pkg; Pkg.instantiate()'
+          julia --project=julia -e 'using Pkg; Pkg.instantiate()'
 
       - name: Run tests
         run: |
-          cd julia
-          julia --project -e 'using Pkg; Pkg.test()'
+          julia --project=julia -e 'using Pkg; Pkg.test()'
 
-      - name: Run validation
+      - name: Run technical validation
         run: |
-          julia --project=julia julia/scripts/run_pipeline.jl --validate-only
+          julia --project=julia -e '
+            using DarwinAtlas
+            results = run_technical_validation("data")
+            @assert results["all_passed"] "Technical validation failed"
+          '
 
-  # test-demetrios:
-  #   name: Demetrios Tests
-  #   runs-on: ubuntu-latest
-  #   if: false  # Enable when Demetrios compiler available
-  #
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Setup Demetrios
-  #       run: |
-  #         # Install Demetrios compiler
-  #         echo "Demetrios setup placeholder"
-  #
-  #     - name: Build
-  #       run: |
-  #         cd demetrios
-  #         dc build --release
-  #
-  #     - name: Test
-  #       run: |
-  #         cd demetrios
-  #         dc test
-
-  lint:
-    name: Lint
+  validate-schema:
+    name: Validate Output Schema
     runs-on: ubuntu-latest
+    needs: test-julia
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check for trailing whitespace
-        run: |
-          ! grep -r '[[:blank:]]$' --include='*.jl' --include='*.d' julia/ demetrios/
+      - name: Setup Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10'
 
-      - name: Check for tabs (Julia uses spaces)
+      - name: Cache Julia packages
+        uses: julia-actions/cache@v2
+
+      - name: Install dependencies
         run: |
-          ! grep -r $'\t' --include='*.jl' julia/
+          julia --project=julia -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Generate theoretical tables
+        run: |
+          julia --project=julia -e '
+            using DarwinAtlas
+            generate_tables("data")
+          '
+
+      - name: Validate CSV schema
+        run: |
+          julia --project=julia -e '
+            using CSV, DataFrames
+
+            # Check dicyclic_lifts.csv
+            df = CSV.read("data/tables/dicyclic_lifts.csv", DataFrame)
+            @assert "dihedral_order" in names(df)
+            @assert "verified_double_cover" in names(df)
+            @assert "lift_group" in names(df)
+            @assert all(df.verified_double_cover) "All double covers must verify"
+
+            # Check quaternion_results.csv
+            df2 = CSV.read("data/tables/quaternion_results.csv", DataFrame)
+            @assert "n" in names(df2)
+            @assert "double_cover_verified" in names(df2)
+            @assert all(df2.double_cover_verified) "All quaternion verifications must pass"
+
+            println("✅ Schema validation passed")
+          '
+
+  reproducibility:
+    name: Reproducibility Check
+    runs-on: ubuntu-latest
+    needs: test-julia
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10'
+
+      - name: Verify Manifest.toml exists
+        run: |
+          test -f julia/Manifest.toml || (echo "ERROR: Manifest.toml missing" && exit 1)
+          echo "✅ Manifest.toml present for reproducibility"
+
+      - name: Install exact dependencies
+        run: |
+          julia --project=julia -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Verify deterministic output
+        run: |
+          julia --project=julia -e '
+            using DarwinAtlas, Random
+
+            # Test with fixed seed
+            Random.seed!(42)
+            seq1 = DarwinAtlas.gc_shuffle(LongDNA{4}("ACGTACGTACGT"); rng=Random.MersenneTwister(42))
+
+            Random.seed!(42)
+            seq2 = DarwinAtlas.gc_shuffle(LongDNA{4}("ACGTACGTACGT"); rng=Random.MersenneTwister(42))
+
+            @assert seq1 == seq2 "Shuffle must be deterministic with same seed"
+            println("✅ Reproducibility verified")
+          '

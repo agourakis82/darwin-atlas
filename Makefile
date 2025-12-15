@@ -70,7 +70,7 @@ test-demetrios:
 # Cross-validation
 cross-validate: demetrios julia
 	@echo "Running cross-validation..."
-	$(JULIA) julia/scripts/cross_validate.jl
+	$(JULIA) julia/scripts/cross_validation.jl
 
 # Pipeline
 MAX ?= 200

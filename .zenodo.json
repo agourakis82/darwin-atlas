@@ -1,8 +1,8 @@
 {
-  "title": "Darwin Operator Symmetry Atlas (DOSA)",
-  "description": "A comprehensive database of operator-defined symmetries in complete bacterial replicons, implementing dihedral group analysis with dicyclic group verification.",
+  "title": "Darwin Operator Symmetry Atlas (DOSA): A database of dihedral symmetries in complete bacterial replicons",
+  "description": "A reproducible, DOI-versioned database of operator-defined symmetries in complete bacterial replicons. DOSA implements a hybrid Julia/Demetrios architecture for computing exact and approximate dihedral symmetry metrics across ~50,000 bacterial genomes. The atlas provides: (1) exact symmetry metrics including orbit sizes and palindrome detection; (2) approximate symmetry via normalized minimum dihedral distance (d_min/L); and (3) algebraic verification of dicyclic group structure (Dic_n → D_n double cover).",
   "upload_type": "dataset",
-  "publication_date": "2025",
+  "publication_date": "2025-12-14",
   "creators": [
     {
       "name": "Agourakis, Demetrios Chiuratto",
@@ -11,27 +11,36 @@
     }
   ],
   "keywords": [
-    "genomics",
     "bacterial genomes",
-    "symmetry",
-    "dihedral group",
-    "quaternions",
+    "dihedral symmetry",
+    "reverse complement",
+    "genomic operators",
+    "palindrome sequences",
     "bioinformatics",
-    "operator algebra"
+    "reproducible research",
+    "scientific data"
   ],
-  "license": "CC-BY-4.0",
-  "access_right": "open",
+  "license": {
+    "id": "CC-BY-4.0"
+  },
+  "communities": [
+    {
+      "identifier": "bioinformatics"
+    },
+    {
+      "identifier": "genomics"
+    }
+  ],
   "related_identifiers": [
     {
       "identifier": "https://github.com/YOUR_USERNAME/darwin-atlas",
       "relation": "isSupplementTo",
-      "resource_type": "software"
+      "scheme": "url"
     }
   ],
-  "communities": [
-    {
-      "identifier": "zenodo"
-    }
-  ],
-  "notes": "Data descriptor submitted to Scientific Data (Nature Portfolio)"
+  "grants": [],
+  "version": "2.0.0-alpha",
+  "language": "eng",
+  "access_right": "open",
+  "notes": "This dataset accompanies a Data Descriptor manuscript submitted to Scientific Data (Nature Portfolio). All code and data are fully reproducible via 'git clone' + 'make reproduce'."
 }
