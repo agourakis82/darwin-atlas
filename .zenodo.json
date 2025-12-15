@@ -1,0 +1,37 @@
+{
+  "title": "Darwin Operator Symmetry Atlas (DOSA)",
+  "description": "A comprehensive database of operator-defined symmetries in complete bacterial replicons, implementing dihedral group analysis with dicyclic group verification.",
+  "upload_type": "dataset",
+  "publication_date": "2025",
+  "creators": [
+    {
+      "name": "Agourakis, Demetrios Chiuratto",
+      "affiliation": "Independent Researcher",
+      "orcid": "0000-0000-0000-0000"
+    }
+  ],
+  "keywords": [
+    "genomics",
+    "bacterial genomes",
+    "symmetry",
+    "dihedral group",
+    "quaternions",
+    "bioinformatics",
+    "operator algebra"
+  ],
+  "license": "CC-BY-4.0",
+  "access_right": "open",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/YOUR_USERNAME/darwin-atlas",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    }
+  ],
+  "communities": [
+    {
+      "identifier": "zenodo"
+    }
+  ],
+  "notes": "Data descriptor submitted to Scientific Data (Nature Portfolio)"
+}

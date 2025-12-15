@@ -1,0 +1,32 @@
+# Data
+data/raw/
+data/manifest/*.jsonl
+data/manifest/*.sha256
+data/tables/*.csv
+
+# Julia
+julia/Manifest.toml
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+
+# Demetrios
+demetrios/target/
+*.so
+*.dylib
+*.dll
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.log

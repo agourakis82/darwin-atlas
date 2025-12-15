@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-julia:
+    name: Julia Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Julia
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: '1.10'
+
+      - name: Cache Julia packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.julia
+          key: julia-${{ hashFiles('julia/Project.toml') }}
+
+      - name: Install dependencies
+        run: |
+          cd julia
+          julia --project -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Run tests
+        run: |
+          cd julia
+          julia --project -e 'using Pkg; Pkg.test()'
+
+      - name: Run validation
+        run: |
+          julia --project=julia julia/scripts/run_pipeline.jl --validate-only
+
+  # test-demetrios:
+  #   name: Demetrios Tests
+  #   runs-on: ubuntu-latest
+  #   if: false  # Enable when Demetrios compiler available
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Setup Demetrios
+  #       run: |
+  #         # Install Demetrios compiler
+  #         echo "Demetrios setup placeholder"
+  #
+  #     - name: Build
+  #       run: |
+  #         cd demetrios
+  #         dc build --release
+  #
+  #     - name: Test
+  #       run: |
+  #         cd demetrios
+  #         dc test
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for trailing whitespace
+        run: |
+          ! grep -r '[[:blank:]]$' --include='*.jl' --include='*.d' julia/ demetrios/
+
+      - name: Check for tabs (Julia uses spaces)
+        run: |
+          ! grep -r $'\t' --include='*.jl' julia/

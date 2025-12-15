@@ -1,0 +1,23 @@
+[package]
+name = "darwin-atlas-kernels"
+version = "0.1.0"
+authors = ["Demetrios Chiuratto Agourakis <demetrios@agourakis.med.br>"]
+description = "High-performance kernels for Darwin Operator Symmetry Atlas"
+
+[features]
+default = ["units", "refinement", "ffi"]
+full = ["units", "refinement", "gpu", "ffi"]
+units = []
+refinement = []
+gpu = []
+ffi = []
+
+[lib]
+name = "darwin_kernels"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Standard library modules used
+# stdlib.units
+# stdlib.refinement
+# stdlib.ffi
