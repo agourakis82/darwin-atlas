@@ -17,8 +17,9 @@ using Random
 using FASTX: FASTA
 using BioSequences: LongDNA
 
-const NCBI_DATASETS_API = "https://api.ncbi.nlm.nih.gov/datasets/v2alpha"
+const NCBI_DATASETS_API = "https://api.ncbi.nlm.nih.gov/datasets/v2"
 const NCBI_FTP_BASE = "https://ftp.ncbi.nlm.nih.gov/genomes/all"
+const NCBI_ASSEMBLY_SUMMARY = "https://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/assembly_summary.txt"
 
 """
     fetch_ncbi(;
@@ -117,33 +118,79 @@ end
 """
     query_ncbi_assemblies(taxon, assembly_level, max_genomes, seed)
 
-Query NCBI Datasets API for genome assemblies.
+Query NCBI RefSeq assembly summary for complete bacterial genomes.
+Uses the stable FTP assembly_summary.txt file.
 """
 function query_ncbi_assemblies(taxon::String, assembly_level::String, max_genomes::Int, seed::Int)
-    # Simplified implementation - in production would use NCBI Datasets API
-    # For now, returns placeholder structure
-
-    url = "$NCBI_DATASETS_API/genome/taxon/$taxon"
-    params = Dict(
-        "filters.assembly_level" => assembly_level,
-        "page_size" => min(max_genomes, 1000)
-    )
+    println("  Downloading assembly summary from NCBI RefSeq...")
 
     try
-        response = HTTP.get(url; query=params, retry=true, retries=3)
-        data = JSON3.read(response.body)
+        # Download assembly summary (tab-separated)
+        response = HTTP.get(NCBI_ASSEMBLY_SUMMARY; 
+            retry=true, retries=3, 
+            connect_timeout=30, 
+            readtimeout=120)
 
-        assemblies = get(data, :reports, [])
+        lines = split(String(response.body), '\n')
+
+        # Parse header (skip comment lines starting with ##)
+        header_idx = findfirst(l -> startswith(l, "#assembly_accession"), lines)
+        if header_idx === nothing
+            @warn "Could not find header in assembly summary"
+            return []
+        end
+
+        # Get column names from header (remove leading #)
+        header_line = replace(lines[header_idx], r"^#" => "")
+        columns = split(header_line, '\t')
+
+        # Find relevant column indices
+        acc_idx = findfirst(==("assembly_accession"), columns)
+        level_idx = findfirst(==("assembly_level"), columns)
+        ftp_idx = findfirst(==("ftp_path"), columns)
+        taxid_idx = findfirst(==("taxid"), columns)
+        org_idx = findfirst(==("organism_name"), columns)
+
+        if any(isnothing, [acc_idx, level_idx, ftp_idx])
+            @warn "Missing required columns in assembly summary"
+            return []
+        end
+
+        # Filter for complete genomes
+        assemblies = Dict{String, Any}[]
+        for line in lines[header_idx+1:end]
+            isempty(strip(line)) && continue
+            startswith(line, '#') && continue
+
+            fields = split(line, '\t')
+            length(fields) < max(acc_idx, level_idx, ftp_idx) && continue
+
+            # Filter by assembly level
+            if lowercase(fields[level_idx]) == "complete genome"
+                ftp_path = fields[ftp_idx]
+                ftp_path == "na" && continue
+
+                push!(assemblies, Dict(
+                    "accession" => fields[acc_idx],
+                    "ftp_path" => ftp_path,
+                    "taxid" => taxid_idx !== nothing ? tryparse(Int, fields[taxid_idx]) : 0,
+                    "organism_name" => org_idx !== nothing ? fields[org_idx] : "Unknown"
+                ))
+            end
+        end
+
+        println("  Found $(length(assemblies)) complete bacterial genomes")
 
         # Sample if needed
         if length(assemblies) > max_genomes
             rng = Random.MersenneTwister(seed)
             assemblies = Random.shuffle(rng, assemblies)[1:max_genomes]
+            println("  Sampled $max_genomes genomes (seed=$seed)")
         end
 
         return assemblies
     catch e
-        @warn "NCBI API query failed: $e"
+        @warn "NCBI assembly summary fetch failed: $e"
         return []
     end
 end
@@ -151,23 +198,46 @@ end
 """
     download_genome(assembly, output_dir) -> (path, checksum)
 
-Download a single genome assembly.
+Download a single genome assembly from NCBI FTP.
 """
 function download_genome(assembly, output_dir::String)
     accession = assembly["accession"]
+    ftp_base = assembly["ftp_path"]
 
-    # Construct FTP path
-    prefix = accession[1:3]
-    part1 = accession[5:7]
-    part2 = accession[8:10]
-    part3 = accession[11:13]
+    # Handle "na" or empty paths
+    if ftp_base == "na" || isempty(ftp_base)
+        error("No FTP path available for $accession")
+    end
 
-    ftp_path = "$NCBI_FTP_BASE/$prefix/$part1/$part2/$part3/$(accession)_*/$(accession)_*_genomic.fna.gz"
+    # Convert FTP to HTTPS (more reliable)
+    ftp_base = replace(ftp_base, "ftp://" => "https://")
+
+    # Get the assembly directory name from the path
+    asm_name = basename(ftp_base)
+
+    # Construct full path to genomic FASTA
+    fasta_url = "$ftp_base/$(asm_name)_genomic.fna.gz"
 
     local_path = joinpath(output_dir, "$(accession)_genomic.fna.gz")
 
-    # Download
-    HTTP.download(ftp_path, local_path; retry=true, retries=3)
+    # Skip if already downloaded
+    if isfile(local_path)
+        checksum = bytes2hex(sha256(read(local_path)))
+        return (local_path, checksum)
+    end
+
+    # Download with retries
+    for attempt in 1:3
+        try
+            HTTP.download(fasta_url, local_path; 
+                connect_timeout=30, 
+                readtimeout=300)
+            break
+        catch e
+            attempt == 3 && rethrow(e)
+            sleep(2^attempt)  # Exponential backoff
+        end
+    end
 
     # Compute checksum
     checksum = bytes2hex(sha256(read(local_path)))
