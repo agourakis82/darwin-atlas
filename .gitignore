@@ -31,3 +31,13 @@ Thumbs.db
 # Temporary
 *.tmp
 *.log
+
+# Snapshot outputs (generated, not committed)
+dist/
+
+# Generated epistemic outputs (except schema)
+data/epistemic/atlas_knowledge.jsonl
+data/epistemic/atlas_knowledge_report.md
+data/epistemic/atlas_provenance.json
+data/epistemic/atlas_knowledge_sample_50.jsonl
+data/epistemic/release_assets_checksums.sha256
