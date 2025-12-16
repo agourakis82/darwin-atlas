@@ -1,4 +1,4 @@
-.PHONY: all setup demetrios julia test cross-validate pipeline reproduce clean help epistemic export-knowledge verify-knowledge
+.PHONY: all setup demetrios julia test cross-validate pipeline reproduce clean help epistemic export-knowledge verify-knowledge snapshot snapshot-full snapshot-zip atlas query
 
 JULIA := julia --project=julia
 DEMETRIOS := dc
@@ -7,24 +7,33 @@ DEMETRIOS := dc
 all: setup demetrios julia test
 
 help:
-	@echo "Darwin Operator Symmetry Atlas - Build System"
+	@echo "DSLG Atlas - Demetrios Operator Symmetry Atlas - Build System v2.0"
 	@echo ""
-	@echo "Targets:"
-	@echo "  setup          Install dependencies"
-	@echo "  demetrios      Build Demetrios kernels"
-	@echo "  julia          Build Julia package"
-	@echo "  test           Run all tests"
-	@echo "  cross-validate Run Demetrios vs Julia validation"
-	@echo "  pipeline       Run full analysis pipeline"
+	@echo "Primary Targets:"
+	@echo "  atlas          Run unified Atlas pipeline (Parquet + CSV)"
+	@echo "  query          Query Atlas dataset with SQL"
 	@echo "  epistemic      Export + verify epistemic Knowledge layer"
-	@echo "  reproduce      Clean + rebuild + verify checksums"
+	@echo "  snapshot       Build dataset snapshot for Zenodo/DOI"
+	@echo ""
+	@echo "Build Targets:"
+	@echo "  setup          Install dependencies"
+	@echo "  test           Run all tests"
+	@echo "  pipeline       Legacy pipeline (CSV only)"
 	@echo "  clean          Remove build artifacts"
 	@echo ""
+	@echo "Parameters:"
+	@echo "  MAX=N          Maximum genomes (default: 200)"
+	@echo "  SCALE=N        Scale target (overrides MAX)"
+	@echo "  SEED=N         Random seed (default: 42)"
+	@echo "  QUERY=\"SQL\"    SQL query for query target"
+	@echo ""
 	@echo "Examples:"
-	@echo "  make all                 # Full build"
-	@echo "  make test                # Run tests only"
-	@echo "  make pipeline MAX=50     # Run pipeline with 50 genomes"
-	@echo "  make epistemic MAX=50    # Export + validate Knowledge layer"
+	@echo "  make atlas MAX=50 SEED=42           # Fast gate (50 replicons)"
+	@echo "  make atlas MAX=200 SEED=42          # Medium gate"
+	@echo "  make atlas SCALE=10000 SEED=42      # Scale run"
+	@echo "  make query QUERY=\"SELECT * FROM atlas_replicons LIMIT 10\""
+	@echo "  make epistemic MAX=50 SEED=42       # Export Knowledge layer"
+	@echo "  make snapshot MAX=200 SEED=42       # Build Zenodo snapshot"
 
 # Setup
 setup: setup-julia setup-demetrios
@@ -74,12 +83,51 @@ cross-validate: demetrios julia
 	@echo "Running cross-validation..."
 	$(JULIA) julia/scripts/cross_validation.jl
 
-# Pipeline
+# =============================================================================
+# Pipeline Parameters
+# =============================================================================
+
 MAX ?= 200
 SEED ?= 42
+SCALE ?= 0
+QUERY ?= SELECT * FROM atlas_replicons LIMIT 10
+
+# =============================================================================
+# Atlas Pipeline v2 (Parquet + CSV + DuckDB)
+# =============================================================================
+
+# Unified Atlas command - produces Parquet partitions + CSV views
+atlas: setup
+	@echo "Running DSLG Atlas pipeline v2..."
+	@if [ "$(SCALE)" -gt 0 ]; then \
+		$(JULIA) julia/scripts/run_atlas.jl --scale $(SCALE) --seed $(SEED); \
+	else \
+		$(JULIA) julia/scripts/run_atlas.jl --max $(MAX) --seed $(SEED); \
+	fi
+
+# Query Atlas dataset with DuckDB SQL
+query:
+	@echo "Querying Atlas dataset..."
+	$(JULIA) julia/scripts/query_atlas.jl "$(QUERY)"
+
+# Query with example
+query-example:
+	$(JULIA) julia/scripts/query_atlas.jl --example $(EXAMPLE)
+
+# List available example queries
+query-examples:
+	$(JULIA) julia/scripts/query_atlas.jl --list-examples
+
+# Show schema
+query-schema:
+	$(JULIA) julia/scripts/query_atlas.jl --schema
+
+# =============================================================================
+# Legacy Pipeline (CSV only)
+# =============================================================================
 
 pipeline: setup
-	@echo "Running analysis pipeline..."
+	@echo "Running legacy pipeline (CSV only)..."
 	$(JULIA) julia/scripts/run_pipeline.jl --max-genomes $(MAX) --seed $(SEED)
 
 # Validation only
@@ -90,18 +138,6 @@ validate:
 reproduce: clean all pipeline
 	@echo "Verifying checksums..."
 	cd data/manifest && sha256sum -c checksums.sha256
-
-# Clean
-clean:
-	@echo "Cleaning build artifacts..."
-	rm -rf data/tables/*.csv
-	rm -rf data/manifest/*.jsonl
-	rm -rf demetrios/target
-	rm -rf julia/Manifest.toml
-
-cleanall: clean
-	@echo "Cleaning all data..."
-	rm -rf data/raw/*
 
 # =============================================================================
 # Epistemic Knowledge Layer (Demetrios L0 integration)
@@ -134,7 +170,52 @@ epistemic: export-knowledge verify-knowledge
 # Epistemic with pipeline (run full analysis first if tables missing)
 epistemic-full:
 	@if [ ! -f data/tables/atlas_replicons.csv ]; then \
-		echo "Tables not found, running pipeline first..."; \
-		$(MAKE) pipeline MAX=$(MAX) SEED=$(SEED); \
+		echo "Tables not found, running atlas first..."; \
+		$(MAKE) atlas MAX=$(MAX) SEED=$(SEED); \
 	fi
 	$(MAKE) epistemic MAX=$(MAX) SEED=$(SEED)
+
+# =============================================================================
+# Snapshot Builder (for Zenodo/DOI)
+# =============================================================================
+
+# Build deterministic dataset snapshot v2
+# Usage: make snapshot MAX=50 SEED=42
+snapshot:
+	@echo "Building dataset snapshot v2..."
+	@./scripts/make_snapshot.sh $(MAX) $(SEED)
+
+# Build snapshot with full pipeline (if tables missing)
+snapshot-full:
+	@if [ ! -f dist/atlas_dataset_v2/csv/atlas_replicons.csv ]; then \
+		echo "Dataset not found, running atlas first..."; \
+		$(MAKE) atlas MAX=$(MAX) SEED=$(SEED); \
+		$(MAKE) epistemic MAX=$(MAX) SEED=$(SEED); \
+	fi
+	$(MAKE) snapshot MAX=$(MAX) SEED=$(SEED)
+
+# Create zip archive for Zenodo upload
+snapshot-zip: snapshot
+	@echo "Creating zip archive..."
+	@cd dist && zip -r atlas_snapshot_v2.zip atlas_snapshot_v2/
+	@echo "Archive created: dist/atlas_snapshot_v2.zip"
+
+# =============================================================================
+# Clean
+# =============================================================================
+
+clean:
+	@echo "Cleaning build artifacts..."
+	rm -rf data/tables/*.csv
+	rm -rf data/manifest/*.jsonl
+	rm -rf demetrios/target
+	rm -rf julia/Manifest.toml
+
+cleanall: clean
+	@echo "Cleaning all data..."
+	rm -rf data/raw/*
+	rm -rf dist/atlas_dataset_v2
+
+cleandist:
+	@echo "Cleaning dist directory..."
+	rm -rf dist/*
