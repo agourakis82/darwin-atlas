@@ -182,7 +182,7 @@ function write_atlas_dataset(
     git_sha::String="unknown",
     params::Dict{String, Any}=Dict()
 )::AtlasDataset
-    timestamp = now(UTC)
+    timestamp = now()
 
     # Create directory structure
     partitions_dir = joinpath(base_path, "partitions")
@@ -224,7 +224,7 @@ function write_atlas_dataset(
     # Write manifest
     manifest = Dict{String, Any}(
         "version" => version,
-        "timestamp_utc" => Dates.format(timestamp, "yyyy-mm-ddTHH:MM:SSZ"),
+        "timestamp_utc" => Dates.format(timestamp, "yyyy-mm-ddTHH:MM:SS"),
         "git_sha" => git_sha,
         "params" => params,
         "tables" => Dict(

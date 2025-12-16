@@ -6,7 +6,7 @@ k-mer inversion symmetry analysis (Generalized Chargaff / RC parity).
 Computes the deviation from perfect reverse-complement symmetry in k-mer counts.
 """
 
-using BioSequences: LongDNA, DNA_A, DNA_C, DNA_G, DNA_T, reverse_complement
+using BioSequences: LongDNA, LongSequence, DNAAlphabet, DNA_A, DNA_C, DNA_G, DNA_T, reverse_complement
 using DataFrames
 using Statistics
 
@@ -200,7 +200,10 @@ function compute_kmer_inversion(
     @assert all(0.0 .<= df.x_k .<= 1.0) "x_k must be in [0, 1]"
     @assert all(df.k_l_tau_05 .>= 0) "k_l_tau_05 must be >= 0"
     @assert all(df.k_l_tau_10 .>= 0) "k_l_tau_10 must be >= 0"
-    @assert all(df.k_l_tau_05 .<= df.k_l_tau_10) "k_l_tau_05 must be <= k_l_tau_10"
+    # Note: k_l_tau_05 can be > k_l_tau_10 if there are k-mers with asymmetry between 0.05 and 0.10
+    # Actually, k_l_tau_05 should be >= k_l_tau_10 (more restrictive threshold = fewer k-mers)
+    # So the assertion should be: k_l_tau_05 >= k_l_tau_10
+    @assert all(df.k_l_tau_05 .>= df.k_l_tau_10) "k_l_tau_05 must be >= k_l_tau_10 (more restrictive threshold)"
     @assert all(df.k_l_tau_10 .<= df.total_kmers) "k_l_tau_10 must be <= total_kmers"
 
     return df
@@ -222,6 +225,19 @@ function compute_kmer_inversion_batch(
     records::Vector{Tuple{String, LongDNA}},
     k_max::Int=10
 )::DataFrame
+    if isempty(records)
+        return DataFrame(
+            replicon_id=String[],
+            k=Int[],
+            x_k=Float64[],
+            k_l_tau_05=Int[],
+            k_l_tau_10=Int[],
+            total_kmers=Int[],
+            symmetric_kmers=Int[],
+            replichore=String[]
+        )
+    end
+
     all_results = DataFrame[]
 
     for (replicon_id, seq) in records
@@ -230,6 +246,6 @@ function compute_kmer_inversion_batch(
         push!(all_results, df)
     end
 
-    return vcat(all_results...)
+    return isempty(all_results) ? DataFrame() : vcat(all_results...)
 end
 

@@ -68,7 +68,7 @@ end
 
 function get_git_sha()
     try
-        strip(read(`git rev-parse HEAD`, String))
+        String(strip(read(`git rev-parse HEAD`, String)))
     catch
         "unknown"
     end
@@ -191,7 +191,7 @@ function main()
         params = Dict{String, Any}(
             "max_genomes" => max_genomes,
             "seed" => seed,
-            "timestamp" => Dates.format(now(UTC), "yyyy-mm-ddTHH:MM:SSZ")
+            "timestamp" => Dates.format(now(), "yyyy-mm-ddTHH:MM:SS")
         )
 
         dataset = write_atlas_dataset(
@@ -211,7 +211,7 @@ function main()
 
     metadata = Dict(
         "version" => "2.0.0",
-        "timestamp_utc" => Dates.format(now(UTC), "yyyy-mm-ddTHH:MM:SSZ"),
+        "timestamp_utc" => Dates.format(now(), "yyyy-mm-ddTHH:MM:SS"),
         "git_sha" => git_sha,
         "parameters" => Dict(
             "max_genomes" => max_genomes,

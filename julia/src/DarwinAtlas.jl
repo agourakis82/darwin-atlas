@@ -102,4 +102,10 @@ export fetch_ncbi, run_pipeline, generate_tables
 export validate_operators, validate_symmetry, run_technical_validation
 export generate_tables, generate_theoretical_tables
 
+# Exports - Biology Metrics
+export compute_kmer_inversion, compute_kmer_inversion_for_k, compute_kmer_inversion_batch
+export compute_gc_skew, estimate_ori_ter, split_replichores, compute_gc_skew_table
+export detect_inverted_repeats, compute_baseline_shuffle, compute_ir_enrichment, compute_ir_enrichment_table
+export compute_all_biology_metrics
+
 end # module

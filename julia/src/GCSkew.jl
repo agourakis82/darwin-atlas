@@ -152,8 +152,17 @@ function estimate_ori_ter(seq::LongDNA, window_size::Int=1000; step::Int=100)::O
     cum_std = std(cumulative)
     baseline_noise = max(cum_std, 1e-10)  # Avoid division by zero
 
-    ori_confidence = min(amplitude / (baseline_noise * 2), 1.0)
-    ter_confidence = min(amplitude / (baseline_noise * 2), 1.0)
+    if isfinite(amplitude) && isfinite(baseline_noise) && baseline_noise > 0
+        ori_confidence = min(amplitude / (baseline_noise * 2), 1.0)
+        ter_confidence = min(amplitude / (baseline_noise * 2), 1.0)
+    else
+        ori_confidence = 0.0
+        ter_confidence = 0.0
+    end
+    
+    # Ensure finite values
+    ori_confidence = isfinite(ori_confidence) ? ori_confidence : 0.0
+    ter_confidence = isfinite(ter_confidence) ? ter_confidence : 0.0
 
     # Ensure positions are within bounds
     ori_position = max(0, min(ori_position, n - 1))

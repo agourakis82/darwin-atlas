@@ -15,8 +15,8 @@ using ProgressMeter
 using JSON3
 using Dates
 
-# These will be available when included after other modules in DarwinAtlas.jl
-# For now, we'll include the necessary functions directly
+# Import types from DarwinAtlas
+import ..DarwinAtlas: RepliconRecord, CHROMOSOME, PLASMID, OTHER, REFSEQ, GENBANK
 
 export compute_all_biology_metrics
 
@@ -38,40 +38,71 @@ function load_sequence_from_fasta(
     replicon_id::String,
     raw_dir::String
 )::Union{LongDNA, Nothing}
-    # Find assembly accession from replicon_id (format: GCF_XXX_repN)
-    assembly_acc = match(r"^(GCF_[^_]+)", replicon_id)
-    if assembly_acc === nothing
+    # Find assembly accession from replicon_id (format: GCF_XXX.1_repN)
+    # Extract everything before "_rep"
+    rep_match = match(r"^(.+?)_rep([0-9]+)$", replicon_id)
+    if rep_match === nothing
+        return nothing
+    end
+    
+    assembly_acc = rep_match.captures[1]  # e.g., "GCF_043161975.1"
+    rep_idx = parse(Int, rep_match.captures[2])
+
+    # Ensure raw_dir is absolute
+    raw_dir_abs = abspath(raw_dir)
+    if !isdir(raw_dir_abs)
         return nothing
     end
 
-    fasta_path = joinpath(raw_dir, "$(assembly_acc.match)_genomic.fna.gz")
+    # Try exact match first (with full version)
+    fasta_path = joinpath(raw_dir_abs, "$(assembly_acc)_genomic.fna.gz")
+    if !isfile(fasta_path)
+        # Try without version suffix (e.g., GCF_043161975.1 -> GCF_043161975)
+        base_match = match(r"^(GCF_[0-9]+)", assembly_acc)
+        if base_match !== nothing
+            # Search for files matching pattern
+            all_files = readdir(raw_dir_abs)
+            files = filter(f -> startswith(f, base_match.captures[1]) && endswith(f, "_genomic.fna.gz"), all_files)
+            if !isempty(files)
+                fasta_path = joinpath(raw_dir_abs, files[1])
+            else
+                return nothing
+            end
+        else
+            return nothing
+        end
+    end
+    
+    # Verify file exists
     if !isfile(fasta_path)
         return nothing
     end
 
-    # Extract replicon index from replicon_id
-    rep_match = match(r"_rep([0-9]+)$", replicon_id)
-    if rep_match === nothing
-        return nothing
-    end
-    rep_idx = parse(Int, rep_match.captures[1])
+    # rep_idx already extracted above
 
     # Open FASTA and find the replicon
-    open(fasta_path, "r") do io
-        reader = FASTA.Reader(GzipDecompressorStream(io))
-        current_idx = 0
-        for record in reader
-            current_idx += 1
-            if current_idx == rep_idx
-                seq = LongDNA{4}(FASTA.sequence(record))
-                close(reader)
-                return seq
+    try
+        result_seq = nothing
+        open(fasta_path, "r") do io
+            reader = FASTA.Reader(GzipDecompressorStream(io))
+            current_idx = 0
+            for record in reader
+                current_idx += 1
+                if current_idx == rep_idx
+                    result_seq = LongDNA{4}(FASTA.sequence(record))
+                    close(reader)
+                    return result_seq
+                end
             end
+            close(reader)
+            # If we get here, we didn't find the replicon
+            # (This is normal for some assemblies with fewer replicons)
         end
-        close(reader)
+        return result_seq
+    catch e
+        @warn "Failed to load sequence from $fasta_path for $replicon_id: $e"
+        return nothing
     end
-
-    return nothing
 end
 
 """
