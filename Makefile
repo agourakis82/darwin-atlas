@@ -1,4 +1,4 @@
-.PHONY: all setup demetrios julia test cross-validate pipeline reproduce clean help epistemic export-knowledge verify-knowledge
+.PHONY: all setup demetrios julia test cross-validate pipeline reproduce clean help epistemic export-knowledge verify-knowledge snapshot snapshot-full snapshot-zip
 
 JULIA := julia --project=julia
 DEMETRIOS := dc
@@ -7,7 +7,7 @@ DEMETRIOS := dc
 all: setup demetrios julia test
 
 help:
-	@echo "Darwin Operator Symmetry Atlas - Build System"
+	@echo "DSLG Atlas - Demetrios Operator Symmetry Atlas - Build System"
 	@echo ""
 	@echo "Targets:"
 	@echo "  setup          Install dependencies"
@@ -17,6 +17,7 @@ help:
 	@echo "  cross-validate Run Demetrios vs Julia validation"
 	@echo "  pipeline       Run full analysis pipeline"
 	@echo "  epistemic      Export + verify epistemic Knowledge layer"
+	@echo "  snapshot       Build dataset snapshot for Zenodo/DOI"
 	@echo "  reproduce      Clean + rebuild + verify checksums"
 	@echo "  clean          Remove build artifacts"
 	@echo ""
@@ -25,6 +26,7 @@ help:
 	@echo "  make test                # Run tests only"
 	@echo "  make pipeline MAX=50     # Run pipeline with 50 genomes"
 	@echo "  make epistemic MAX=50    # Export + validate Knowledge layer"
+	@echo "  make snapshot MAX=50     # Build dataset snapshot"
 
 # Setup
 setup: setup-julia setup-demetrios
@@ -138,3 +140,28 @@ epistemic-full:
 		$(MAKE) pipeline MAX=$(MAX) SEED=$(SEED); \
 	fi
 	$(MAKE) epistemic MAX=$(MAX) SEED=$(SEED)
+
+# =============================================================================
+# Snapshot Builder (for Zenodo/DOI)
+# =============================================================================
+
+# Build deterministic dataset snapshot
+# Usage: make snapshot MAX=50 SEED=42
+snapshot:
+	@echo "Building dataset snapshot..."
+	@./scripts/make_snapshot.sh $(MAX) $(SEED)
+
+# Build snapshot with full pipeline (if tables missing)
+snapshot-full:
+	@if [ ! -f data/tables/atlas_replicons.csv ]; then \
+		echo "Tables not found, running pipeline first..."; \
+		$(MAKE) pipeline MAX=$(MAX) SEED=$(SEED); \
+		$(MAKE) epistemic MAX=$(MAX) SEED=$(SEED); \
+	fi
+	$(MAKE) snapshot MAX=$(MAX) SEED=$(SEED)
+
+# Create zip archive for Zenodo upload
+snapshot-zip: snapshot
+	@echo "Creating zip archive..."
+	@cd dist && zip -r atlas_snapshot_v1.zip atlas_snapshot_v1/
+	@echo "Archive created: dist/atlas_snapshot_v1.zip"
