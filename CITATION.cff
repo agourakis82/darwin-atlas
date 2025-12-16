@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "Darwin Operator Symmetry Atlas (DOSA)"
+title: "DSLG Atlas — Demetrios Operator Symmetry Atlas"
 message: "If you use this dataset or software, please cite it as below."
 type: dataset
 authors:
@@ -13,7 +13,7 @@ url: "https://github.com/agourakis82/darwin-atlas"
 abstract: >-
   A reproducible, DOI-versioned database of operator-defined symmetries
   in complete bacterial replicons. Implements dihedral group D_n actions
-  (shift, reverse, complement, reverse-complement) on circular DNA sequences,
+  (identity, reverse, complement, reverse-complement) on circular DNA sequences,
   with epistemic Knowledge layer for provenance tracking and validation.
 keywords:
   - bacterial genomics
@@ -22,13 +22,18 @@ keywords:
   - epistemic computing
   - reproducible research
   - NCBI RefSeq
+  - data descriptor
 license: MIT
+license-url: "https://opensource.org/licenses/MIT"
 version: "0.1.0-epistemic"
 date-released: "2025-12-15"
 identifiers:
   - type: url
     value: "https://github.com/agourakis82/darwin-atlas/releases/tag/v0.1.0-epistemic"
     description: "GitHub Release"
+  - type: doi
+    value: "10.5281/zenodo.XXXXXXX"
+    description: "Zenodo DOI (to be assigned)"
 references:
   - type: software
     title: "Demetrios Programming Language"
@@ -37,3 +42,7 @@ references:
         given-names: "Demetrios Chiuratto"
     repository-code: "https://github.com/Chiuratto-AI/demetrios"
     abstract: "Scientific programming language with epistemic computing support"
+  - type: database
+    title: "NCBI RefSeq"
+    url: "https://www.ncbi.nlm.nih.gov/refseq/"
+    abstract: "Reference sequence database for genomes"
