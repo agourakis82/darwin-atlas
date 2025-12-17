@@ -53,8 +53,11 @@ darwin-atlas/
 - Dependencies in `julia/Project.toml`
 
 ### Demetrios (optional)
-- Demetrios compiler v0.63.0+
-- Features: units, refinement, ffi
+- Demetrios compiler (`dc`) from https://github.com/chiuratto-AI/demetrios
+- Build/install (example):
+  - `git clone https://github.com/chiuratto-AI/demetrios`
+  - `cd demetrios/compiler && cargo build --release`
+  - Add `demetrios/compiler/target/release` to `PATH`, or run make with `DEMETRIOS=/path/to/dc`
 
 ## Usage
 

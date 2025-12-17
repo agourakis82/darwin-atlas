@@ -1,7 +1,7 @@
 .PHONY: all setup demetrios julia test cross-validate pipeline reproduce clean help epistemic export-knowledge verify-knowledge snapshot snapshot-full snapshot-zip atlas query
 
 JULIA := julia --project=julia
-DEMETRIOS := dc
+DEMETRIOS ?= dc
 
 # Default target
 all: setup demetrios julia test
@@ -44,19 +44,21 @@ setup-julia:
 
 setup-demetrios:
 	@echo "Setting up Demetrios..."
-	@if command -v dc >/dev/null 2>&1; then \
-		cd demetrios && dc build; \
+	@if command -v $(DEMETRIOS) >/dev/null 2>&1; then \
+		cd demetrios && $(DEMETRIOS) build; \
 	else \
-		echo "Demetrios compiler (dc) not found - skipping"; \
+		echo "Demetrios compiler not found (expected 'dc') - skipping"; \
+		echo "Install from: https://github.com/chiuratto-AI/demetrios"; \
 	fi
 
 # Build targets
 demetrios:
 	@echo "Building Demetrios kernels..."
-	@if command -v dc >/dev/null 2>&1; then \
-		cd demetrios && dc build --release --target=cdylib; \
+	@if command -v $(DEMETRIOS) >/dev/null 2>&1; then \
+		cd demetrios && $(DEMETRIOS) build --release --target=cdylib; \
 	else \
-		echo "Demetrios compiler (dc) not found - skipping"; \
+		echo "Demetrios compiler not found (expected 'dc') - skipping"; \
+		echo "Install from: https://github.com/chiuratto-AI/demetrios"; \
 	fi
 
 julia:
@@ -72,10 +74,11 @@ test-julia:
 
 test-demetrios:
 	@echo "Running Demetrios tests..."
-	@if command -v dc >/dev/null 2>&1; then \
-		cd demetrios && dc test; \
+	@if command -v $(DEMETRIOS) >/dev/null 2>&1; then \
+		cd demetrios && $(DEMETRIOS) test; \
 	else \
-		echo "Demetrios compiler (dc) not found - skipping"; \
+		echo "Demetrios compiler not found (expected 'dc') - skipping"; \
+		echo "Install from: https://github.com/chiuratto-AI/demetrios"; \
 	fi
 
 # Cross-validation
@@ -154,17 +157,17 @@ export-knowledge:
 # Verify Knowledge JSONL against Demetrios schema
 verify-knowledge:
 	@echo "Verifying epistemic Knowledge layer..."
-	@if command -v dc >/dev/null 2>&1; then \
-		dc run demetrios/src/verify_knowledge.d -- \
+	@if command -v $(DEMETRIOS) >/dev/null 2>&1; then \
+		$(DEMETRIOS) run demetrios/src/verify_knowledge.d -- \
 			data/epistemic/atlas_knowledge.jsonl \
 			data/epistemic/atlas_knowledge_report.md; \
 		if [ -f dist/atlas_dataset_v2/epistemic/atlas_knowledge.jsonl ]; then \
-			dc run demetrios/src/verify_knowledge.d -- \
+			$(DEMETRIOS) run demetrios/src/verify_knowledge.d -- \
 				dist/atlas_dataset_v2/epistemic/atlas_knowledge.jsonl \
 				dist/atlas_dataset_v2/epistemic/atlas_knowledge_report.md; \
 		fi; \
 	else \
-		echo "Demetrios compiler (dc) not found - using Julia fallback"; \
+		echo "Demetrios compiler not found (expected 'dc') - using Julia fallback"; \
 		$(JULIA) julia/scripts/verify_knowledge.jl; \
 	fi
 
