@@ -2,6 +2,7 @@
 data/raw/
 data/manifest/*.jsonl
 data/manifest/*.sha256
+data/manifest/ingestion_metadata.json
 data/tables/*.csv
 
 # Julia

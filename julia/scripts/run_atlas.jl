@@ -125,7 +125,7 @@ function main()
     println("DSLG ATLAS - Demetrios Operator Symmetry Atlas")
     println("Pipeline Runner v2.0.0")
     println("="^70)
-    println("Start time:    $(now())")
+    println("Start time:    $(now(UTC))")
     println("Max genomes:   $max_genomes")
     println("Seed:          $seed")
     println("Data dir:      $data_dir")
@@ -221,7 +221,7 @@ function main()
         params = Dict{String, Any}(
             "max_genomes" => max_genomes,
             "seed" => seed,
-            "timestamp" => Dates.format(now(), "yyyy-mm-ddTHH:MM:SS")
+            "timestamp_utc" => Dates.format(now(UTC), "yyyy-mm-ddTHH:MM:SS") * "Z"
         )
 
         dataset = write_atlas_dataset(
@@ -239,9 +239,10 @@ function main()
     metadata_path = joinpath(output_dir, "manifest", "pipeline_metadata.json")
     mkpath(dirname(metadata_path))
 
+    timestamp_utc = Dates.format(now(UTC), "yyyy-mm-ddTHH:MM:SS") * "Z"
     metadata = Dict(
         "version" => "2.0.0",
-        "timestamp_utc" => Dates.format(now(), "yyyy-mm-ddTHH:MM:SS"),
+        "timestamp_utc" => timestamp_utc,
         "git_sha" => git_sha,
         "parameters" => Dict(
             "max_genomes" => max_genomes,
@@ -258,7 +259,7 @@ function main()
 
     println("\n" * "="^70)
     println("ATLAS PIPELINE COMPLETE")
-    println("End time: $(now())")
+    println("End time: $(now(UTC))")
     println("Output:   $output_dir")
     println("="^70)
 

@@ -5,10 +5,21 @@
   "description": "Demetrios epistemic Knowledge[T] record for Atlas pipeline outputs",
   "type": "object",
   "required": ["record_type", "metric_name", "value", "validity", "provenance"],
+  "additionalProperties": true,
   "properties": {
     "record_type": {
       "type": "string",
-      "enum": ["replicon_metric", "window_metric", "approx_symmetry", "dicyclic_lift", "quaternion_result"],
+      "enum": [
+        "replicon_metric",
+        "window_metric",
+        "approx_symmetry",
+        "dicyclic_lift",
+        "quaternion_result",
+        "kmer_metric",
+        "skew_metric",
+        "ir_metric",
+        "replichore_metric"
+      ],
       "description": "Classification of the knowledge record"
     },
     "metric_name": {
@@ -51,12 +62,38 @@
     },
     "provenance": {
       "type": "object",
-      "required": ["atlas_git_sha", "timestamp_utc"],
+      "required": [
+        "atlas_git_sha",
+        "atlas_version",
+        "demetrios_schema_version",
+        "timestamp_utc",
+        "pipeline_max",
+        "pipeline_seed"
+      ],
+      "additionalProperties": true,
       "properties": {
         "assembly_accession": {"type": ["string", "null"]},
         "replicon_id": {"type": ["string", "null"]},
         "replicon_accession": {"type": ["string", "null"]},
+        "length_bp": {"type": ["integer", "null"]},
         "window_length": {"type": ["integer", "null"]},
+        "window_size": {"type": ["integer", "null"]},
+        "k": {"type": ["integer", "null"]},
+        "replichore": {"type": ["string", "null"]},
+        "baseline_method": {"type": ["string", "null"]},
+        "stem_min_length": {"type": ["integer", "null"]},
+        "stem_max_length": {"type": ["integer", "null"]},
+        "loop_min_length": {"type": ["integer", "null"]},
+        "loop_max_length": {"type": ["integer", "null"]},
+        "source_table": {"type": ["string", "null"]},
+        "experiment_id": {
+          "description": "Optional experiment identifier for experiment-scoped metrics",
+          "oneOf": [
+            {"type": "string"},
+            {"type": "integer"},
+            {"type": "null"}
+          ]
+        },
         "pipeline_max": {"type": "integer"},
         "pipeline_seed": {"type": "integer"},
         "atlas_git_sha": {"type": "string"},
@@ -65,12 +102,53 @@
         "timestamp_utc": {"type": "string", "format": "date-time"},
         "ncbi_filter": {
           "type": "object",
+          "additionalProperties": true,
           "properties": {
             "assembly_level": {"type": "string"},
-            "source": {"type": "string"}
+            "source": {"type": "string"},
+            "ftp_path": {"type": "string"},
+            "version_status": {"type": "string"}
+          }
+        }
+      }
+    },
+    "derivation": {
+      "description": "Optional derivation/provenance graph edge(s) for no-miracles checks",
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "rule": {"type": ["string", "null"]},
+        "derived_from": {
+          "type": ["array", "null"],
+          "items": {"type": "object"}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "enum": [
+              "replicon_metric",
+              "window_metric",
+              "approx_symmetry",
+              "kmer_metric",
+              "skew_metric",
+              "ir_metric",
+              "replichore_metric"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "required": ["assembly_accession", "replicon_id"]
           }
         }
       }
     }
-  }
+  ]
 }

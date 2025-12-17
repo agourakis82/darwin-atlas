@@ -115,7 +115,7 @@ function fetch_ncbi(;
     # Write ingestion metadata for provenance/debugging
     metadata_path = joinpath(manifest_dir, "ingestion_metadata.json")
     ingestion_metadata = Dict(
-        "timestamp_utc" => Dates.format(now(UTC), "yyyy-mm-ddTHH:MM:SSZ"),
+        "timestamp_utc" => Dates.format(now(UTC), "yyyy-mm-ddTHH:MM:SS") * "Z",
         "seed" => seed,
         "max_genomes" => max_genomes,
         "taxon" => taxon,

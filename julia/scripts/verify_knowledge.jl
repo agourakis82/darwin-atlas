@@ -4,7 +4,7 @@
 
 Verify Atlas epistemic Knowledge JSONL against Demetrios schema.
 Checks:
-1. Provenance fields present and non-empty (assembly_accession, replicon_id, seed, max, git_sha, timestamp)
+1. Provenance fields present and non-empty (git_sha, atlas_version, schema_version, timestamp, seed, max; plus replicon-scoped IDs)
 2. Epsilon/error bounds >= 0
 3. Confidence in [0,1]
 4. Validity predicate holds for each record
@@ -30,6 +30,17 @@ struct ValidationResult
     record_idx::Int
 end
 
+struct RepliconIndex
+    ids::Set{String}
+    length_bp::Dict{String, Int}
+end
+
+function safe_int(x)
+    x isa Integer && return Int(x)
+    x isa AbstractFloat && return Int(round(x))
+    return parse(Int, string(x))
+end
+
 # Validation rules
 function check_provenance(rec::Dict, idx::Int)::Vector{ValidationResult}
     results = ValidationResult[]
@@ -41,7 +52,7 @@ function check_provenance(rec::Dict, idx::Int)::Vector{ValidationResult}
     end
 
     # Required string fields (must be present and non-empty)
-    required_strings = ["atlas_git_sha", "timestamp_utc"]
+    required_strings = ["atlas_git_sha", "atlas_version", "demetrios_schema_version", "timestamp_utc"]
     for field in required_strings
         val = get(prov, field, nothing)
         if val === nothing || (val isa String && isempty(val))
@@ -64,11 +75,11 @@ function check_provenance(rec::Dict, idx::Int)::Vector{ValidationResult}
 
     # Contextual fields: for replicon_metric, need assembly_accession and replicon_id
     record_type = get(rec, "record_type", "")
-    if record_type == "replicon_metric"
+    if record_type in ["replicon_metric", "kmer_metric", "skew_metric", "ir_metric", "replichore_metric", "approx_symmetry", "window_metric"]
         for field in ["assembly_accession", "replicon_id"]
             val = get(prov, field, nothing)
             if val === nothing || (val isa String && isempty(val))
-                push!(results, ValidationResult("provenance_$field", false, "Missing $field for replicon_metric", idx))
+                push!(results, ValidationResult("provenance_$field", false, "Missing $field for $record_type", idx))
             else
                 push!(results, ValidationResult("provenance_$field", true, "", idx))
             end
@@ -159,33 +170,91 @@ function check_value_constraints(rec::Dict, idx::Int)::Vector{ValidationResult}
         end
     end
 
+    if metric in ["x_k", "x_k_6"] && value isa Number
+        if !(0.0 <= value <= 1.0)
+            push!(results, ValidationResult("x_k_range", false, "$metric=$value not in [0,1]", idx))
+        else
+            push!(results, ValidationResult("x_k_range", true, "", idx))
+        end
+    end
+
+    if metric in ["ori_confidence", "ter_confidence"] && value isa Number
+        if !(0.0 <= value <= 1.0)
+            push!(results, ValidationResult("skew_confidence_range", false, "$metric=$value not in [0,1]", idx))
+        else
+            push!(results, ValidationResult("skew_confidence_range", true, "", idx))
+        end
+    end
+
+    if metric == "gc_skew_amplitude" && value isa Number
+        if value < 0
+            push!(results, ValidationResult("gc_skew_amplitude_nonneg", false, "gc_skew_amplitude=$value < 0", idx))
+        else
+            push!(results, ValidationResult("gc_skew_amplitude_nonneg", true, "", idx))
+        end
+    end
+
+    if metric in ["ir_count", "k_l_tau_05", "k_l_tau_10", "total_kmers", "symmetric_kmers"] && value isa Number
+        if value < 0
+            push!(results, ValidationResult("count_nonneg", false, "$metric=$value < 0", idx))
+        else
+            push!(results, ValidationResult("count_nonneg", true, "", idx))
+        end
+    end
+
+    if metric in ["ir_density", "baseline_count", "enrichment_ratio"] && value isa Number
+        if value < 0
+            push!(results, ValidationResult("metric_nonneg", false, "$metric=$value < 0", idx))
+        else
+            push!(results, ValidationResult("metric_nonneg", true, "", idx))
+        end
+    end
+
+    if metric == "p_value" && value isa Number
+        if !(0.0 <= value <= 1.0)
+            push!(results, ValidationResult("p_value_range", false, "p_value=$value not in [0,1]", idx))
+        else
+            push!(results, ValidationResult("p_value_range", true, "", idx))
+        end
+    end
+
     results
 end
 
-# Join validation: check replicon_id exists in source CSV
-function check_join(rec::Dict, idx::Int, valid_replicon_ids::Set{String})::ValidationResult
-    record_type = get(rec, "record_type", "")
-
-    # Only validate replicon_metric records
-    if record_type != "replicon_metric"
-        return ValidationResult("join_replicon", true, "", idx)
-    end
-
+# Join validation: check replicon_id exists in source CSV (for any replicon-scoped record)
+function check_join(rec::Dict, idx::Int, replicon_index::RepliconIndex)::Vector{ValidationResult}
+    results = ValidationResult[]
     prov = get(rec, "provenance", nothing)
-    if prov === nothing
-        return ValidationResult("join_replicon", true, "", idx)  # Already caught by provenance check
-    end
+    prov === nothing && return results
 
     replicon_id = get(prov, "replicon_id", nothing)
     if replicon_id === nothing || replicon_id isa Nothing
-        return ValidationResult("join_replicon", true, "", idx)  # Already caught
+        return results
+    end
+    rid = string(replicon_id)
+
+    if rid in replicon_index.ids
+        push!(results, ValidationResult("join_replicon", true, "", idx))
+    else
+        push!(results, ValidationResult("join_replicon", false, "replicon_id '$rid' not found in atlas_replicons.csv", idx))
+        return results
     end
 
-    if replicon_id in valid_replicon_ids
-        return ValidationResult("join_replicon", true, "", idx)
-    else
-        return ValidationResult("join_replicon", false, "replicon_id '$replicon_id' not found in atlas_replicons.csv", idx)
+    metric = get(rec, "metric_name", "")
+    value = get(rec, "value", nothing)
+    if metric in ["ori_position", "ter_position"] && value isa Number
+        len = get(replicon_index.length_bp, rid, 0)
+        if len > 0
+            pos = safe_int(value)
+            if 0 <= pos < len
+                push!(results, ValidationResult("position_in_bounds", true, "", idx))
+            else
+                push!(results, ValidationResult("position_in_bounds", false, "$metric=$pos out of range [0,$(len-1)]", idx))
+            end
+        end
     end
+
+    results
 end
 
 # No-miracles check: epsilon should not decrease without derivation rule
@@ -210,20 +279,28 @@ function check_no_miracles(rec::Dict, idx::Int)::ValidationResult
     return ValidationResult("no_miracles", true, "", idx)
 end
 
-function load_valid_replicon_ids(tables_dir::String)::Set{String}
+function load_replicon_index(tables_dir::String)::RepliconIndex
     replicons_path = joinpath(tables_dir, "atlas_replicons.csv")
     if !isfile(replicons_path)
         @warn "atlas_replicons.csv not found, skipping join validation"
-        return Set{String}()
+        return RepliconIndex(Set{String}(), Dict{String, Int}())
     end
 
     df = CSV.read(replicons_path, DataFrame)
     if !hasproperty(df, :replicon_id)
         @warn "replicon_id column not found in atlas_replicons.csv"
-        return Set{String}()
+        return RepliconIndex(Set{String}(), Dict{String, Int}())
     end
 
-    Set{String}(string.(df.replicon_id))
+    ids = Set{String}(string.(df.replicon_id))
+    length_bp = Dict{String, Int}()
+    if hasproperty(df, :length_bp)
+        for row in eachrow(df)
+            length_bp[string(row.replicon_id)] = safe_int(row.length_bp)
+        end
+    end
+
+    RepliconIndex(ids, length_bp)
 end
 
 function validate_jsonl(path::String, tables_dir::String)::Tuple{Vector{ValidationResult}, Int}
@@ -231,8 +308,8 @@ function validate_jsonl(path::String, tables_dir::String)::Tuple{Vector{Validati
     total_records = 0
 
     # Load valid replicon IDs for join validation
-    valid_replicon_ids = load_valid_replicon_ids(tables_dir)
-    join_enabled = !isempty(valid_replicon_ids)
+    replicon_index = load_replicon_index(tables_dir)
+    join_enabled = !isempty(replicon_index.ids)
 
     open(path, "r") do io
         for (idx, line) in enumerate(eachline(io))
@@ -251,7 +328,7 @@ function validate_jsonl(path::String, tables_dir::String)::Tuple{Vector{Validati
 
                 # Gate 2: Join validation
                 if join_enabled
-                    push!(all_results, check_join(rec, idx, valid_replicon_ids))
+                    append!(all_results, check_join(rec, idx, replicon_index))
                 end
 
                 # Gate 3: No-miracles rule
@@ -327,24 +404,33 @@ function generate_report(results::Vector{ValidationResult}, total_records::Int, 
         println(io, "### Gate 1: Schema Compliance")
         println(io, "1. **provenance_present**: Provenance object must exist")
         println(io, "2. **provenance_atlas_git_sha**: Git SHA must be present")
-        println(io, "3. **provenance_timestamp_utc**: Timestamp must be present")
-        println(io, "4. **provenance_pipeline_seed**: Pipeline seed must be present")
-        println(io, "5. **provenance_pipeline_max**: Pipeline max must be present")
-        println(io, "6. **provenance_assembly_accession**: Required for replicon_metric")
-        println(io, "7. **provenance_replicon_id**: Required for replicon_metric")
-        println(io, "8. **epsilon_nonneg**: Error bounds must be >= 0")
-        println(io, "9. **confidence_range**: Confidence must be in [0,1]")
-        println(io, "10. **validity_holds**: Validity predicate must hold")
+        println(io, "3. **provenance_atlas_version**: Atlas version must be present")
+        println(io, "4. **provenance_demetrios_schema_version**: Schema version must be present")
+        println(io, "5. **provenance_timestamp_utc**: Timestamp must be present")
+        println(io, "6. **provenance_pipeline_seed**: Pipeline seed must be present")
+        println(io, "7. **provenance_pipeline_max**: Pipeline max must be present")
+        println(io, "8. **provenance_assembly_accession**: Required for replicon-scoped record types")
+        println(io, "9. **provenance_replicon_id**: Required for replicon-scoped record types")
+        println(io, "10. **epsilon_nonneg**: Error bounds must be >= 0")
+        println(io, "11. **confidence_range**: Confidence must be in [0,1]")
+        println(io, "12. **validity_holds**: Validity predicate must hold")
         println(io)
         println(io, "### Gate 2: Data Integrity")
-        println(io, "11. **gc_fraction_range**: GC fraction in [0,1]")
-        println(io, "12. **orbit_ratio_range**: Orbit ratio in [0.25,1]")
-        println(io, "13. **dmin_range**: d_min/L in [0,1]")
-        println(io, "14. **length_positive**: Sequence length > 0")
-        println(io, "15. **join_replicon**: replicon_id must exist in atlas_replicons.csv")
+        println(io, "13. **gc_fraction_range**: GC fraction in [0,1]")
+        println(io, "14. **orbit_ratio_range**: Orbit ratio in [0.25,1]")
+        println(io, "15. **dmin_range**: d_min/L in [0,1]")
+        println(io, "16. **length_positive**: Sequence length > 0")
+        println(io, "17. **x_k_range**: x_k in [0,1]")
+        println(io, "18. **skew_confidence_range**: ori/ter confidence in [0,1]")
+        println(io, "19. **gc_skew_amplitude_nonneg**: GC skew amplitude >= 0")
+        println(io, "20. **count_nonneg**: Count metrics >= 0")
+        println(io, "21. **metric_nonneg**: Non-negative metrics >= 0")
+        println(io, "22. **p_value_range**: p_value in [0,1]")
+        println(io, "23. **join_replicon**: replicon_id must exist in atlas_replicons.csv")
+        println(io, "24. **position_in_bounds**: ori/ter positions must be within replicon length")
         println(io)
         println(io, "### Gate 3: Epistemic Invariants")
-        println(io, "16. **no_miracles**: Epsilon cannot decrease without explicit derivation rule")
+        println(io, "25. **no_miracles**: Epsilon cannot decrease without explicit derivation rule")
     end
 
     length(failures) == 0
@@ -352,14 +438,28 @@ end
 
 function main()
     data_dir = get(ARGS, 1, joinpath(@__DIR__, "..", "..", "data"))
-    epistemic_dir = joinpath(data_dir, "epistemic")
-    tables_dir = joinpath(data_dir, "tables")
+    dataset_dir = length(ARGS) >= 2 ? ARGS[2] : joinpath(@__DIR__, "..", "..", "dist", "atlas_dataset_v2")
 
-    jsonl_path = joinpath(epistemic_dir, "atlas_knowledge.jsonl")
-    report_path = joinpath(epistemic_dir, "atlas_knowledge_report.md")
+    epistemic_dirs = [joinpath(data_dir, "epistemic")]
+    if isdir(dataset_dir)
+        push!(epistemic_dirs, joinpath(dataset_dir, "epistemic"))
+    end
 
-    if !isfile(jsonl_path)
-        println("ERROR: $jsonl_path not found")
+    jsonl_path = nothing
+    for dir in epistemic_dirs
+        candidate = joinpath(dir, "atlas_knowledge.jsonl")
+        if isfile(candidate)
+            jsonl_path = candidate
+            break
+        end
+    end
+
+    tables_dir = isdir(dataset_dir) && isfile(joinpath(dataset_dir, "csv", "atlas_replicons.csv")) ?
+                 joinpath(dataset_dir, "csv") :
+                 joinpath(data_dir, "tables")
+
+    if jsonl_path === nothing || !isfile(jsonl_path)
+        println("ERROR: atlas_knowledge.jsonl not found in epistemic dirs: $(join(epistemic_dirs, ", "))")
         println("Run export_knowledge.jl first")
         return 1
     end
@@ -369,13 +469,19 @@ function main()
     println("  Tables: $tables_dir")
 
     results, total = validate_jsonl(jsonl_path, tables_dir)
-    passed = generate_report(results, total, report_path)
+
+    passed = true
+    for dir in epistemic_dirs
+        mkpath(dir)
+        report_path = joinpath(dir, "atlas_knowledge_report.md")
+        passed &= generate_report(results, total, report_path)
+    end
 
     failures = count(r -> !r.passed, results)
     println("  Total records: $total")
     println("  Checks passed: $(count(r -> r.passed, results))")
     println("  Checks failed: $failures")
-    println("  Report: $report_path")
+    println("  Report dirs: $(join(epistemic_dirs, ", "))")
 
     if passed
         println("\nVALIDATION PASSED")

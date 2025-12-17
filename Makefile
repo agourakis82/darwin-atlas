@@ -91,6 +91,7 @@ MAX ?= 200
 SEED ?= 42
 SCALE ?= 0
 QUERY ?= SELECT * FROM atlas_replicons LIMIT 10
+PIPELINE_MAX_VALUE := $(if $(filter 0,$(SCALE)),$(MAX),$(SCALE))
 
 # =============================================================================
 # Atlas Pipeline v2 (Parquet + CSV + DuckDB)
@@ -104,6 +105,7 @@ atlas: setup
 	else \
 		$(JULIA) julia/scripts/run_atlas.jl --max $(MAX) --seed $(SEED); \
 	fi
+	@$(MAKE) epistemic MAX=$(MAX) SCALE=$(SCALE) SEED=$(SEED)
 
 # Query Atlas dataset with DuckDB SQL
 query:
@@ -147,7 +149,7 @@ reproduce: clean all pipeline
 export-knowledge:
 	@echo "Exporting epistemic Knowledge layer..."
 	@mkdir -p data/epistemic
-	PIPELINE_MAX=$(MAX) PIPELINE_SEED=$(SEED) $(JULIA) julia/scripts/export_knowledge.jl
+	PIPELINE_MAX=$(PIPELINE_MAX_VALUE) PIPELINE_SEED=$(SEED) $(JULIA) julia/scripts/export_knowledge.jl
 
 # Verify Knowledge JSONL against Demetrios schema
 verify-knowledge:
@@ -156,6 +158,11 @@ verify-knowledge:
 		dc run demetrios/src/verify_knowledge.d -- \
 			data/epistemic/atlas_knowledge.jsonl \
 			data/epistemic/atlas_knowledge_report.md; \
+		if [ -f dist/atlas_dataset_v2/epistemic/atlas_knowledge.jsonl ]; then \
+			dc run demetrios/src/verify_knowledge.d -- \
+				dist/atlas_dataset_v2/epistemic/atlas_knowledge.jsonl \
+				dist/atlas_dataset_v2/epistemic/atlas_knowledge_report.md; \
+		fi; \
 	else \
 		echo "Demetrios compiler (dc) not found - using Julia fallback"; \
 		$(JULIA) julia/scripts/verify_knowledge.jl; \
@@ -166,14 +173,19 @@ epistemic: export-knowledge verify-knowledge
 	@echo "Epistemic Knowledge layer complete"
 	@echo "  JSONL: data/epistemic/atlas_knowledge.jsonl"
 	@echo "  Report: data/epistemic/atlas_knowledge_report.md"
+	@if [ -f dist/atlas_dataset_v2/epistemic/atlas_knowledge.jsonl ]; then \
+		echo "  JSONL: dist/atlas_dataset_v2/epistemic/atlas_knowledge.jsonl"; \
+		echo "  Report: dist/atlas_dataset_v2/epistemic/atlas_knowledge_report.md"; \
+	fi
 
 # Epistemic with pipeline (run full analysis first if tables missing)
 epistemic-full:
-	@if [ ! -f data/tables/atlas_replicons.csv ]; then \
+	@if [ ! -f dist/atlas_dataset_v2/csv/atlas_replicons.csv ] && [ ! -f data/tables/atlas_replicons.csv ]; then \
 		echo "Tables not found, running atlas first..."; \
-		$(MAKE) atlas MAX=$(MAX) SEED=$(SEED); \
+		$(MAKE) atlas MAX=$(MAX) SCALE=$(SCALE) SEED=$(SEED); \
+	else \
+		$(MAKE) epistemic MAX=$(MAX) SCALE=$(SCALE) SEED=$(SEED); \
 	fi
-	$(MAKE) epistemic MAX=$(MAX) SEED=$(SEED)
 
 # =============================================================================
 # Snapshot Builder (for Zenodo/DOI)
@@ -189,8 +201,7 @@ snapshot:
 snapshot-full:
 	@if [ ! -f dist/atlas_dataset_v2/csv/atlas_replicons.csv ]; then \
 		echo "Dataset not found, running atlas first..."; \
-		$(MAKE) atlas MAX=$(MAX) SEED=$(SEED); \
-		$(MAKE) epistemic MAX=$(MAX) SEED=$(SEED); \
+		$(MAKE) atlas MAX=$(MAX) SCALE=$(SCALE) SEED=$(SEED); \
 	fi
 	$(MAKE) snapshot MAX=$(MAX) SEED=$(SEED)
 
