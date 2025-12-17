@@ -77,11 +77,15 @@ end
     # Create a sequence with an inverted repeat
     # Stem: ATCG, Loop: TTA, Stem: CGAT (RC of first stem)
     seq_with_ir = LongDNA{4}("ATCGTTACGAT")
-    
+
     # Test IR detection
     irs = detect_inverted_repeats(seq_with_ir; stem_min=4, loop_min=3, loop_max=5)
     @test length(irs) >= 0  # May or may not find it depending on match threshold
-    
+
+    # Test exact IR counter (fast path)
+    ir_exact = count_inverted_repeats_exact(seq_with_ir; stem_len=4, loop_min=3, loop_max=3)
+    @test ir_exact >= 1
+
     # Test with a known palindrome (self-complementary stem)
     pal_seq = LongDNA{4}("ATCGATCGATCGATCG")
     irs_pal = detect_inverted_repeats(pal_seq; stem_min=4)

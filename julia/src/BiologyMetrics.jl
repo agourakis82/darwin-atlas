@@ -198,27 +198,23 @@ function compute_all_biology_metrics(
             # Split replichores
             leading, lagging = split_replichores(seq, ori, ter)
 
-            # Compute k-mer inversion for k=6 on each replichore
-            leading_kmer = compute_kmer_inversion(leading, 6; replichore="leading")
-            lagging_kmer = compute_kmer_inversion(lagging, 6; replichore="lagging")
-
-            # Extract x_k for k=6
-            x_k_leading = filter(r -> r.k == 6, leading_kmer)
-            x_k_lagging = filter(r -> r.k == 6, lagging_kmer)
+            # Compute k-mer inversion for k=6 on each replichore (single k, fast path)
+            leading_res = compute_kmer_inversion_for_k(leading, 6)
+            lagging_res = compute_kmer_inversion_for_k(lagging, 6)
 
             push!(replichore_data, (
                 replicon_id=replicon_id,
                 replichore="leading",
                 length_bp=length(leading),
                 gc_fraction=gc_content(leading),
-                x_k_6=nrow(x_k_leading) > 0 ? x_k_leading.x_k[1] : 0.0
+                x_k_6=leading_res.x_k
             ))
             push!(replichore_data, (
                 replicon_id=replicon_id,
                 replichore="lagging",
                 length_bp=length(lagging),
                 gc_fraction=gc_content(lagging),
-                x_k_6=nrow(x_k_lagging) > 0 ? x_k_lagging.x_k[1] : 0.0
+                x_k_6=lagging_res.x_k
             ))
         end
     end

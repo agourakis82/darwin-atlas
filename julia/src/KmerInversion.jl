@@ -13,6 +13,79 @@ using Statistics
 export compute_kmer_inversion, compute_kmer_inversion_for_k
 export KmerInversionResult
 
+@inline function _kmer_base_to_2bit(base)::UInt32
+    if base == DNA_A
+        return 0x00
+    elseif base == DNA_C
+        return 0x01
+    elseif base == DNA_G
+        return 0x02
+    elseif base == DNA_T
+        return 0x03
+    end
+    error("Invalid DNA base: $base")
+end
+
+@inline function _kmer_rc_code(code::UInt32, k::Int)::UInt32
+    rc = UInt32(0)
+    @inbounds for _ in 1:k
+        base = code & 0x03
+        rc = (rc << 2) | (base ⊻ 0x03)
+        code >>= 2
+    end
+    return rc
+end
+
+const _RC_LUT_CACHE = Dict{Int, Vector{UInt32}}()
+
+function _rc_lut(k::Int)::Vector{UInt32}
+    if haskey(_RC_LUT_CACHE, k)
+        return _RC_LUT_CACHE[k]
+    end
+
+    n_codes = 1 << (2 * k)  # 4^k
+    lut = Vector{UInt32}(undef, n_codes)
+    @inbounds for idx in 1:n_codes
+        lut[idx] = _kmer_rc_code(UInt32(idx - 1), k)
+    end
+    _RC_LUT_CACHE[k] = lut
+    return lut
+end
+
+"""
+    count_kmer_codes_circular(seq::LongDNA, k::Int) -> Vector{Int32}
+
+Count all k-mers in a circular DNA sequence using a 2-bit encoding.
+
+Returns a dense count vector of length 4^k, indexed by k-mer code + 1.
+"""
+function count_kmer_codes_circular(seq::LongDNA, k::Int)::Vector{Int32}
+    n = length(seq)
+    n < k && return Int32[]
+
+    n_codes = 1 << (2 * k)  # 4^k
+    counts = zeros(Int32, n_codes)
+
+    mask = UInt32(n_codes - 1)
+    code = UInt32(0)
+
+    # Seed first k-mer at start position 1
+    @inbounds for i in 1:k
+        code = (code << 2) | _kmer_base_to_2bit(seq[i])
+    end
+    counts[Int(code) + 1] += 1
+
+    # Rolling update for start positions 2..n (circular wrap)
+    @inbounds for start in 2:n
+        next_pos = start + k - 1
+        base = _kmer_base_to_2bit(next_pos <= n ? seq[next_pos] : seq[next_pos - n])
+        code = ((code << 2) & mask) | base
+        counts[Int(code) + 1] += 1
+    end
+
+    return counts
+end
+
 """
     KmerInversionResult
 
@@ -25,38 +98,6 @@ struct KmerInversionResult
     k_l_tau_10::Int  # K_L at tau=0.10
     total_kmers::Int
     symmetric_kmers::Int  # k-mers with N(w) == N(RC(w))
-end
-
-"""
-    count_kmers(seq::LongDNA, k::Int) -> Dict{LongDNA, Int}
-
-Count all k-mers in a DNA sequence (circular).
-
-# Arguments
-- `seq`: DNA sequence to analyze
-- `k`: k-mer length
-
-# Returns
-Dictionary mapping k-mer sequences to their counts.
-"""
-function count_kmers(seq::LongDNA, k::Int)::Dict{LongDNA, Int}
-    n = length(seq)
-    n < k && return Dict{LongDNA, Int}()
-
-    counts = Dict{LongDNA, Int}()
-
-    # Count k-mers in circular sequence
-    for i in 1:n
-        kmer_bases = Vector{eltype(seq)}()
-        for j in 0:k-1
-            pos = mod1(i + j, n)  # Circular indexing
-            push!(kmer_bases, seq[pos])
-        end
-        kmer = LongDNA{4}(kmer_bases)
-        counts[kmer] = get(counts, kmer, 0) + 1
-    end
-
-    return counts
 end
 
 """
@@ -91,49 +132,37 @@ function compute_kmer_inversion_for_k(seq::LongDNA, k::Int; eps::Float64=1e-10):
         return KmerInversionResult(k, 1.0, 0, 0, 0, 0)
     end
 
-    # Count all k-mers
-    kmer_counts = count_kmers(seq, k)
+    # Dense circular k-mer counts (2-bit encoding)
+    counts = count_kmer_codes_circular(seq, k)
+    lut = _rc_lut(k)
 
-    # Compute asymmetry for each k-mer pair (w, RC(w))
-    asymmetries = Float64[]
+    sum_asym = 0.0
     total_pairs = 0
     symmetric_count = 0
+    k_l_tau_05 = 0
+    k_l_tau_10 = 0
 
-    processed = Set{LongDNA}()
+    n_codes = length(counts)
+    @inbounds for idx in 1:n_codes
+        code = UInt32(idx - 1)
+        rc = lut[idx]
+        code > rc && continue  # process each (w, RC(w)) pair once
 
-    for (kmer, count_w) in kmer_counts
-        if kmer in processed
-            continue
-        end
-
-        rc_kmer = reverse_complement(kmer)
-        count_rc = get(kmer_counts, rc_kmer, 0)
-
-        # Mark both as processed
-        push!(processed, kmer)
-        if rc_kmer != kmer  # Avoid double-counting palindromic k-mers
-            push!(processed, rc_kmer)
-        end
-
-        # Compute asymmetry
+        count_w = Int(counts[idx])
+        count_rc = Int(counts[Int(rc) + 1])
         total = count_w + count_rc
-        if total > 0
-            asymmetry = abs(count_w - count_rc) / (total + eps)
-            push!(asymmetries, asymmetry)
-            total_pairs += 1
+        total == 0 && continue
 
-            if asymmetry < eps  # Effectively symmetric
-                symmetric_count += 1
-            end
-        end
+        total_pairs += 1
+        asym = abs(count_w - count_rc) / (total + eps)
+        sum_asym += asym
+
+        asym < eps && (symmetric_count += 1)
+        asym > 0.05 && (k_l_tau_05 += 1)
+        asym > 0.10 && (k_l_tau_10 += 1)
     end
 
-    # Compute X_k (mean asymmetry)
-    x_k = isempty(asymmetries) ? 1.0 : mean(asymmetries)
-
-    # Compute K_L: number of k-mers with asymmetry > tau
-    k_l_tau_05 = count(a -> a > 0.05, asymmetries)
-    k_l_tau_10 = count(a -> a > 0.10, asymmetries)
+    x_k = total_pairs == 0 ? 1.0 : (sum_asym / total_pairs)
 
     return KmerInversionResult(
         k,

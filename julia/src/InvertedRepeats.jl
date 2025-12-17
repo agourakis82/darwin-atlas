@@ -13,6 +13,7 @@ using Statistics
 
 export detect_inverted_repeats, compute_baseline_shuffle
 export compute_ir_enrichment, InvertedRepeat
+export count_inverted_repeats_exact
 
 """
     InvertedRepeat
@@ -25,6 +26,120 @@ struct InvertedRepeat
     loop_length::Int  # Length of loop (bp)
     end_pos::Int  # End of second stem (bp, 0-indexed)
     match_score::Float64  # Fraction of matching bases in stems
+end
+
+@inline function _ir_base_to_2bit(base)::UInt32
+    if base == DNA_A
+        return 0x00
+    elseif base == DNA_C
+        return 0x01
+    elseif base == DNA_G
+        return 0x02
+    elseif base == DNA_T
+        return 0x03
+    end
+    error("Invalid DNA base: $base")
+end
+
+@inline function _ir_rc_code(code::UInt32, k::Int)::UInt32
+    rc = UInt32(0)
+    @inbounds for _ in 1:k
+        base = code & 0x03
+        rc = (rc << 2) | (base ⊻ 0x03)
+        code >>= 2
+    end
+    return rc
+end
+
+"""
+    count_inverted_repeats_exact(seq::LongDNA; stem_len::Int=8, loop_min::Int=3, loop_max::Int=20) -> Int
+
+Count exact inverted repeats w ... loop ... RC(w) for a fixed stem length.
+
+This is an O(n * (loop_max-loop_min+1)) scan using 2-bit k-mer encoding and is
+designed to be tractable on multi-megabase replicons.
+"""
+function count_inverted_repeats_exact(
+    seq::LongDNA;
+    stem_len::Int=8,
+    loop_min::Int=3,
+    loop_max::Int=20
+)::Int
+    n = length(seq)
+    n < 2 * stem_len + loop_min && return 0
+
+    n_kmers = n - stem_len + 1
+    n_kmers <= 0 && return 0
+
+    codes = Vector{UInt32}(undef, n_kmers)
+    rc_codes = Vector{UInt32}(undef, n_kmers)
+
+    mask = UInt32((1 << (2 * stem_len)) - 1)
+    code = UInt32(0)
+
+    @inbounds for i in 1:stem_len
+        code = (code << 2) | _ir_base_to_2bit(seq[i])
+    end
+    codes[1] = code
+    rc_codes[1] = _ir_rc_code(code, stem_len)
+
+    @inbounds for i in 2:n_kmers
+        code = ((code << 2) & mask) | _ir_base_to_2bit(seq[i + stem_len - 1])
+        codes[i] = code
+        rc_codes[i] = _ir_rc_code(code, stem_len)
+    end
+
+    ir_count = 0
+    @inbounds for loop_len in loop_min:loop_max
+        max_i = n - 2 * stem_len - loop_len + 1
+        max_i <= 0 && continue
+        offset = stem_len + loop_len
+        for i in 1:max_i
+            j = i + offset
+            if codes[i] == rc_codes[j]
+                ir_count += 1
+            end
+        end
+    end
+
+    return ir_count
+end
+
+function expected_ir_count_markov1(
+    seq::LongDNA;
+    stem_len::Int=8,
+    loop_min::Int=3,
+    loop_max::Int=20
+)::Float64
+    n = length(seq)
+    n < 2 * stem_len + loop_min && return 0.0
+
+    a = count(b -> b == DNA_A, seq)
+    c = count(b -> b == DNA_C, seq)
+    g = count(b -> b == DNA_G, seq)
+    t = count(b -> b == DNA_T, seq)
+
+    total = a + c + g + t
+    total == 0 && return 0.0
+
+    pA = a / total
+    pC = c / total
+    pG = g / total
+    pT = t / total
+
+    # P(w == RC(w')) under an IID (Markov-1) model:
+    # sum_b p(b) p(comp(b)) = 2(pA pT + pC pG), then raise to stem_len.
+    p_match_pos = 2.0 * (pA * pT + pC * pG)
+    p_match = p_match_pos^stem_len
+
+    expected = 0.0
+    for loop_len in loop_min:loop_max
+        n_struct = n - 2 * stem_len - loop_len + 1
+        n_struct <= 0 && continue
+        expected += n_struct * p_match
+    end
+
+    return expected
 end
 
 """
@@ -235,16 +350,32 @@ function compute_ir_enrichment(
     seq::LongDNA,
     stem_min::Int=8,
     loop_max::Int=20;
+    stem_max::Int=12,
+    loop_min::Int=3,
     baseline_method::String="markov1",
     n_baseline_samples::Int=100,
     rng=Random.GLOBAL_RNG
 )::Dict
-    # Detect IRs in original sequence
-    irs = detect_inverted_repeats(seq; stem_min=stem_min, loop_max=loop_max)
-    ir_count = length(irs)
+    # Observed IR count: exact IRs across a small stem-length range for tractability.
+    ir_count = 0
+    for stem_len in stem_min:stem_max
+        ir_count += count_inverted_repeats_exact(
+            seq; stem_len=stem_len, loop_min=loop_min, loop_max=loop_max
+        )
+    end
 
-    # Compute baseline
-    baseline_count = compute_baseline_shuffle(seq, baseline_method; rng=rng, n_samples=n_baseline_samples)
+    # Baseline: Markov-1 analytic expectation (fast, deterministic). Fallback to shuffles if requested.
+    baseline_count = if lowercase(baseline_method) in ["markov1", "markov1_analytic"]
+        expected = 0.0
+        for stem_len in stem_min:stem_max
+            expected += expected_ir_count_markov1(
+                seq; stem_len=stem_len, loop_min=loop_min, loop_max=loop_max
+            )
+        end
+        expected
+    else
+        compute_baseline_shuffle(seq, baseline_method; rng=rng, n_samples=n_baseline_samples)
+    end
 
     # Compute enrichment
     enrichment_ratio = baseline_count > 0 ? ir_count / baseline_count : (ir_count > 0 ? Inf : 1.0)
@@ -307,7 +438,7 @@ function compute_ir_enrichment_table(
     records::Vector{Tuple{String, LongDNA}},
     stem_min::Int=8,
     loop_max::Int=20;
-    baseline_method::String="markov1",
+    baseline_method::String="markov1_analytic",
     n_baseline_samples::Int=100
 )::DataFrame
     rng = Random.MersenneTwister(42)  # Deterministic seed
@@ -344,4 +475,3 @@ function compute_ir_enrichment_table(
 
     return df
 end
-
