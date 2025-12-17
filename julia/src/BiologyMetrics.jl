@@ -143,20 +143,7 @@ function compute_all_biology_metrics(
             for line in eachline(io)
                 isempty(strip(line)) && continue
                 try
-                    data = JSON3.read(line)
-                    push!(records, RepliconRecord(
-                        get(data, :assembly_accession, "unknown"),
-                        get(data, :replicon_id, "unknown"),
-                        get(data, :replicon_accession, nothing),
-                        parse_replicon_type(get(data, :replicon_type, "OTHER")),
-                        get(data, :length_bp, 0),
-                        get(data, :gc_fraction, 0.0),
-                        get(data, :taxonomy_id, 0),
-                        get(data, :organism_name, "Unknown"),
-                        parse_source_db(get(data, :source, "REFSEQ")),
-                        today(),
-                        get(data, :checksum_sha256, "")
-                    ))
+                    push!(records, JSON3.read(line, RepliconRecord))
                 catch e
                     @warn "Failed to parse manifest line: $e"
                 end
@@ -252,27 +239,3 @@ function compute_all_biology_metrics(
         "inverted_repeats_summary" => ir_df
     )
 end
-
-# Helper functions (duplicated from other modules for standalone use)
-function parse_replicon_type(s)
-    s_upper = uppercase(string(s))
-    if s_upper == "CHROMOSOME"
-        return CHROMOSOME
-    elseif s_upper == "PLASMID"
-        return PLASMID
-    else
-        return OTHER
-    end
-end
-
-function parse_source_db(s)
-    s_upper = uppercase(string(s))
-    if s_upper == "GENBANK"
-        return GENBANK
-    else
-        return REFSEQ
-    end
-end
-
-# gc_content is available from Operators.jl via DarwinAtlas
-

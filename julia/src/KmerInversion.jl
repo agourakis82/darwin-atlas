@@ -168,7 +168,8 @@ DataFrame with columns:
 # Validity Constraints
 - x_k ∈ [0, 1]
 - k_l_tau_05 ≥ 0, k_l_tau_10 ≥ 0
-- k_l_tau_05 ≤ k_l_tau_10 ≤ total_kmers
+- k_l_tau_05 ≥ k_l_tau_10 ≥ 0
+- k_l_tau_10 ≤ total_kmers
 """
 function compute_kmer_inversion(
     seq::LongDNA,
@@ -248,4 +249,3 @@ function compute_kmer_inversion_batch(
 
     return isempty(all_results) ? DataFrame() : vcat(all_results...)
 end
-

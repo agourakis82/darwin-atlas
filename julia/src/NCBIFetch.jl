@@ -88,14 +88,6 @@ function fetch_ncbi(;
             append!(records, replicon_records)
             push!(checksums, "$checksum  $(basename(local_path))")
 
-            # Append to manifest
-            open(manifest_path, "a") do io
-                for rec in replicon_records
-                    JSON3.write(io, rec)
-                    println(io)
-                end
-            end
-
         catch e
             @warn "Failed to download $(assembly["accession"]): $e"
         end
@@ -103,11 +95,43 @@ function fetch_ncbi(;
         next!(p)
     end
 
+    # Write manifest (deterministic, overwrite)
+    sort!(records; by=r -> r.replicon_id)
+    open(manifest_path, "w") do io
+        for rec in records
+            JSON3.write(io, rec)
+            println(io)
+        end
+    end
+
     # Write checksums
+    sort!(checksums)
     open(checksums_path, "w") do io
         for cs in checksums
             println(io, cs)
         end
+    end
+
+    # Write ingestion metadata for provenance/debugging
+    metadata_path = joinpath(manifest_dir, "ingestion_metadata.json")
+    ingestion_metadata = Dict(
+        "timestamp_utc" => Dates.format(now(UTC), "yyyy-mm-ddTHH:MM:SSZ"),
+        "seed" => seed,
+        "max_genomes" => max_genomes,
+        "taxon" => taxon,
+        "assembly_level" => assembly_level,
+        "ncbi_assembly_summary_url" => NCBI_ASSEMBLY_SUMMARY,
+        "download_policy" => Dict(
+            "retries" => 3,
+            "connect_timeout_s" => 30,
+            "readtimeout_s" => 300,
+            "backoff" => "2^attempt seconds"
+        ),
+        "n_assemblies_selected" => length(assemblies),
+        "n_replicons_downloaded" => length(records)
+    )
+    open(metadata_path, "w") do io
+        JSON3.write(io, ingestion_metadata; allow_inf=true)
     end
 
     println("\nDownloaded $(length(records)) replicons from $(length(assemblies)) assemblies")

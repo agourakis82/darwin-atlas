@@ -21,9 +21,39 @@ using CSV
 using JSON3
 using SHA
 
-# Include storage and query modules
+# Include storage module (Parquet writer)
 include(joinpath(@__DIR__, "..", "src", "Storage.jl"))
-include(joinpath(@__DIR__, "..", "src", "BiologyMetrics.jl"))
+
+function load_manifest_records(path::String)::Vector{RepliconRecord}
+    records = RepliconRecord[]
+
+    open(path, "r") do io
+        for line in eachline(io)
+            isempty(strip(line)) && continue
+            push!(records, JSON3.read(line, RepliconRecord))
+        end
+    end
+
+    return records
+end
+
+function reset_generated_dir(dir::String; keep::Set{String}=Set([".gitkeep"]))
+    mkpath(dir)
+    for entry in readdir(dir)
+        entry in keep && continue
+        rm(joinpath(dir, entry); recursive=true, force=true)
+    end
+    return nothing
+end
+
+function reset_dataset_dir(dir::String)
+    mkpath(dir)
+    for sub in ["partitions", "csv", "manifest"]
+        path = joinpath(dir, sub)
+        ispath(path) && rm(path; recursive=true, force=true)
+    end
+    return nothing
+end
 
 function parse_args()
     s = ArgParseSettings(
@@ -106,7 +136,7 @@ function main()
     # Setup directories
     mkpath(joinpath(data_dir, "raw"))
     mkpath(joinpath(data_dir, "manifest"))
-    mkpath(output_dir)
+    reset_dataset_dir(output_dir)
 
     # Step 1: Download genomes
     records = RepliconRecord[]
@@ -139,7 +169,7 @@ function main()
     # Step 3: Generate tables (CSV)
     println("\n[Step 3/4] Generating output tables...")
     tables_dir = joinpath(data_dir, "tables")
-    mkpath(tables_dir)
+    reset_generated_dir(tables_dir)
 
     # Generate basic tables
     generate_tables(data_dir)
@@ -147,7 +177,7 @@ function main()
     # Compute biology metrics (PR2)
     if !args["skip-metrics"]
         println("\n[Step 3b/4] Computing biology metrics...")
-        biology_tables = compute_all_biology_metrics(data_dir; k_max=10, window_size=1000)
+        biology_tables = DarwinAtlas.compute_all_biology_metrics(data_dir; k_max=10, window_size=1000)
         println("Biology metrics computed: $(keys(biology_tables))")
     end
 
@@ -233,62 +263,6 @@ function main()
     println("="^70)
 
     return 0
-end
-
-"""
-    load_manifest_records(path::String) -> Vector{RepliconRecord}
-
-Load replicon records from manifest JSONL file.
-"""
-function load_manifest_records(path::String)::Vector{RepliconRecord}
-    records = RepliconRecord[]
-
-    open(path, "r") do io
-        for line in eachline(io)
-            isempty(strip(line)) && continue
-            try
-                data = JSON3.read(line)
-                # Convert to RepliconRecord
-                push!(records, RepliconRecord(
-                    get(data, :assembly_accession, "unknown"),
-                    get(data, :replicon_id, "unknown"),
-                    get(data, :replicon_accession, nothing),
-                    parse_replicon_type(get(data, :replicon_type, "OTHER")),
-                    get(data, :length_bp, 0),
-                    get(data, :gc_fraction, 0.0),
-                    get(data, :taxonomy_id, 0),
-                    get(data, :organism_name, "Unknown"),
-                    parse_source_db(get(data, :source, "REFSEQ")),
-                    today(),
-                    get(data, :checksum_sha256, "")
-                ))
-            catch e
-                @warn "Failed to parse manifest line: $e"
-            end
-        end
-    end
-
-    return records
-end
-
-function parse_replicon_type(s)
-    s_upper = uppercase(string(s))
-    if s_upper == "CHROMOSOME"
-        return CHROMOSOME
-    elseif s_upper == "PLASMID"
-        return PLASMID
-    else
-        return OTHER
-    end
-end
-
-function parse_source_db(s)
-    s_upper = uppercase(string(s))
-    if s_upper == "GENBANK"
-        return GENBANK
-    else
-        return REFSEQ
-    end
 end
 
 exit(main())

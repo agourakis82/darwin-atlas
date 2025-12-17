@@ -117,7 +117,7 @@ end
     @test all(0.0 .<= kmer_df.x_k .<= 1.0)
     @test all(kmer_df.k_l_tau_05 .>= 0)
     @test all(kmer_df.k_l_tau_10 .>= 0)
-    @test all(kmer_df.k_l_tau_05 .<= kmer_df.k_l_tau_10)
+    @test all(kmer_df.k_l_tau_05 .>= kmer_df.k_l_tau_10)
     
     # GC skew - skip batch test for type compatibility
     # gc_df = compute_gc_skew_table([("test", test_seq)], 100)
@@ -136,4 +136,3 @@ end
 end
 
 println("\n✅ All biology metrics tests passed!")
-

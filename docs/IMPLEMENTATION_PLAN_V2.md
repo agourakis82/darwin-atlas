@@ -40,15 +40,25 @@ partitions/
 ```
 
 **Verification Needed**:
+- [x] Deterministic ingestion manifest (overwrite, not append) (`julia/src/NCBIFetch.jl`)
+- [x] Deterministic dataset directory reset per run (`julia/scripts/run_atlas.jl`)
 - [ ] Run `make atlas MAX=50 SEED=42` and verify Parquet partitions created
-- [ ] Test query layer with example queries
-- [ ] Verify manifest + checksums generated
+- [ ] Test query layer with example queries (`make query QUERY="SELECT * FROM atlas_replicons LIMIT 10"`)
+- [ ] Verify dataset manifest + checksums generated in `dist/atlas_dataset_v2/manifest/`
 
 ---
 
-### ❌ PR2: Biology Metrics (TO IMPLEMENT)
+### ⚠️ PR2: Biology Metrics (IMPLEMENTED, NEEDS SCALE HARDENING)
 
 **Goal**: Add three high-signal metric families with baselines and validity constraints.
+
+**Current State (in repo)**:
+- Implemented modules: `julia/src/KmerInversion.jl`, `julia/src/GCSkew.jl`, `julia/src/InvertedRepeats.jl`, `julia/src/BiologyMetrics.jl`
+- Integrated into pipeline runner: `julia/scripts/run_atlas.jl`
+
+**Fixes Applied (this workspace)**:
+- Correct manifest parsing into `RepliconRecord` (avoid key mismatches) (`julia/src/BiologyMetrics.jl`)
+- Fix test validity constraint for `K_L(tau)` ordering (`julia/test/test_biology_metrics.jl`)
 
 #### 2.1 k-mer Inversion Symmetry
 
@@ -284,4 +294,3 @@ make snapshot MAX=200 SEED=42
 ---
 
 *Last updated: 2025-12-16*
-

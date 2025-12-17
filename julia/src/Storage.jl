@@ -194,6 +194,7 @@ function write_atlas_dataset(
     mkpath(manifest_dir)
 
     written_files = String[]
+    partition_cols_used = Dict{String, Vector{Symbol}}()
 
     # Write each table
     for (name, df) in tables
@@ -201,11 +202,12 @@ function write_atlas_dataset(
             continue
         end
 
-        # Determine partition strategy
-        partition_cols = get_partition_strategy(name, df)
-
         # Add derived partition columns if needed
         df_part = prepare_for_partitioning(name, df)
+
+        # Determine partition strategy (after derived cols are present)
+        partition_cols = get_partition_strategy(name, df_part)
+        partition_cols_used[name] = partition_cols
 
         # Write partitioned Parquet
         parquet_path = joinpath(partitions_dir, name)
@@ -231,7 +233,7 @@ function write_atlas_dataset(
             name => Dict(
                 "rows" => nrow(df),
                 "columns" => names(df),
-                "partition_cols" => get_partition_strategy(name, df)
+                "partition_cols" => get(partition_cols_used, name, Symbol[])
             )
             for (name, df) in tables if nrow(df) > 0
         )
