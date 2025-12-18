@@ -3,9 +3,9 @@
 /// Implementation of the double cover Dic_n → D_n
 /// for verifying algebraic structure of genomic symmetries.
 
-module quaternion;
+module quaternion
 
-use std.math::{sin, cos, PI};
+use std.math::{sin, cos, PI}
 
 /// Quaternion representation: q = w + xi + yj + zk
 pub struct Quaternion {
@@ -34,7 +34,7 @@ impl Quaternion {
             self.w * other.w - self.x * other.x - self.y * other.y - self.z * other.z,
             self.w * other.x + self.x * other.w + self.y * other.z - self.z * other.y,
             self.w * other.y - self.x * other.z + self.y * other.w + self.z * other.x,
-            self.w * other.z + self.x * other.y - self.y * other.x + self.z * other.w,
+            self.w * other.z + self.x * other.y - self.y * other.x + self.z * other.w
         )
     }
 
@@ -45,11 +45,16 @@ impl Quaternion {
 
     /// Check approximate equality
     pub fn approx_eq(&self, other: &Quaternion, tol: f64) -> bool {
-        (self.w - other.w).abs() < tol &&
-        (self.x - other.x).abs() < tol &&
-        (self.y - other.y).abs() < tol &&
-        (self.z - other.z).abs() < tol
+        abs(self.w - other.w) < tol &&
+        abs(self.x - other.x) < tol &&
+        abs(self.y - other.y) < tol &&
+        abs(self.z - other.z) < tol
     }
+}
+
+/// Helper: absolute value
+fn abs(x: f64) -> f64 {
+    if x < 0.0 { -x } else { x }
 }
 
 /// Dicyclic group Dic_n
@@ -63,7 +68,7 @@ pub struct DicyclicGroup {
 
 impl DicyclicGroup {
     pub fn new(n: usize) -> Self {
-        assert!(n >= 2, "Dicyclic group requires n >= 2");
+        // Dicyclic group requires n >= 2
         DicyclicGroup { n }
     }
 
@@ -82,15 +87,15 @@ pub struct DicyclicElement {
 /// k: power of generator a
 /// is_reflection: whether to multiply by b
 pub fn dicyclic_element(g: &DicyclicGroup, k: usize, is_reflection: bool) -> DicyclicElement {
-    let n = g.n;
-    let theta = PI * k as f64 / n as f64;
+    let n = g.n
+    let theta = PI * k as f64 / n as f64
 
     // a = exp(πi/n) as unit quaternion
-    let a_k = Quaternion::new(cos(theta), sin(theta), 0.0, 0.0);
+    let a_k = Quaternion::new(cos(theta), sin(theta), 0.0, 0.0)
 
     if is_reflection {
         // b = j in quaternion representation
-        let b = Quaternion::new(0.0, 0.0, 1.0, 0.0);
+        let b = Quaternion::new(0.0, 0.0, 1.0, 0.0)
         DicyclicElement { q: a_k.mul(&b) }
     } else {
         DicyclicElement { q: a_k }
@@ -100,63 +105,109 @@ pub fn dicyclic_element(g: &DicyclicGroup, k: usize, is_reflection: bool) -> Dic
 /// Project quaternion to dihedral group element
 /// Returns (rotation_index, is_reflection)
 pub fn project_to_dihedral(elem: &DicyclicElement, g: &DicyclicGroup) -> (usize, bool) {
-    let q = &elem.q;
-    let n = g.n;
+    let q = &elem.q
+    let n = g.n
 
     // Check if rotation (z=0) or reflection (y≠0 or z≠0)
-    let is_reflection = q.y.abs() > 1e-10 || q.z.abs() > 1e-10;
+    let is_reflection = abs(q.y) > 1e-10 || abs(q.z) > 1e-10
 
     // Extract rotation angle from w + xi part
-    let angle = q.x.atan2(q.w);
-    let k = ((angle * n as f64 / PI).round() as isize).rem_euclid(n as isize) as usize;
+    let angle = atan2(q.x, q.w)
+    let k_raw = (angle * n as f64 / PI).round() as i64
+    let k = ((k_raw % n as i64) + n as i64) as usize % n
 
     (k, is_reflection)
+}
+
+/// Helper: atan2 approximation
+fn atan2(y: f64, x: f64) -> f64 {
+    // Simple atan2 implementation
+    if x > 0.0 {
+        atan(y / x)
+    } else if x < 0.0 && y >= 0.0 {
+        atan(y / x) + PI
+    } else if x < 0.0 && y < 0.0 {
+        atan(y / x) - PI
+    } else if x == 0.0 && y > 0.0 {
+        PI / 2.0
+    } else if x == 0.0 && y < 0.0 {
+        -PI / 2.0
+    } else {
+        0.0
+    }
+}
+
+/// Helper: atan approximation using Taylor series
+fn atan(x: f64) -> f64 {
+    // Use standard library if available, otherwise Taylor approximation
+    // For small x: atan(x) ≈ x - x³/3 + x⁵/5 - ...
+    let x2 = x * x
+    if abs(x) <= 1.0 {
+        x * (1.0 - x2 * (1.0/3.0 - x2 * (1.0/5.0 - x2 * (1.0/7.0))))
+    } else {
+        let sign = if x > 0.0 { 1.0 } else { -1.0 }
+        let inv = 1.0 / x
+        let inv2 = inv * inv
+        sign * (PI / 2.0 - inv * (1.0 - inv2 * (1.0/3.0 - inv2 * (1.0/5.0))))
+    }
 }
 
 /// Verify that Dic_n is a double cover of D_n
 /// Check: for each g ∈ Dic_n, both g and -g project to same D_n element
 pub fn verify_double_cover(g: &DicyclicGroup) -> bool {
-    let n = g.n;
+    let n = g.n
 
-    for k in 0..(2*n) {
-        for is_ref in [false, true] {
-            let elem = dicyclic_element(g, k, is_ref);
-            let neg_elem = DicyclicElement { q: elem.q.neg() };
+    var k: usize = 0
+    while k < 2 * n {
+        // Test both reflection states
+        var is_ref_idx: usize = 0
+        while is_ref_idx < 2 {
+            let is_ref = is_ref_idx == 1
+            let elem = dicyclic_element(g, k, is_ref)
+            let neg_elem = DicyclicElement { q: elem.q.neg() }
 
-            let proj1 = project_to_dihedral(&elem, g);
-            let proj2 = project_to_dihedral(&neg_elem, g);
+            let proj1 = project_to_dihedral(&elem, g)
+            let proj2 = project_to_dihedral(&neg_elem, g)
 
-            if proj1 != proj2 {
-                return false;
+            if proj1.0 != proj2.0 || proj1.1 != proj2.1 {
+                return false
             }
+            is_ref_idx = is_ref_idx + 1
         }
+        k = k + 1
     }
 
     true
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// =============================================================================
+// Test Functions
+// =============================================================================
 
-    #[test]
-    fn test_quaternion_identity() {
-        let id = Quaternion::identity();
-        let q = Quaternion::new(1.0, 2.0, 3.0, 4.0);
-        assert!(id.mul(&q).approx_eq(&q, 1e-10));
-    }
+pub fn test_quaternion_identity() -> bool {
+    let id = Quaternion::identity()
+    let q = Quaternion::new(1.0, 2.0, 3.0, 4.0)
+    id.mul(&q).approx_eq(&q, 1e-10)
+}
 
-    #[test]
-    fn test_dicyclic_order() {
-        let g = DicyclicGroup::new(4);
-        assert_eq!(g.order(), 16);
-    }
+pub fn test_dicyclic_order() -> bool {
+    let g = DicyclicGroup::new(4)
+    g.order() == 16
+}
 
-    #[test]
-    fn test_double_cover() {
-        for n in 2..=8 {
-            let g = DicyclicGroup::new(n);
-            assert!(verify_double_cover(&g));
+pub fn test_double_cover() -> bool {
+    var n: usize = 2
+    while n <= 8 {
+        let g = DicyclicGroup::new(n)
+        if !verify_double_cover(&g) {
+            return false
         }
+        n = n + 1
     }
+    true
+}
+
+/// Run all tests
+pub fn run_tests() -> bool {
+    test_quaternion_identity() && test_dicyclic_order() && test_double_cover()
 }

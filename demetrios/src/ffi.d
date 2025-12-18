@@ -3,151 +3,150 @@
 /// C ABI functions callable from Julia via ccall.
 /// All exported functions use primitive types and raw pointers.
 
-module ffi;
+module ffi
 
-use operators::{shift, reverse, complement, reverse_complement, hamming_distance, Base, Sequence};
-use exact_symmetry::{orbit_size, orbit_ratio, is_palindrome, is_rc_fixed};
-use approx_metric::{dmin, dmin_normalized};
-use quaternion::{DicyclicGroup, verify_double_cover};
+use operators::{shift, reverse, complement, reverse_complement, hamming_distance, Base, Sequence}
+use exact_symmetry::{orbit_size, orbit_ratio, is_palindrome, is_rc_fixed}
+use approx_metric::{dmin, dmin_normalized}
+use quaternion::{DicyclicGroup, verify_double_cover}
 
-// ============================================================================
+// =============================================================================
 // Operator FFI
-// ============================================================================
+// =============================================================================
 
 /// Compute Hamming distance between two sequences
 ///
-/// # Safety
-/// - `seq_a` and `seq_b` must point to valid memory of length `len`
-/// - Both sequences must have the same length
-#[export]
-#[no_mangle]
+/// Safety: seq_a and seq_b must point to valid memory of length len
 pub extern "C" fn darwin_hamming_distance(
     seq_a: *const u8,
     seq_b: *const u8,
-    len: usize,
+    len: usize
 ) -> usize {
-    unsafe {
-        let a = std::slice::from_raw_parts(seq_a, len);
-        let b = std::slice::from_raw_parts(seq_b, len);
+    // Convert raw pointers to slices
+    let a = slice_from_raw(seq_a, len)
+    let b = slice_from_raw(seq_b, len)
 
-        a.iter().zip(b.iter()).filter(|(x, y)| x != y).count()
+    var count: usize = 0
+    var i: usize = 0
+    while i < len {
+        if a[i] != b[i] {
+            count = count + 1
+        }
+        i = i + 1
     }
+    count
 }
 
-// ============================================================================
+// =============================================================================
 // Exact Symmetry FFI
-// ============================================================================
+// =============================================================================
 
 /// Compute orbit size under dihedral group
-#[export]
-#[no_mangle]
 pub extern "C" fn darwin_orbit_size(
     seq: *const u8,
-    len: usize,
+    len: usize
 ) -> usize {
-    unsafe {
-        let s = std::slice::from_raw_parts(seq, len);
-        // Convert u8 to Base (2-bit)
-        let bases: Vec<Base> = s.iter().map(|&b| (b & 0x03) as Base).collect();
-        orbit_size(&bases)
-    }
+    let s = slice_from_raw(seq, len)
+    // Convert u8 to Base (2-bit)
+    let bases = convert_to_bases(s, len)
+    orbit_size(&bases)
 }
 
 /// Compute orbit ratio
-#[export]
-#[no_mangle]
 pub extern "C" fn darwin_orbit_ratio(
     seq: *const u8,
-    len: usize,
+    len: usize
 ) -> f64 {
-    unsafe {
-        let s = std::slice::from_raw_parts(seq, len);
-        let bases: Vec<Base> = s.iter().map(|&b| (b & 0x03) as Base).collect();
-        orbit_ratio(&bases)
-    }
+    let s = slice_from_raw(seq, len)
+    let bases = convert_to_bases(s, len)
+    orbit_ratio(&bases)
 }
 
 /// Check if sequence is palindrome
-#[export]
-#[no_mangle]
 pub extern "C" fn darwin_is_palindrome(
     seq: *const u8,
-    len: usize,
+    len: usize
 ) -> bool {
-    unsafe {
-        let s = std::slice::from_raw_parts(seq, len);
-        let bases: Vec<Base> = s.iter().map(|&b| (b & 0x03) as Base).collect();
-        is_palindrome(&bases)
-    }
+    let s = slice_from_raw(seq, len)
+    let bases = convert_to_bases(s, len)
+    is_palindrome(&bases)
 }
 
 /// Check if sequence is RC-fixed
-#[export]
-#[no_mangle]
 pub extern "C" fn darwin_is_rc_fixed(
     seq: *const u8,
-    len: usize,
+    len: usize
 ) -> bool {
-    unsafe {
-        let s = std::slice::from_raw_parts(seq, len);
-        let bases: Vec<Base> = s.iter().map(|&b| (b & 0x03) as Base).collect();
-        is_rc_fixed(&bases)
-    }
+    let s = slice_from_raw(seq, len)
+    let bases = convert_to_bases(s, len)
+    is_rc_fixed(&bases)
 }
 
-// ============================================================================
+// =============================================================================
 // Approximate Metric FFI
-// ============================================================================
+// =============================================================================
 
 /// Compute d_min (minimum dihedral distance)
-#[export]
-#[no_mangle]
 pub extern "C" fn darwin_dmin(
     seq: *const u8,
     len: usize,
-    include_rc: bool,
+    include_rc: bool
 ) -> usize {
-    unsafe {
-        let s = std::slice::from_raw_parts(seq, len);
-        let bases: Vec<Base> = s.iter().map(|&b| (b & 0x03) as Base).collect();
-        dmin(&bases, include_rc)
-    }
+    let s = slice_from_raw(seq, len)
+    let bases = convert_to_bases(s, len)
+    dmin(&bases, include_rc)
 }
 
 /// Compute normalized d_min
-#[export]
-#[no_mangle]
 pub extern "C" fn darwin_dmin_normalized(
     seq: *const u8,
     len: usize,
-    include_rc: bool,
+    include_rc: bool
 ) -> f64 {
-    unsafe {
-        let s = std::slice::from_raw_parts(seq, len);
-        let bases: Vec<Base> = s.iter().map(|&b| (b & 0x03) as Base).collect();
-        dmin_normalized(&bases, include_rc)
-    }
+    let s = slice_from_raw(seq, len)
+    let bases = convert_to_bases(s, len)
+    dmin_normalized(&bases, include_rc)
 }
 
-// ============================================================================
+// =============================================================================
 // Quaternion FFI
-// ============================================================================
+// =============================================================================
 
 /// Verify dicyclic double cover property
-#[export]
-#[no_mangle]
 pub extern "C" fn darwin_verify_double_cover(n: usize) -> bool {
-    let g = DicyclicGroup::new(n);
+    let g = DicyclicGroup::new(n)
     verify_double_cover(&g)
 }
 
-// ============================================================================
+// =============================================================================
 // Version Info
-// ============================================================================
+// =============================================================================
+
+/// Library version
+let VERSION: [u8; 6] = [0x30, 0x2e, 0x31, 0x2e, 0x30, 0x00]  // "0.1.0\0"
 
 /// Get library version string
-#[export]
-#[no_mangle]
 pub extern "C" fn darwin_version() -> *const u8 {
-    b"0.1.0\0".as_ptr()
+    &VERSION[0]
+}
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/// Convert raw pointer to slice (unsafe boundary)
+fn slice_from_raw(ptr: *const u8, len: usize) -> &[u8] {
+    // This is the FFI boundary - caller must ensure valid pointer
+    unsafe { std::slice::from_raw_parts(ptr, len) }
+}
+
+/// Convert u8 slice to Base array
+fn convert_to_bases(s: &[u8], len: usize) -> [Base] {
+    var bases: [Base] = []
+    var i: usize = 0
+    while i < len {
+        bases.push((s[i] & 0x03) as Base)
+        i = i + 1
+    }
+    bases
 }
