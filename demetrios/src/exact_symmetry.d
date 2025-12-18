@@ -3,22 +3,24 @@
 /// Computation of orbit sizes, fixed points, and symmetry detection
 /// under the dihedral group action.
 
-module exact_symmetry;
+module exact_symmetry
 
-use operators::{shift, reverse, complement, reverse_complement, Sequence};
-use std.collections.HashSet;
+use operators::{shift, reverse, complement, reverse_complement, Sequence}
+use std.collections.HashSet
 
 /// Compute the orbit of a sequence under the dihedral group D_n
 /// Returns all distinct transforms: {S^k(w), R∘S^k(w)} for k in 0..n
 pub fn compute_orbit(seq: &Sequence) -> HashSet<Sequence> {
-    let n = seq.len();
-    let mut orbit = HashSet::new();
+    let n = seq.len()
+    var orbit = HashSet::new()
 
-    let rev = reverse(seq);
+    let rev = reverse(seq)
 
-    for k in 0..n {
-        orbit.insert(shift(seq, k));
-        orbit.insert(shift(&rev, k));
+    var k: usize = 0
+    while k < n {
+        orbit.insert(shift(seq, k))
+        orbit.insert(shift(&rev, k))
+        k = k + 1
     }
 
     orbit
@@ -26,7 +28,6 @@ pub fn compute_orbit(seq: &Sequence) -> HashSet<Sequence> {
 
 /// Size of the orbit under D_n action
 /// Divides 2n; possible values depend on symmetries
-#[inline]
 pub fn orbit_size(seq: &Sequence) -> usize {
     compute_orbit(seq).len()
 }
@@ -34,37 +35,55 @@ pub fn orbit_size(seq: &Sequence) -> usize {
 /// Orbit ratio: |orbit| / (2n)
 /// Range: [1/(2n), 1.0]
 /// Lower values indicate higher symmetry
-#[inline]
 pub fn orbit_ratio(seq: &Sequence) -> f64 {
-    let n = seq.len();
-    if n == 0 { return 1.0; }
+    let n = seq.len()
+    if n == 0 { return 1.0 }
     orbit_size(seq) as f64 / (2 * n) as f64
 }
 
 /// Check if sequence is a palindrome (fixed under R)
 /// R(w) = w
-#[inline]
 pub fn is_palindrome(seq: &Sequence) -> bool {
-    *seq == reverse(seq)
+    let rev = reverse(seq)
+    sequences_equal(seq, &rev)
 }
 
 /// Check if sequence is fixed under reverse complement
 /// RC(w) = w
-#[inline]
 pub fn is_rc_fixed(seq: &Sequence) -> bool {
-    *seq == reverse_complement(seq)
+    let rc = reverse_complement(seq)
+    sequences_equal(seq, &rc)
+}
+
+/// Helper: compare two sequences for equality
+fn sequences_equal(a: &Sequence, b: &Sequence) -> bool {
+    let len_a = a.len()
+    let len_b = b.len()
+    if len_a != len_b { return false }
+    
+    var i: usize = 0
+    while i < len_a {
+        if a[i] != b[i] { return false }
+        i = i + 1
+    }
+    true
 }
 
 /// Check if sequence has k-fold rotational symmetry
 /// S^k(w) = w for some k | n
 pub fn rotational_period(seq: &Sequence) -> usize {
-    let n = seq.len();
-    if n == 0 { return 1; }
+    let n = seq.len()
+    if n == 0 { return 1 }
 
-    for k in 1..=n {
-        if n % k == 0 && shift(seq, k) == *seq {
-            return k;
+    var k: usize = 1
+    while k <= n {
+        if n % k == 0 {
+            let shifted = shift(seq, k)
+            if sequences_equal(seq, &shifted) {
+                return k
+            }
         }
+        k = k + 1
     }
     n
 }
@@ -90,31 +109,33 @@ pub fn compute_symmetry_stats(seq: &Sequence) -> SymmetryStats {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use operators::{A, C, G, T};
+// =============================================================================
+// Test Functions
+// =============================================================================
 
-    #[test]
-    fn test_palindrome_detection() {
-        // ACGT reversed is TGCA, not palindrome
-        assert!(!is_palindrome(&[A, C, G, T]));
-        // ACCA reversed is ACCA, palindrome
-        assert!(is_palindrome(&[A, C, C, A]));
-    }
+use operators::{A, C, G, T}
 
-    #[test]
-    fn test_rc_fixed() {
-        // ACGT: RC = complement(TGCA) = ACGT, so RC-fixed
-        assert!(is_rc_fixed(&[A, C, G, T]));
-    }
+pub fn test_palindrome_detection() -> bool {
+    // ACGT reversed is TGCA, not palindrome
+    let not_pal = !is_palindrome(&[A, C, G, T])
+    // ACCA reversed is ACCA, palindrome
+    let is_pal = is_palindrome(&[A, C, C, A])
+    not_pal && is_pal
+}
 
-    #[test]
-    fn test_orbit_bounds() {
-        let seq = [A, C, G, T];
-        let n = seq.len();
-        let os = orbit_size(&seq);
-        assert!(os >= 1);
-        assert!(os <= 2 * n);
-    }
+pub fn test_rc_fixed() -> bool {
+    // ACGT: RC = complement(TGCA) = ACGT, so RC-fixed
+    is_rc_fixed(&[A, C, G, T])
+}
+
+pub fn test_orbit_bounds() -> bool {
+    let seq = [A, C, G, T]
+    let n = seq.len()
+    let os = orbit_size(&seq)
+    os >= 1 && os <= 2 * n
+}
+
+/// Run all tests
+pub fn run_tests() -> bool {
+    test_palindrome_detection() && test_rc_fixed() && test_orbit_bounds()
 }
