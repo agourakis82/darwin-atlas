@@ -71,8 +71,8 @@ function __init__()
     libpath = joinpath(@__DIR__, "..", "..", "demetrios", "target", "release", "libdarwin_kernels.so")
     if isfile(libpath)
         HAS_DEMETRIOS[] = true
-        include("DemetriosFFI.jl")
-        include("CrossValidation.jl")
+        include(joinpath(@__DIR__, "DemetriosFFI.jl"))
+        include(joinpath(@__DIR__, "CrossValidation.jl"))
     end
 end
 
@@ -97,6 +97,9 @@ export project_to_dihedral, all_elements
 
 # Exports - Pipeline
 export fetch_ncbi, run_pipeline, generate_tables
+
+# Exports - Cross Validation
+export run_cross_validation, CrossValidationResult
 
 # Exports - Validation
 export validate_operators, validate_symmetry, run_technical_validation

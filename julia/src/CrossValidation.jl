@@ -10,8 +10,10 @@ catching bugs in either implementation.
 using BioSequences: LongDNA, @dna_str
 using Random
 
-# Include FFI module
-include("DemetriosFFI.jl")
+# Include FFI module if not already loaded (avoid redefinition churn)
+if !isdefined(@__MODULE__, :demetrios_orbit_size)
+    include("DemetriosFFI.jl")
+end
 
 """
     CrossValidationResult
@@ -276,7 +278,12 @@ function run_cross_validation(; verbose::Bool=true, n_random::Int=100, seed::Int
     println("\n" * "="^60)
     println("CROSS-VALIDATION: Julia vs Demetrios")
     println("="^60)
-    println("Demetrios version: $(demetrios_version())")
+    # Try to get version, but don't fail if not available
+    try
+        println("Demetrios version: $(demetrios_version())")
+    catch
+        println("Demetrios version: (unavailable)")
+    end
     println("Random seed: $seed")
     println()
 
@@ -356,4 +363,3 @@ function print_result(result::CrossValidationResult)
         println("    Max numerical error: $(result.max_error)")
     end
 end
-

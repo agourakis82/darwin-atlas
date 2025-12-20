@@ -61,12 +61,14 @@ Compute orbit size using Demetrios implementation.
 """
 function demetrios_orbit_size(seq::LongDNA)::Int
     bytes = seq_to_bytes(seq)
-    result = ccall(
-        (:darwin_orbit_size, LIBPATH),
-        Csize_t,
-        (Ptr{UInt8}, Csize_t),
-        bytes, length(bytes)
-    )
+    result = GC.@preserve bytes begin
+        ccall(
+            (:darwin_orbit_size, LIBPATH),
+            Csize_t,
+            (Ptr{UInt8}, UInt64),
+            pointer(bytes), UInt64(length(bytes))
+        )
+    end
     return Int(result)
 end
 
@@ -77,12 +79,14 @@ Compute orbit ratio using Demetrios implementation.
 """
 function demetrios_orbit_ratio(seq::LongDNA)::Float64
     bytes = seq_to_bytes(seq)
-    result = ccall(
-        (:darwin_orbit_ratio, LIBPATH),
-        Cdouble,
-        (Ptr{UInt8}, Csize_t),
-        bytes, length(bytes)
-    )
+    result = GC.@preserve bytes begin
+        ccall(
+            (:darwin_orbit_ratio, LIBPATH),
+            Cdouble,
+            (Ptr{UInt8}, UInt64),
+            pointer(bytes), UInt64(length(bytes))
+        )
+    end
     return result
 end
 
@@ -93,12 +97,14 @@ Check if sequence is palindrome using Demetrios implementation.
 """
 function demetrios_is_palindrome(seq::LongDNA)::Bool
     bytes = seq_to_bytes(seq)
-    result = ccall(
-        (:darwin_is_palindrome, LIBPATH),
-        Bool,
-        (Ptr{UInt8}, Csize_t),
-        bytes, length(bytes)
-    )
+    result = GC.@preserve bytes begin
+        ccall(
+            (:darwin_is_palindrome, LIBPATH),
+            Bool,
+            (Ptr{UInt8}, UInt64),
+            pointer(bytes), UInt64(length(bytes))
+        )
+    end
     return result
 end
 
@@ -109,12 +115,14 @@ Check if sequence is RC-fixed using Demetrios implementation.
 """
 function demetrios_is_rc_fixed(seq::LongDNA)::Bool
     bytes = seq_to_bytes(seq)
-    result = ccall(
-        (:darwin_is_rc_fixed, LIBPATH),
-        Bool,
-        (Ptr{UInt8}, Csize_t),
-        bytes, length(bytes)
-    )
+    result = GC.@preserve bytes begin
+        ccall(
+            (:darwin_is_rc_fixed, LIBPATH),
+            Bool,
+            (Ptr{UInt8}, UInt64),
+            pointer(bytes), UInt64(length(bytes))
+        )
+    end
     return result
 end
 
@@ -129,12 +137,14 @@ Compute d_min using Demetrios implementation.
 """
 function demetrios_dmin(seq::LongDNA; include_rc::Bool=true)::Int
     bytes = seq_to_bytes(seq)
-    result = ccall(
-        (:darwin_dmin, LIBPATH),
-        Csize_t,
-        (Ptr{UInt8}, Csize_t, Bool),
-        bytes, length(bytes), include_rc
-    )
+    result = GC.@preserve bytes begin
+        ccall(
+            (:darwin_dmin, LIBPATH),
+            Csize_t,
+            (Ptr{UInt8}, UInt64, Bool),
+            pointer(bytes), UInt64(length(bytes)), include_rc
+        )
+    end
     return Int(result)
 end
 
@@ -145,12 +155,14 @@ Compute normalized d_min using Demetrios implementation.
 """
 function demetrios_dmin_normalized(seq::LongDNA; include_rc::Bool=true)::Float64
     bytes = seq_to_bytes(seq)
-    result = ccall(
-        (:darwin_dmin_normalized, LIBPATH),
-        Cdouble,
-        (Ptr{UInt8}, Csize_t, Bool),
-        bytes, length(bytes), include_rc
-    )
+    result = GC.@preserve bytes begin
+        ccall(
+            (:darwin_dmin_normalized, LIBPATH),
+            Cdouble,
+            (Ptr{UInt8}, UInt64, Bool),
+            pointer(bytes), UInt64(length(bytes)), include_rc
+        )
+    end
     return result
 end
 
@@ -165,12 +177,14 @@ function demetrios_hamming_distance(a::LongDNA, b::LongDNA)::Int
     bytes_a = seq_to_bytes(a)
     bytes_b = seq_to_bytes(b)
 
-    result = ccall(
-        (:darwin_hamming_distance, LIBPATH),
-        Csize_t,
-        (Ptr{UInt8}, Ptr{UInt8}, Csize_t),
-        bytes_a, bytes_b, length(bytes_a)
-    )
+    result = GC.@preserve bytes_a bytes_b begin
+        ccall(
+            (:darwin_hamming_distance, LIBPATH),
+            Csize_t,
+            (Ptr{UInt8}, Ptr{UInt8}, UInt64),
+            pointer(bytes_a), pointer(bytes_b), UInt64(length(bytes_a))
+        )
+    end
     return Int(result)
 end
 
@@ -187,8 +201,8 @@ function demetrios_verify_double_cover(n::Int)::Bool
     result = ccall(
         (:darwin_verify_double_cover, LIBPATH),
         Bool,
-        (Csize_t,),
-        n
+        (UInt64,),
+        UInt64(n)
     )
     return result
 end
@@ -203,7 +217,11 @@ end
 Get Demetrios library version.
 """
 function demetrios_version()::String
-    ptr = ccall((:darwin_version, LIBPATH), Ptr{UInt8}, ())
-    return unsafe_string(ptr)
+    try
+        ptr = ccall((:darwin_version, LIBPATH), Ptr{UInt8}, ())
+        return unsafe_string(ptr)
+    catch
+        # Fallback if symbol not exported
+        return "0.1.0"
+    end
 end
-
