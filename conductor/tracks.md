@@ -4,7 +4,10 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-*No active tracks. All tracks have been completed or archived.*
+## [ ] Track: E. coli Symmetry Analysis and Validation
+*Link: [./conductor/tracks/ecoli_analysis_20251223/](./conductor/tracks/ecoli_analysis_20251223/)*
+
+---
 
 ## Archived Tracks
 
