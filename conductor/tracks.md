@@ -9,6 +9,12 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
+## [ ] Track: Scale Atlas to 50k Replicons for Publication
+*Link: [./conductor/tracks/scale_50k_20251223/](./conductor/tracks/scale_50k_20251223/)*
+*Depends On: E. coli track must be completed first*
+
+---
+
 ## Archived Tracks
 
 - [x] **Fix Demetrios FFI and Enable Cross-Validation** (ffi_fix_20251223)
