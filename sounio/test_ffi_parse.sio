@@ -1,0 +1,6 @@
+// Test file to verify extern "C" fn parsing
+
+pub extern "C" fn test_function(x: usize) -> usize {
+    return x + 1
+}
+

@@ -58,6 +58,11 @@ include("ExactSymmetry.jl")
 include("ApproxMetric.jl")
 include("QuaternionLift.jl")
 include("NCBIFetch.jl")
+include("DoriC.jl")
+include("NullModels.jl")
+include("BitpackDNA.jl")
+include("SymmetrySpectrum.jl")
+include("OriTerEval.jl")
 include("Validation.jl")
 include("KmerInversion.jl")
 include("GCSkew.jl")
@@ -66,6 +71,7 @@ include("BiologyMetrics.jl")
 
 # Optional FFI (requires compiled Demetrios library)
 const HAS_DEMETRIOS = Ref(false)
+const DEMETRIOS_BATCH_ENABLED = Ref(true)
 function __init__()
     # Check for Demetrios shared library
     libpath = joinpath(@__DIR__, "..", "..", "demetrios", "target", "release", "libdarwin_kernels.so")
@@ -74,6 +80,11 @@ function __init__()
         include(joinpath(@__DIR__, "DemetriosFFI.jl"))
         include(joinpath(@__DIR__, "CrossValidation.jl"))
     end
+end
+
+function set_demetrios_batch_enabled(enabled::Bool)::Bool
+    DEMETRIOS_BATCH_ENABLED[] = enabled
+    return enabled
 end
 
 # Exports - Types
@@ -97,9 +108,15 @@ export project_to_dihedral, all_elements
 
 # Exports - Pipeline
 export fetch_ncbi, run_pipeline, generate_tables
+export fetch_doric, build_doric_labels
+export markov1_chain_shuffle, markov2_chain_shuffle, null_pvalue, fdr_bh
+export pack2bit, hamming_distance_packed, hamming_distance_fast
+export symmetry_spectrum, symmetry_spectrum_summary
+export evaluate_oriter_gc_skew
 
 # Exports - Cross Validation
 export run_cross_validation, CrossValidationResult
+export set_demetrios_batch_enabled
 
 # Exports - Validation
 export validate_operators, validate_symmetry, run_technical_validation

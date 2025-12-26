@@ -1,0 +1,859 @@
+   Compiling demetrios v0.83.0 (/home/maria/demetrios/compiler)
+warning: unused import: `EffectEstimate`
+  --> src/causal/do_calculus.rs:36:29
+   |
+36 | use super::dag::{CausalDAG, EffectEstimate};
+   |                             ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+warning: unused import: `super::graph::CausalGraph`
+  --> src/causal/do_calculus.rs:37:5
+   |
+37 | use super::graph::CausalGraph;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+warning: unused import: `inkwell::intrinsics::Intrinsic`
+  --> src/codegen/llvm/gpu.rs:34:5
+   |
+34 | use inkwell::intrinsics::Intrinsic;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+warning: unused import: `BasicMetadataValueEnum`
+  --> src/codegen/llvm/gpu.rs:38:5
+   |
+38 |     BasicMetadataValueEnum, BasicValue, BasicValueEnum, FunctionValue, I...
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+warning: unused imports: `GpuParam`, `WarpReduceOp`, and `WarpVoteOp`
+  --> src/codegen/llvm/gpu.rs:48:68
+   |
+48 | ...rnel, GpuModule, GpuOp, GpuParam, GpuTarget,
+   |                            ^^^^^^^^
+49 | ...aredMemDecl, ValueId, WarpReduceOp, WarpVoteOp,
+   |                          ^^^^^^^^^^^^  ^^^^^^^^^^
+warning: unused import: `inkwell::OptimizationLevel`
+ --> src/codegen/llvm/passes.rs:5:5
+  |
+5 | use inkwell::OptimizationLevel;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+warning: unused import: `PassManager`
+ --> src/codegen/llvm/passes.rs:7:43
+  |
+7 | use inkwell::passes::{PassBuilderOptions, PassManager};
+  |                                           ^^^^^^^^^^^
+warning: unused import: `inkwell::OptimizationLevel`
+ --> src/codegen/llvm/target.rs:6:5
+  |
+6 | use inkwell::OptimizationLevel;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+warning: unused imports: `AnyTypeEnum` and `AnyType`
+ --> src/codegen/llvm/types.rs:9:5
+  |
+9 |     AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType, BasicTypeEnum...
+  |     ^^^^^^^  ^^^^^^^^^^^
+warning: unused import: `super::amplitude::EpistemicAmplitude`
+  --> src/quantum/hamiltonian.rs:30:5
+   |
+30 | use super::amplitude::EpistemicAmplitude;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+warning: unused import: `BasicValue`
+  --> src/codegen/llvm/codegen.rs:12:29
+   |
+12 |     BasicMetadataValueEnum, BasicValue, BasicValueEnum, FunctionValue, P...
+   |                             ^^^^^^^^^^
+warning: unused import: `BasicValue`
+  --> src/codegen/llvm/gpu.rs:38:29
+   |
+38 |     BasicMetadataValueEnum, BasicValue, BasicValueEnum, FunctionValue, I...
+   |                             ^^^^^^^^^^
+warning: value assigned to `name` is never read
+  --> src/diagnostics.rs:73:9
+   |
+73 |         name: String,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+warning: value assigned to `span` is never read
+  --> src/diagnostics.rs:75:9
+   |
+75 |         span: SourceSpan,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+  --> src/diagnostics.rs:77:9
+   |
+77 |         src: NamedSource<String>,
+   |         ^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `expected` is never read
+   --> src/diagnostics.rs:106:9
+    |
+106 |         expected: String,
+    |         ^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `found` is never read
+   --> src/diagnostics.rs:107:9
+    |
+107 |         found: String,
+    |         ^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:109:9
+    |
+109 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:111:9
+    |
+111 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:134:9
+    |
+134 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:136:9
+    |
+136 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `effect` is never read
+   --> src/diagnostics.rs:148:9
+    |
+148 |         effect: String,
+    |         ^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:150:9
+    |
+150 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:152:9
+    |
+152 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+   --> src/diagnostics.rs:221:9
+    |
+221 |         name: String,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `second_span` is never read
+   --> src/diagnostics.rs:223:9
+    |
+223 |         second_span: SourceSpan,
+    |         ^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `first_span` is never read
+   --> src/diagnostics.rs:225:9
+    |
+225 |         first_span: SourceSpan,
+    |         ^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:227:9
+    |
+227 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+   --> src/diagnostics.rs:236:9
+    |
+236 |         name: String,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `decl_span` is never read
+   --> src/diagnostics.rs:238:9
+    |
+238 |         decl_span: SourceSpan,
+    |         ^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `scope_end` is never read
+   --> src/diagnostics.rs:240:9
+    |
+240 |         scope_end: SourceSpan,
+    |         ^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:242:9
+    |
+242 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `expected` is never read
+   --> src/diagnostics.rs:261:9
+    |
+261 |         expected: String,
+    |         ^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `found` is never read
+   --> src/diagnostics.rs:262:9
+    |
+262 |         found: String,
+    |         ^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:264:9
+    |
+264 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:266:9
+    |
+266 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `u1` is never read
+   --> src/diagnostics.rs:277:9
+    |
+277 |         u1: String,
+    |         ^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `u2` is never read
+   --> src/diagnostics.rs:278:9
+    |
+278 |         u2: String,
+    |         ^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `left_span` is never read
+   --> src/diagnostics.rs:280:9
+    |
+280 |         left_span: SourceSpan,
+    |         ^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `right_span` is never read
+   --> src/diagnostics.rs:282:9
+    |
+282 |         right_span: SourceSpan,
+    |         ^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:284:9
+    |
+284 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `unit` is never read
+   --> src/diagnostics.rs:290:9
+    |
+290 |         unit: String,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:292:9
+    |
+292 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:294:9
+    |
+294 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `from` is never read
+   --> src/diagnostics.rs:302:9
+    |
+302 |         from: String,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `to` is never read
+   --> src/diagnostics.rs:303:9
+    |
+303 |         to: String,
+    |         ^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:305:9
+    |
+305 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:307:9
+    |
+307 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+   --> src/diagnostics.rs:324:9
+    |
+324 |         name: String,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:326:9
+    |
+326 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:328:9
+    |
+328 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `message` is never read
+   --> src/diagnostics.rs:335:9
+    |
+335 |         message: String,
+    |         ^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:337:9
+    |
+337 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:339:9
+    |
+339 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:364:9
+    |
+364 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:366:9
+    |
+366 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `found` is never read
+   --> src/diagnostics.rs:372:9
+    |
+372 |         found: String,
+    |         ^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:374:9
+    |
+374 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:376:9
+    |
+376 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `message` is never read
+   --> src/diagnostics.rs:385:9
+    |
+385 |         message: String,
+    |         ^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:387:9
+    |
+387 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `label` is never read
+   --> src/diagnostics.rs:388:9
+    |
+388 |         label: String,
+    |         ^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:390:9
+    |
+390 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `expected` is never read
+  --> src/diagnostics.rs:49:9
+   |
+49 |         expected: String,
+   |         ^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `found` is never read
+  --> src/diagnostics.rs:50:9
+   |
+50 |         found: String,
+   |         ^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+  --> src/diagnostics.rs:54:9
+   |
+54 |         src: NamedSource<String>,
+   |         ^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+  --> src/diagnostics.rs:63:9
+   |
+63 |         src: NamedSource<String>,
+   |         ^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+  --> src/diagnostics.rs:83:9
+   |
+83 |         name: String,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+  --> src/diagnostics.rs:87:9
+   |
+87 |         src: NamedSource<String>,
+   |         ^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+  --> src/diagnostics.rs:93:9
+   |
+93 |         name: String,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+  --> src/diagnostics.rs:99:9
+   |
+99 |         src: NamedSource<String>,
+   |         ^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `help` is never read
+   --> src/diagnostics.rs:113:9
+    |
+113 |         help: Option<String>,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `t1` is never read
+   --> src/diagnostics.rs:119:9
+    |
+119 |         t1: String,
+    |         ^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `t2` is never read
+   --> src/diagnostics.rs:120:9
+    |
+120 |         t2: String,
+    |         ^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:124:9
+    |
+124 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:164:9
+    |
+164 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `effect` is never read
+   --> src/diagnostics.rs:170:9
+    |
+170 |         effect: String,
+    |         ^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:174:9
+    |
+174 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+   --> src/diagnostics.rs:181:9
+    |
+181 |         name: String,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:187:9
+    |
+187 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+   --> src/diagnostics.rs:193:9
+    |
+193 |         name: String,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:199:9
+    |
+199 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+   --> src/diagnostics.rs:205:9
+    |
+205 |         name: String,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:211:9
+    |
+211 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+   --> src/diagnostics.rs:248:9
+    |
+248 |         name: String,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:254:9
+    |
+254 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `help` is never read
+   --> src/diagnostics.rs:268:9
+    |
+268 |         help: Option<String>,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `suggestion` is never read
+   --> src/diagnostics.rs:296:9
+    |
+296 |         suggestion: Option<String>,
+    |         ^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `help` is never read
+   --> src/diagnostics.rs:309:9
+    |
+309 |         help: Option<String>,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:318:9
+    |
+318 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `suggestion` is never read
+   --> src/diagnostics.rs:341:9
+    |
+341 |         suggestion: Option<String>,
+    |         ^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `src` is never read
+   --> src/diagnostics.rs:354:9
+    |
+354 |         src: NamedSource<String>,
+    |         ^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `expected_tokens` is never read
+   --> src/diagnostics.rs:378:9
+    |
+378 |         expected_tokens: Option<String>,
+    |         ^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `help` is never read
+   --> src/diagnostics.rs:392:9
+    |
+392 |         help: Option<String>,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+  --> src/diagnostics.rs:52:9
+   |
+52 |         span: SourceSpan,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+  --> src/diagnostics.rs:61:9
+   |
+61 |         span: SourceSpan,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+  --> src/diagnostics.rs:85:9
+   |
+85 |         span: SourceSpan,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+  --> src/diagnostics.rs:95:9
+   |
+95 |         span: SourceSpan,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `first_span` is never read
+  --> src/diagnostics.rs:97:9
+   |
+97 |         first_span: SourceSpan,
+   |         ^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:122:9
+    |
+122 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `effect` is never read
+   --> src/diagnostics.rs:158:9
+    |
+158 |         effect: String,
+    |         ^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:160:9
+    |
+160 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `fn_span` is never read
+   --> src/diagnostics.rs:162:9
+    |
+162 |         fn_span: SourceSpan,
+    |         ^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:172:9
+    |
+172 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `use_span` is never read
+   --> src/diagnostics.rs:183:9
+    |
+183 |         use_span: SourceSpan,
+    |         ^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `move_span` is never read
+   --> src/diagnostics.rs:185:9
+    |
+185 |         move_span: SourceSpan,
+    |         ^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:195:9
+    |
+195 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `prev_span` is never read
+   --> src/diagnostics.rs:197:9
+    |
+197 |         prev_span: SourceSpan,
+    |         ^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:207:9
+    |
+207 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `first_span` is never read
+   --> src/diagnostics.rs:209:9
+    |
+209 |         first_span: SourceSpan,
+    |         ^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `second_span` is never read
+   --> src/diagnostics.rs:250:9
+    |
+250 |         second_span: SourceSpan,
+    |         ^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `first_span` is never read
+   --> src/diagnostics.rs:252:9
+    |
+252 |         first_span: SourceSpan,
+    |         ^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `span` is never read
+   --> src/diagnostics.rs:316:9
+    |
+316 |         span: SourceSpan,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `open` is never read
+   --> src/diagnostics.rs:347:9
+    |
+347 |         open: String,
+    |         ^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `expected` is never read
+   --> src/diagnostics.rs:348:9
+    |
+348 |         expected: String,
+    |         ^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `open_span` is never read
+   --> src/diagnostics.rs:350:9
+    |
+350 |         open_span: SourceSpan,
+    |         ^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `expected_span` is never read
+   --> src/diagnostics.rs:352:9
+    |
+352 |         expected_span: SourceSpan,
+    |         ^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: value assigned to `neural_iterations` is never read
+    --> src/geometry/engine.rs:1016:33
+     |
+1016 | ...                   neural_iterations += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+  --> src/resolve/resolver.rs:14:9
+   |
+14 |         name: String,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+  --> src/resolve/resolver.rs:21:9
+   |
+21 |         name: String,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `suggestion` is never read
+  --> src/resolve/resolver.rs:22:9
+   |
+22 |         suggestion: Option<String>,
+   |         ^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+  --> src/resolve/resolver.rs:29:9
+   |
+29 |         name: String,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+  --> src/resolve/resolver.rs:36:9
+   |
+36 |         name: String,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `name` is never read
+  --> src/resolve/resolver.rs:43:9
+   |
+43 |         name: String,
+   |         ^^^^
+   |
+   = help: maybe it is overwritten before being read?
+warning: value assigned to `accepted` is never read
+   --> src/runtime/prob.rs:594:17
+    |
+594 |                 accepted += 1;
+    |                 ^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+warning: `demetrios` (lib) generated 125 warnings (run `cargo fix --lib -p demetrios` to apply 10 suggestions)
+    Finished `release` profile [optimized] target(s) in 2m 28s

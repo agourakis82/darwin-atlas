@@ -9,7 +9,7 @@ A reproducible, DOI-versioned database of operator-defined symmetries in complet
 
 DOSA implements a hybrid architecture combining:
 - **Julia** (Layer 0+1): Reference implementation and orchestration
-- **Demetrios** (Layer 2): High-performance kernels with epistemic computing
+- **Sounio** (Layer 2): High-performance kernels with epistemic computing
 
 The atlas computes:
 - **Exact symmetry metrics**: Orbit sizes, palindrome detection, RC-fixed sequences
@@ -40,7 +40,7 @@ darwin-atlas/
 ├── CLAUDE.md           # Detailed project specification
 ├── README.md           # This file
 ├── Makefile            # Build orchestration
-├── demetrios/          # Demetrios kernels (Layer 2)
+├── sounio/             # Sounio kernels (Layer 2)
 ├── julia/              # Julia implementation (Layer 0+1)
 ├── data/               # Output data (gitignored)
 └── paper/              # Scientific Data manuscript
@@ -52,12 +52,12 @@ darwin-atlas/
 - Julia 1.10+
 - Dependencies in `julia/Project.toml`
 
-### Demetrios (optional)
-- Demetrios compiler (`dc`) from https://github.com/chiuratto-AI/demetrios
+### Sounio (optional)
+- Sounio compiler (`souc`) from https://github.com/sounio-lang/sounio
 - Build/install (example):
-  - `git clone https://github.com/chiuratto-AI/demetrios`
-  - `cd demetrios/compiler && cargo build --release`
-  - Add `demetrios/compiler/target/release` to `PATH`, or run make with `DEMETRIOS=/path/to/dc`
+  - `git clone https://github.com/sounio-lang/sounio`
+  - `cd sounio/compiler && cargo build --release`
+  - Add `sounio/compiler/target/release` to `PATH`, or run make with `SOUNIO=/path/to/souc`
 
 ## Usage
 
@@ -90,7 +90,7 @@ make validate
 ### Cross-Validation
 
 ```bash
-# Compare Demetrios and Julia outputs
+# Compare Sounio and Julia outputs
 make cross-validate
 ```
 

@@ -55,6 +55,7 @@ function main()
     mkpath(joinpath(data_dir, "raw"))
     mkpath(joinpath(data_dir, "manifest"))
     mkpath(joinpath(data_dir, "tables"))
+    mkpath(joinpath(@__DIR__, "..", "..", "metadata"))
 
     # Step 1: Download genomes (unless skipped)
     if !args["skip-download"]
@@ -68,6 +69,13 @@ function main()
     else
         println("\n[Step 1] Skipping download (--skip-download)")
     end
+
+    # Step 1b: Build DoriC labels (mandatory for SOTA++)
+    println("\n[Step 1b] Building DoriC ori/ter labels...")
+    build_doric_labels(
+        data_dir=data_dir,
+        metadata_dir=joinpath(@__DIR__, "..", "..", "metadata")
+    )
 
     # Step 2: Technical validation
     println("\n[Step 2] Running technical validation...")

@@ -15,7 +15,7 @@ using CodecZlib: GzipDecompressorStream
 using ProgressMeter
 using Random
 using FASTX: FASTA
-using BioSequences: LongDNA
+using BioSequences: LongDNA, DNA_N, DNA_A, DNA_C, DNA_G, DNA_T
 
 const NCBI_DATASETS_API = "https://api.ncbi.nlm.nih.gov/datasets/v2"
 const NCBI_FTP_BASE = "https://ftp.ncbi.nlm.nih.gov/genomes/all"
@@ -290,9 +290,28 @@ function parse_genome_fasta(path::String, assembly, checksum::String)::Vector{Re
         for record in reader
             replicon_idx += 1
 
-            # Extract sequence
-            seq = LongDNA{4}(FASTA.sequence(record))
+            # Extract sequence and filter ambiguous bases
+            raw_seq = FASTA.sequence(record)
             header = FASTA.description(record)
+            
+            # Parse sequence with error handling
+            seq = try
+                # Convert to LongDNA{4} (may contain ambiguous bases like Y, R, etc.)
+                # Filter to keep only canonical bases (A, C, G, T)
+                seq_raw = LongDNA{4}(raw_seq)
+                canonical_bases = [b for b in seq_raw if b in [DNA_A, DNA_C, DNA_G, DNA_T]]
+                if isempty(canonical_bases)
+                    @warn "Skipping replicon $replicon_idx in $accession: sequence empty after filtering ambiguous bases"
+                    continue
+                end
+                if length(canonical_bases) < length(seq_raw) * 0.5
+                    @warn "Replicon $replicon_idx in $accession has >50% ambiguous bases, may be low quality"
+                end
+                LongDNA{4}(canonical_bases)
+            catch e
+                @warn "Skipping replicon $replicon_idx in $accession: failed to parse sequence: $e"
+                continue
+            end
 
             # Parse replicon type from header
             rtype = if occursin(r"plasmid"i, header)
@@ -303,9 +322,8 @@ function parse_genome_fasta(path::String, assembly, checksum::String)::Vector{Re
                 OTHER
             end
 
-            # Extract replicon accession if present
-            replicon_acc = match(r"^([A-Z]{1,2}_?[0-9]+(?:\.[0-9]+)?)", header)
-            replicon_accession = replicon_acc !== nothing ? replicon_acc.match : nothing
+            # Extract replicon accession (handle NZ_*, NC_*, CP*, etc.)
+            replicon_accession = extract_replicon_accession(header)
 
             # Generate stable replicon ID
             replicon_id = "$(accession)_rep$(replicon_idx)"
@@ -329,4 +347,14 @@ function parse_genome_fasta(path::String, assembly, checksum::String)::Vector{Re
     end
 
     return records
+end
+
+function extract_replicon_accession(header::AbstractString)
+    token = split(header)[1]
+    regex = r"([A-Z]{1,4}_[A-Z0-9]+(?:\.\d+)?|[A-Z]{1,4}\d+(?:\.\d+)?)"
+    m = match(regex, token)
+    if m === nothing
+        m = match(regex, header)
+    end
+    return m === nothing ? nothing : m.match
 end

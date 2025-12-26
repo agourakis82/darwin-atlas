@@ -1,13 +1,13 @@
-.PHONY: all setup demetrios julia test cross-validate pipeline reproduce clean help epistemic export-knowledge verify-knowledge snapshot snapshot-full snapshot-zip atlas query
+.PHONY: all setup sounio julia test cross-validate pipeline reproduce clean help epistemic export-knowledge verify-knowledge snapshot snapshot-full snapshot-zip atlas query
 
 JULIA := julia --project=julia
-DEMETRIOS ?= dc
+SOUNIO ?= souc
 
 # Default target
-all: setup demetrios julia test
+all: setup sounio julia test
 
 help:
-	@echo "DSLG Atlas - Demetrios Operator Symmetry Atlas - Build System v2.0"
+	@echo "DSLG Atlas - Sounio Operator Symmetry Atlas - Build System v2.0"
 	@echo ""
 	@echo "Primary Targets:"
 	@echo "  atlas          Run unified Atlas pipeline (Parquet + CSV)"
@@ -36,29 +36,44 @@ help:
 	@echo "  make snapshot MAX=200 SEED=42       # Build Zenodo snapshot"
 
 # Setup
-setup: setup-julia setup-demetrios
+setup: setup-julia setup-sounio
 
 setup-julia:
 	@echo "Installing Julia dependencies..."
 	$(JULIA) -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
 
-setup-demetrios:
-	@echo "Setting up Demetrios..."
-	@if command -v $(DEMETRIOS) >/dev/null 2>&1; then \
-		cd demetrios && $(DEMETRIOS) build; \
+setup-sounio:
+	@echo "Setting up Sounio..."
+	@if command -v $(SOUNIO) >/dev/null 2>&1; then \
+		echo "Sounio compiler found: $$($(SOUNIO) --version)"; \
+		cd sounio && $(SOUNIO) build --release --target=cdylib || echo "Build failed, will retry during sounio target"; \
 	else \
-		echo "Demetrios compiler not found (expected 'dc') - skipping"; \
-		echo "Install from: https://github.com/chiuratto-AI/demetrios"; \
+		echo "Sounio compiler not found (expected 'souc') - skipping"; \
+		echo "Install from: https://github.com/sounio-lang/sounio"; \
+		echo "After installation, add to PATH: export PATH=\"/path/to/sounio/compiler/target/release:\$$PATH\""; \
 	fi
 
 # Build targets
-demetrios:
-	@echo "Building Demetrios kernels..."
-	@if command -v $(DEMETRIOS) >/dev/null 2>&1; then \
-		cd demetrios && $(DEMETRIOS) build --release --target=cdylib; \
+sounio:
+	@echo "Building Sounio kernels..."
+	@if command -v $(SOUNIO) >/dev/null 2>&1; then \
+		echo "Using Sounio compiler: $$($(SOUNIO) --version)"; \
+		cd sounio && \
+		mkdir -p target/release && \
+		if $(SOUNIO) build --cdylib src/lib.sio -O 3 -o target/release/libdarwin_kernels.so 2>&1; then \
+			echo "✅ Sounio kernels built successfully"; \
+			ls -lh target/release/libdarwin_kernels.* 2>/dev/null || echo "⚠️  Library file not found"; \
+		else \
+			echo "⚠️  Build failed - LLVM backend may not be enabled"; \
+			echo "   To fix: cd /home/maria/sounio/compiler && cargo build --release --features llvm"; \
+			echo "   Then retry: make sounio"; \
+			echo "   Note: Darwin Atlas works without Sounio (Julia-only mode)"; \
+		fi; \
 	else \
-		echo "Demetrios compiler not found (expected 'dc') - skipping"; \
-		echo "Install from: https://github.com/chiuratto-AI/demetrios"; \
+		echo "⚠️  Sounio compiler not found (expected 'souc') - skipping"; \
+		echo "   Install from: https://github.com/sounio-lang/sounio"; \
+		echo "   After installation, add to PATH or set SOUNIO=/path/to/souc"; \
+		echo "   Note: Darwin Atlas works without Sounio (Julia-only mode)"; \
 	fi
 
 julia:
@@ -66,23 +81,23 @@ julia:
 	$(JULIA) -e 'using Pkg; Pkg.build()'
 
 # Test targets
-test: test-julia test-demetrios
+test: test-julia test-sounio
 
 test-julia:
 	@echo "Running Julia tests..."
 	$(JULIA) -e 'using Pkg; Pkg.test()'
 
-test-demetrios:
-	@echo "Running Demetrios tests..."
-	@if command -v $(DEMETRIOS) >/dev/null 2>&1; then \
-		cd demetrios && $(DEMETRIOS) test; \
+test-sounio:
+	@echo "Running Sounio tests..."
+	@if command -v $(SOUNIO) >/dev/null 2>&1; then \
+		cd sounio && $(SOUNIO) test; \
 	else \
-		echo "Demetrios compiler not found (expected 'dc') - skipping"; \
-		echo "Install from: https://github.com/chiuratto-AI/demetrios"; \
+		echo "Sounio compiler not found (expected 'souc') - skipping"; \
+		echo "Install from: https://github.com/sounio-lang/sounio"; \
 	fi
 
 # Cross-validation
-cross-validate: demetrios julia
+cross-validate: sounio julia
 	@echo "Running cross-validation..."
 	$(JULIA) julia/scripts/cross_validation.jl
 
@@ -145,7 +160,7 @@ reproduce: clean all pipeline
 	cd data/manifest && sha256sum -c checksums.sha256
 
 # =============================================================================
-# Epistemic Knowledge Layer (Demetrios L0 integration)
+# Epistemic Knowledge Layer (Sounio L0 integration)
 # =============================================================================
 
 # Export Atlas tables to Knowledge JSONL
@@ -154,20 +169,20 @@ export-knowledge:
 	@mkdir -p data/epistemic
 	PIPELINE_MAX=$(PIPELINE_MAX_VALUE) PIPELINE_SEED=$(SEED) $(JULIA) julia/scripts/export_knowledge.jl
 
-# Verify Knowledge JSONL against Demetrios schema
+# Verify Knowledge JSONL against Sounio schema
 verify-knowledge:
 	@echo "Verifying epistemic Knowledge layer..."
-	@if command -v $(DEMETRIOS) >/dev/null 2>&1; then \
-		$(DEMETRIOS) run demetrios/src/verify_knowledge.d -- \
+	@if command -v $(SOUNIO) >/dev/null 2>&1; then \
+		$(SOUNIO) run sounio/src/verify_knowledge.sio -- \
 			data/epistemic/atlas_knowledge.jsonl \
 			data/epistemic/atlas_knowledge_report.md; \
 		if [ -f dist/atlas_dataset_v2/epistemic/atlas_knowledge.jsonl ]; then \
-			$(DEMETRIOS) run demetrios/src/verify_knowledge.d -- \
+			$(SOUNIO) run sounio/src/verify_knowledge.sio -- \
 				dist/atlas_dataset_v2/epistemic/atlas_knowledge.jsonl \
 				dist/atlas_dataset_v2/epistemic/atlas_knowledge_report.md; \
 		fi; \
 	else \
-		echo "Demetrios compiler not found (expected 'dc') - using Julia fallback"; \
+		echo "Sounio compiler not found (expected 'souc') - using Julia fallback"; \
 		$(JULIA) julia/scripts/verify_knowledge.jl; \
 	fi
 
@@ -222,7 +237,7 @@ clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf data/tables/*.csv
 	rm -rf data/manifest/*.jsonl
-	rm -rf demetrios/target
+	rm -rf sounio/target
 	rm -rf julia/Manifest.toml
 
 cleanall: clean

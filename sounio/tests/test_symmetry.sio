@@ -1,0 +1,51 @@
+/// Tests for exact and approximate symmetry
+
+
+import exact_symmetry;
+import approx_metric;
+import operators;
+
+#[test]
+fn test_orbit_bounds() {
+    let seq = [operators.A, operators.C, operators.G, operators.T];
+    let n = seq.len();
+    let os = exact_symmetry.orbit_size(&seq);
+
+    assert!(os >= 1);
+    assert!(os <= 2 * n);
+}
+
+#[test]
+fn test_palindrome_detection() {
+    assert!(!exact_symmetry.is_palindrome(&[operators.A, operators.C, operators.G, operators.T]));
+    assert!(exact_symmetry.is_palindrome(&[operators.A, operators.C, operators.C, operators.A]));
+}
+
+#[test]
+fn test_rc_fixed() {
+    // ACGT: RC = complement(TGCA) = ACGT
+    assert!(exact_symmetry.is_rc_fixed(&[operators.A, operators.C, operators.G, operators.T]));
+}
+
+#[test]
+fn test_dmin_bounds() {
+    let seq = [operators.A, operators.C, operators.G, operators.T];
+    let d = approx_metric.dmin(&seq, true);
+    assert!(d <= seq.len());
+}
+
+#[test]
+fn test_dmin_normalized_range() {
+    let seq = [operators.A, operators.C, operators.G, operators.T, operators.A, operators.C, operators.G, operators.T];
+    let dn = approx_metric.dmin_normalized(&seq, true);
+    assert!(dn >= 0.0);
+    assert!(dn <= 1.0);
+}
+
+#[test]
+fn test_periodic_sequence() {
+    // ACGTACGT has shift symmetry S^4 = id
+    let seq = [operators.A, operators.C, operators.G, operators.T, operators.A, operators.C, operators.G, operators.T];
+    let d = approx_metric.dmin(&seq, false);
+    assert_eq!(d, 0);
+}

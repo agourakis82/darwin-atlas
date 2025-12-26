@@ -19,6 +19,7 @@ using Dates
 using DataFrames
 using CSV
 using JSON3
+using Parquet2
 using SHA
 
 # Include storage module (Parquet writer)
@@ -122,7 +123,7 @@ function main()
     git_sha = get_git_sha()
 
     println("\n" * "="^70)
-    println("DSLG ATLAS - Demetrios Operator Symmetry Atlas")
+    println("DSLG ATLAS - Sounio Operator Symmetry Atlas")
     println("Pipeline Runner v2.0.0")
     println("="^70)
     println("Start time:    $(now(UTC))")
@@ -136,6 +137,7 @@ function main()
     # Setup directories
     mkpath(joinpath(data_dir, "raw"))
     mkpath(joinpath(data_dir, "manifest"))
+    mkpath(joinpath(@__DIR__, "..", "..", "metadata"))
     reset_dataset_dir(output_dir)
 
     # Step 1: Download genomes
@@ -165,6 +167,13 @@ function main()
     if !validation["all_passed"]
         @warn "Some validation checks failed, continuing with warnings"
     end
+
+    # Step 2b: Build DoriC labels (Tier A)
+    println("\n[Step 2b/4] Building DoriC ori/ter labels...")
+    build_doric_labels(
+        data_dir=data_dir,
+        metadata_dir=joinpath(@__DIR__, "..", "..", "metadata")
+    )
 
     # Step 3: Generate tables (CSV)
     println("\n[Step 3/4] Generating output tables...")
@@ -206,6 +215,14 @@ function main()
             tables[name] = CSV.read(path, DataFrame)
             println("  Loaded $name: $(nrow(tables[name])) rows")
         end
+    end
+
+    labels_path = joinpath(@__DIR__, "..", "..", "metadata", "labels_oriter.parquet")
+    if isfile(labels_path)
+        tables["labels_oriter"] = DataFrame(Parquet2.readfile(labels_path))
+        println("  Loaded labels_oriter: $(nrow(tables["labels_oriter"])) rows")
+    else
+        @warn "labels_oriter.parquet not found at $labels_path"
     end
 
     if args["csv-only"]

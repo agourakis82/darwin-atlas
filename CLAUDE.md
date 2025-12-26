@@ -11,9 +11,9 @@
 
 ## Mission Statement
 
-Build a reproducible, DOI-versioned database of operator-defined symmetries in complete bacterial replicons, implementing a hybrid Demetrios + Julia architecture with cross-validation between implementations.
+Build a reproducible, DOI-versioned database of operator-defined symmetries in complete bacterial replicons, implementing a hybrid Sounio + Julia architecture with cross-validation between implementations.
 
-**NO PYTHON**. This project uses exclusively Julia (Layers 0-1) and Demetrios (Layer 2).
+**NO PYTHON**. This project uses exclusively Julia (Layers 0-1) and Sounio (Layer 2).
 
 ---
 
@@ -21,15 +21,15 @@ Build a reproducible, DOI-versioned database of operator-defined symmetries in c
 
 ```
 Layer 3: Artifacts     → CSV/JSONL/Parquet (Zenodo DOI)
-Layer 2: Demetrios     → High-performance kernels with epistemic computing
+Layer 2: Sounio        → High-performance kernels with epistemic computing
 Layer 1: Julia         → Orchestration, NCBI fetch, validation
 Layer 0: Julia Pure    → Reference implementation (fallback, cross-validation)
 ```
 
 ### Why This Architecture?
 
-1. **Demetrios (Layer 2)**: Showcases the language's units of measure, refinement types, and epistemic computing for scientific applications
-2. **Julia (Layers 0-1)**: Provides reproducibility guarantee for Scientific Data reviewers who may not have Demetrios installed
+1. **Sounio (Layer 2)**: Showcases the language's units of measure, refinement types, and epistemic computing for scientific applications
+2. **Julia (Layers 0-1)**: Provides reproducibility guarantee for Scientific Data reviewers who may not have Sounio installed
 3. **Cross-validation**: Ensures both implementations produce **identical** results, catching bugs in either
 
 ---
@@ -43,15 +43,15 @@ darwin-atlas/
 ├── Makefile                      # Build orchestration
 ├── .zenodo.json                  # DOI metadata
 │
-├── demetrios/                    # Layer 2: Demetrios Kernels
-│   ├── demetrios.toml            # Project config
+├── sounio/                       # Layer 2: Sounio Kernels
+│   ├── sounio.toml               # Project config
 │   ├── src/
-│   │   ├── lib.d                 # Library root, exports
-│   │   ├── operators.d           # S/R/K/RC definitions with units
-│   │   ├── exact_symmetry.d      # Fixed points, orbit ratio
-│   │   ├── approx_metric.d       # d_min/L with refinement types
-│   │   ├── quaternion.d          # Dic_n lift verification
-│   │   └── ffi.d                 # C ABI exports for Julia
+│   │   ├── lib.sio               # Library root, exports
+│   │   ├── operators.sio         # S/R/K/RC definitions with units
+│   │   ├── exact_symmetry.sio    # Fixed points, orbit ratio
+│   │   ├── approx_metric.sio     # d_min/L with refinement types
+│   │   ├── quaternion.sio        # Dic_n lift verification
+│   │   └── ffi.sio               # C ABI exports for Julia
 │   └── tests/
 │
 ├── julia/                        # Layers 0 + 1
@@ -67,7 +67,7 @@ darwin-atlas/
 │   │   ├── NCBIFetch.jl          # NCBI download + manifest
 │   │   ├── Validation.jl         # Technical validation suite
 │   │   ├── DemetriosFFI.jl       # ccall wrappers (Layer 1→2)
-│   │   └── CrossValidation.jl    # Demetrios vs Julia comparison
+│   │   └── CrossValidation.jl    # Sounio vs Julia comparison
 │   ├── test/
 │   │   └── runtests.jl
 │   └── scripts/
@@ -156,13 +156,13 @@ darwin-atlas/
 - [ ] `Types.jl` — all data structures with validation
 - [ ] `Operators.jl` — pure Julia R/K/RC operators
 - [ ] Unit tests for operators
-- [ ] Demetrios project scaffold
+- [ ] Sounio project scaffold
 
 ### Phase 2: Core Algorithms
 - [ ] `ExactSymmetry.jl` — orbit computation, fixed points
 - [ ] `ApproxMetric.jl` — d_min, baseline shuffle
 - [ ] `QuaternionLift.jl` — Dic_n verification
-- [ ] Demetrios implementations with FFI exports
+- [ ] Sounio implementations with FFI exports
 - [ ] `DemetriosFFI.jl` — ccall wrappers
 
 ### Phase 3: Pipeline
@@ -203,8 +203,8 @@ function orbit_ratio(seq::LongDNA{4})
 end
 ```
 
-### Demetrios
-```d
+### Sounio
+```sio
 // Use units of measure for physical quantities
 // Use refinement types for domain constraints
 // Explicit effect declarations
@@ -238,8 +238,8 @@ make all
 # Julia only
 make julia
 
-# Demetrios only
-make demetrios
+# Sounio only
+make sounio
 
 # Run tests
 make test
@@ -272,7 +272,7 @@ include("julia/scripts/run_pipeline.jl")
 3. **Reproducibility** — Must work with `git clone` + `make reproduce`
 
 ### Cross-Validation Requirements
-- Demetrios and Julia must produce **identical** outputs
+- Sounio and Julia must produce **identical** outputs
 - Tolerance: 0 for discrete values, 1e-12 for floating point
 - **Any divergence is a blocking bug**
 
@@ -349,7 +349,7 @@ Before marking any phase complete:
 | `julia/src/Types.jl` | All type definitions |
 | `julia/src/Operators.jl` | Reference implementation |
 | `julia/test/runtests.jl` | Test suite entry |
-| `demetrios/src/ffi.d` | FFI interface spec |
+| `sounio/src/ffi.sio` | FFI interface spec |
 | `Makefile` | Build commands |
 
 ---
@@ -358,7 +358,7 @@ Before marking any phase complete:
 
 1. **SkewDB** — Template for Data Descriptor structure
 2. **Scientific Data guidelines** — Data Descriptor format requirements
-3. **Demetrios Language** — https://github.com/Chiuratto-AI/demetrios
+3. **Sounio Language** — https://github.com/sounio-lang/sounio
 4. **BioJulia docs** — BioSequences.jl, FASTX.jl
 5. **NCBI Datasets API** — Data acquisition
 

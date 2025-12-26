@@ -44,6 +44,8 @@ The orbit size divides 2n. Possible values depend on symmetries:
 - 2n/k: k-fold rotational symmetry
 - 1: Only possible for n=1
 
+Uses Demetrios implementation if available, otherwise falls back to Julia.
+
 # Examples
 ```julia
 seq = dna"ACGT"
@@ -51,7 +53,11 @@ orbit_size(seq)  # Depends on symmetries present
 ```
 """
 function orbit_size(seq::LongDNA)::Int
-    return length(compute_orbit(seq))
+    if HAS_DEMETRIOS[]
+        return demetrios_orbit_size(seq)
+    else
+        return length(compute_orbit(seq))
+    end
 end
 
 """
@@ -64,11 +70,17 @@ Range: [1/(2n), 1.0]
 - Values near 0 indicate high symmetry
 
 This is the primary symmetry metric for the atlas.
+
+Uses Demetrios implementation if available, otherwise falls back to Julia.
 """
 function orbit_ratio(seq::LongDNA)::Float64
-    n = length(seq)
-    n == 0 && return 1.0
-    return orbit_size(seq) / (2 * n)
+    if HAS_DEMETRIOS[]
+        return demetrios_orbit_ratio(seq)
+    else
+        n = length(seq)
+        n == 0 && return 1.0
+        return orbit_size(seq) / (2 * n)
+    end
 end
 
 """
@@ -85,7 +97,11 @@ is_palindrome(dna"ACGT")  # false
 ```
 """
 function is_palindrome(seq::LongDNA)::Bool
-    return seq == reverse_seq(seq)
+    if HAS_DEMETRIOS[]
+        return demetrios_is_palindrome(seq)
+    else
+        return seq == reverse_seq(seq)
+    end
 end
 
 """
@@ -104,7 +120,11 @@ is_rc_fixed(dna"ACGT")  # true: RC(ACGT) = complement(TGCA) = ACGT
 ```
 """
 function is_rc_fixed(seq::LongDNA)::Bool
-    return seq == rev_comp(seq)
+    if HAS_DEMETRIOS[]
+        return demetrios_is_rc_fixed(seq)
+    else
+        return seq == rev_comp(seq)
+    end
 end
 
 """

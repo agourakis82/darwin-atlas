@@ -1,0 +1,2 @@
+import quaternion;
+quaternion::DicyclicGroup

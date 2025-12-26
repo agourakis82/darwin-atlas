@@ -1,0 +1,5 @@
+import quaternion;
+pub fn test() -> bool {
+    let g = quaternion.new_dicyclic_group(4);
+    return true
+}

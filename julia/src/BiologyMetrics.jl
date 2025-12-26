@@ -6,7 +6,7 @@ Integration module for computing all biology metrics (k-mer, GC skew, IR).
 Loads sequences from FASTA files and computes metrics in batch.
 """
 
-using BioSequences: LongDNA, DNA_G, DNA_C
+using BioSequences: LongDNA, DNA_G, DNA_C, DNA_A, DNA_T, DNA_N
 using FASTX: FASTA
 using CodecZlib: GzipDecompressorStream
 using DataFrames
@@ -89,9 +89,30 @@ function load_sequence_from_fasta(
             for record in reader
                 current_idx += 1
                 if current_idx == rep_idx
-                    result_seq = LongDNA{4}(FASTA.sequence(record))
-                    close(reader)
-                    return result_seq
+                    # Filter ambiguous bases: convert to N, then filter out N
+                    raw_seq = FASTA.sequence(record)
+                    # Convert to LongDNA{4} (may contain ambiguous bases like Y, R, etc.)
+                    # Filter to keep only canonical bases (A, C, G, T)
+                    try
+                        seq_raw = LongDNA{4}(raw_seq)
+                        # Filter to keep only A, C, G, T (exclude ambiguous bases)
+                        canonical_bases = [b for b in seq_raw if b in [DNA_A, DNA_C, DNA_G, DNA_T]]
+                        if isempty(canonical_bases)
+                            @warn "Sequence for $replicon_id is empty after filtering ambiguous bases"
+                            close(reader)
+                            return nothing
+                        end
+                        if length(canonical_bases) < length(seq_raw) * 0.5
+                            @warn "Sequence for $replicon_id has >50% ambiguous bases, may be low quality"
+                        end
+                        result_seq = LongDNA{4}(canonical_bases)
+                        close(reader)
+                        return result_seq
+                    catch e
+                        @warn "Failed to parse sequence for $replicon_id (may contain invalid bases): $e"
+                        close(reader)
+                        return nothing
+                    end
                 end
             end
             close(reader)

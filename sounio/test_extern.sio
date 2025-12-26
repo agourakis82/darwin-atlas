@@ -1,0 +1,3 @@
+pub extern "C" fn test() -> *const u8 {
+    return 0 as *const u8
+}

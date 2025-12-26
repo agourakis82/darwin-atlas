@@ -1,0 +1,111 @@
+/// FFI Exports for Julia Integration
+///
+/// C ABI functions callable from Julia via ccall.
+/// All exported functions use primitive types and raw pointers.
+
+
+import operators;
+import exact_symmetry;
+import approx_metric;
+import quaternion;
+
+// C types for FFI
+type c_uchar = u8;
+
+// ============================================================================
+// Operator FFI
+// ============================================================================
+
+// ============================================================================
+// FFI Function Implementations
+// ============================================================================
+
+// Convert C pointer + length to Demetrios Sequence
+// Uses FFI builtins to read from C pointer
+fn ptr_to_sequence(ptr: *const c_uchar, len: usize) -> operators.Sequence {
+    // Build sequence from elements
+    // Never return empty - always build from at least one element
+    if is_null(ptr) || len == 0 {
+        // Return a single zero element to avoid empty array type issues
+        // Callers should check len == 0 before calling this
+        return [0];
+    }
+    
+    // Build sequence by concatenating elements
+    let first_ptr = ptr_offset(ptr, 0 as isize);
+    let first_val = *first_ptr;
+    var seq: operators.Sequence = [first_val];
+    
+    var i: usize = 1;
+    while i < len {
+        let offset_ptr = ptr_offset(ptr, i as isize);
+        let byte_val = *offset_ptr;
+        seq = seq ++ [byte_val];
+        i = i + 1;
+    }
+    return seq;
+}
+
+// ============================================================================
+// Exported C Functions
+// ============================================================================
+// Note: In Demetrios, extern "C" functions are declared OUTSIDE the block
+// The block is only for external C function declarations
+
+pub extern "C" fn darwin_hamming_distance(seq_a: *const c_uchar, len_a: usize, seq_b: *const c_uchar, len_b: usize) -> usize {
+    if len_a != len_b {
+        return 0;
+    }
+    let a = ptr_to_sequence(seq_a, len_a);
+    let b = ptr_to_sequence(seq_b, len_b);
+    return operators.hamming_distance(&a, &b);
+}
+
+pub extern "C" fn darwin_orbit_size(seq: *const c_uchar, len: usize) -> usize {
+    if len == 0 {
+        return 1;  // Empty sequence has orbit size 1
+    }
+    let s = ptr_to_sequence(seq, len);
+    return exact_symmetry.orbit_size(&s);
+}
+
+pub extern "C" fn darwin_orbit_ratio(seq: *const c_uchar, len: usize) -> f64 {
+    if len == 0 {
+        return 1.0;  // Empty sequence has orbit ratio 1.0
+    }
+    let s = ptr_to_sequence(seq, len);
+    return exact_symmetry.orbit_ratio(&s);
+}
+
+pub extern "C" fn darwin_is_palindrome(seq: *const c_uchar, len: usize) -> bool {
+    if len == 0 {
+        return true;  // Empty sequence is trivially a palindrome
+    }
+    let s = ptr_to_sequence(seq, len);
+    return exact_symmetry.is_palindrome(&s);
+}
+
+pub extern "C" fn darwin_is_rc_fixed(seq: *const c_uchar, len: usize) -> bool {
+    if len == 0 {
+        return true;  // Empty sequence is trivially RC-fixed
+    }
+    let s = ptr_to_sequence(seq, len);
+    return exact_symmetry.is_rc_fixed(&s);
+}
+
+pub extern "C" fn darwin_dmin(seq: *const c_uchar, len: usize, include_rc: bool) -> usize {
+    if len == 0 {
+        return 0;  // Empty sequence has d_min = 0
+    }
+    let s = ptr_to_sequence(seq, len);
+    return approx_metric.dmin(&s, include_rc);
+}
+
+pub extern "C" fn darwin_dmin_normalized(seq: *const c_uchar, len: usize, include_rc: bool) -> f64 {
+    if len == 0 {
+        return 0.0;  // Empty sequence has normalized d_min = 0
+    }
+    let s = ptr_to_sequence(seq, len);
+    return approx_metric.dmin_normalized(&s, include_rc);
+}
+

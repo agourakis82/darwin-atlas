@@ -1,5 +1,6 @@
 # Data
 data/raw/
+data/doric/
 data/manifest/*.jsonl
 data/manifest/*.sha256
 data/manifest/ingestion_metadata.json
@@ -12,11 +13,15 @@ data/tables/*.csv
 *.jl.*.cov
 *.jl.mem
 
-# Demetrios
-demetrios/target/
+# Sounio
+sounio/target/
 *.so
 *.dylib
 *.dll
+
+# Node modules (large binaries)
+node_modules/
+package-lock.json
 
 # IDE
 .vscode/

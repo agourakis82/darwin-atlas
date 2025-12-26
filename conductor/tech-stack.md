@@ -21,9 +21,9 @@ Layer 0: Julia Pure    → Reference implementation (fallback, cross-validation)
 
 ## Primary Languages
 
-### Demetrios (Layer 2)
+### Sounio (Layer 2)
 
-**Version**: Latest stable from https://github.com/Chiuratto-AI/demetrios  
+**Version**: Latest stable from https://github.com/sounio-lang/sounio  
 **Role**: Core scientific computation layer
 
 **Usage**:
@@ -289,9 +289,9 @@ julia --project=julia -e 'using Pkg; Pkg.update()'
 # Commit updated Manifest.toml only after thorough testing
 ```
 
-### Demetrios Dependencies
+### Sounio Dependencies
 
-**Installation**: Follow https://github.com/Chiuratto-AI/demetrios
+**Installation**: Follow https://github.com/sounio-lang/sounio
 
 **Version Tracking**: Document Demetrios compiler version in:
 - `.zenodo.json` metadata

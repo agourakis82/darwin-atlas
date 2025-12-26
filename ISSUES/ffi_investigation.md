@@ -66,7 +66,7 @@ end
 
 Key findings:
 - **FFI Issue**: "Escritas em ponteiros de saida (`*mut u8`) dentro de `extern \"C\"` parecem ser ignoradas pelo codegen"
-- **GitHub Issue**: https://github.com/Chiuratto-AI/demetrios/issues/11
+- **GitHub Issue**: https://github.com/sounio-lang/sounio/issues/11
 - **Status**: Still fails in cross-validation with `dc 0.78.1`
 - **Current Workaround**: Fallback to Julia-only implementation
 
@@ -322,7 +322,7 @@ Based on findings:
 - [demetrios/src/ffi.d](../demetrios/src/ffi.d) - FFI implementation
 - [julia/src/DemetriosFFI.jl](../julia/src/DemetriosFFI.jl) - Julia wrapper
 - [DEMETRIOS_MISSING_FEATURES.md](../DEMETRIOS_MISSING_FEATURES.md) - Known limitations
-- [Demetrios Issue #11](https://github.com/Chiuratto-AI/demetrios/issues/11) - FFI codegen bug
+- [Demetrios Issue #11](https://github.com/sounio-lang/sounio/issues/11) - FFI codegen bug
 
 ---
 

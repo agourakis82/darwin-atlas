@@ -1,0 +1,2 @@
+import quaternion;
+let g = DicyclicGroup::new(4);

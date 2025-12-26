@@ -17,6 +17,8 @@ d_min(w) = min_{g ∈ G \\ {id}} H(w, g(w))
 
 where G is the transform group (dihedral or extended with RC).
 
+Uses Demetrios implementation if available, otherwise falls back to Julia.
+
 # Arguments
 - `seq`: DNA sequence to analyze
 - `include_rc`: Whether to include reverse-complement transforms (default: true)
@@ -30,6 +32,9 @@ Minimum Hamming distance (0 = exact symmetry under some transform).
 - RC∘S^k for k ∈ {0, ..., n-1} (reverse complement then shift, if include_rc)
 """
 function dmin(seq::LongDNA; include_rc::Bool=true)::Int
+    if HAS_DEMETRIOS[]
+        return demetrios_dmin(seq; include_rc=include_rc)
+    end
     n = length(seq)
     n == 0 && return 0
 
@@ -38,7 +43,7 @@ function dmin(seq::LongDNA; include_rc::Bool=true)::Int
     # S^k transforms (k = 1 to n-1, excluding identity k=0)
     for k in 1:n-1
         shifted = shift(seq, k)
-        d = hamming_distance(seq, shifted)
+        d = hamming_distance_fast(seq, shifted)
         min_dist = min(min_dist, d)
     end
 
@@ -46,7 +51,7 @@ function dmin(seq::LongDNA; include_rc::Bool=true)::Int
     rev = reverse_seq(seq)
     for k in 0:n-1
         shifted_rev = shift(rev, k)
-        d = hamming_distance(seq, shifted_rev)
+        d = hamming_distance_fast(seq, shifted_rev)
         min_dist = min(min_dist, d)
     end
 
@@ -55,7 +60,7 @@ function dmin(seq::LongDNA; include_rc::Bool=true)::Int
         rc = rev_comp(seq)
         for k in 0:n-1
             shifted_rc = shift(rc, k)
-            d = hamming_distance(seq, shifted_rc)
+            d = hamming_distance_fast(seq, shifted_rc)
             min_dist = min(min_dist, d)
         end
     end
@@ -75,9 +80,13 @@ Range: [0, 1]
 This is the primary approximate symmetry metric for the atlas.
 """
 function dmin_normalized(seq::LongDNA; include_rc::Bool=true)::Float64
-    n = length(seq)
-    n == 0 && return 0.0
-    return dmin(seq; include_rc=include_rc) / n
+    if HAS_DEMETRIOS[]
+        return demetrios_dmin_normalized(seq; include_rc=include_rc)
+    else
+        n = length(seq)
+        n == 0 && return 0.0
+        return dmin(seq; include_rc=include_rc) / n
+    end
 end
 
 """
@@ -101,7 +110,7 @@ function nearest_transform(seq::LongDNA; include_rc::Bool=true)::NearestTransfor
 
     # S^k transforms
     for k in 1:n-1
-        d = hamming_distance(seq, shift(seq, k))
+        d = hamming_distance_fast(seq, shift(seq, k))
         if d < min_dist
             min_dist = d
             best_family = SHIFT
@@ -112,7 +121,7 @@ function nearest_transform(seq::LongDNA; include_rc::Bool=true)::NearestTransfor
     # R∘S^k transforms
     rev = reverse_seq(seq)
     for k in 0:n-1
-        d = hamming_distance(seq, shift(rev, k))
+        d = hamming_distance_fast(seq, shift(rev, k))
         if d < min_dist
             min_dist = d
             best_family = REVERSE_SHIFT
@@ -124,7 +133,7 @@ function nearest_transform(seq::LongDNA; include_rc::Bool=true)::NearestTransfor
     if include_rc
         rc = rev_comp(seq)
         for k in 0:n-1
-            d = hamming_distance(seq, shift(rc, k))
+            d = hamming_distance_fast(seq, shift(rc, k))
             if d < min_dist
                 min_dist = d
                 best_family = RC_SHIFT

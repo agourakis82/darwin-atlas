@@ -28,6 +28,79 @@ dist/atlas_dataset_v2/
 
 ## Table Schemas
 
+### labels_oriter (DoriC, Tier A)
+
+Authoritative ori/ter labels derived from DoriC (required for SOTA++ evaluation).
+
+**Location**:
+- `metadata/labels_oriter.parquet` (authoritative source)
+- `dist/atlas_dataset_v2/partitions/labels_oriter/data.parquet` (dataset export)
+
+**Data Columns**:
+| Column | Type | Description |
+|--------|------|-------------|
+| `replicon_id` | String | FK → atlas_replicons |
+| `replicon_accession` | String | NCBI accession (RefSeq) |
+| `assembly_accession` | String | NCBI assembly ID (GCF_...) |
+| `length_bp` | Int64 | Replicon length |
+| `doric_accession` | String | DoriC entry ID |
+| `doric_source` | String | {bacteria, archaea, plasmid} |
+| `ori_start_bp` | Int64 | Origin start (1-based) |
+| `ori_end_bp` | Int64 | Origin end (1-based) |
+| `ori_center_bp` | Int64 | Circular midpoint of origin |
+| `ori_span_bp` | Int64 | Length of origin interval |
+| `ori_wrapped` | Bool | Interval wraps around end |
+| `ori_at_content` | Float64 | AT content of oriC |
+| `ter_bp` | Int64 | Derived terminus position |
+| `ter_derived` | Bool | Always true (derived from ori) |
+| `label_tier` | String | Always "A" |
+| `label_source` | String | "DoriC" |
+| `label_version` | String | DoriC version label |
+| `label_confidence` | Float64 | Confidence score |
+| `match_method` | String | {exact, nover} |
+| `ori_rank` | Int64 | Index for multiple origins |
+
+### oriter_eval (DoriC evaluation)
+
+GC-skew ori/ter predictions evaluated against DoriC labels.
+
+**Location**:
+- `metadata/oriter_eval.csv`
+- `metadata/oriter_eval_summary.json`
+
+**Data Columns**:
+| Column | Type | Description |
+|--------|------|-------------|
+| `replicon_id` | String | FK → atlas_replicons |
+| `assembly_accession` | String | NCBI assembly ID |
+| `length_bp` | Int64 | Replicon length |
+| `ori_label` | Int64 | DoriC ori center |
+| `ter_label` | Int64 | DoriC-derived ter |
+| `ori_pred` | Int64 | GC-skew ori prediction |
+| `ter_pred` | Int64 | GC-skew ter prediction |
+| `ori_error` | Int64 | Circular distance (bp) |
+| `ter_error` | Int64 | Circular distance (bp) |
+| `window_size` | Int64 | GC-skew window size |
+| `step` | Int64 | GC-skew step |
+
+### symmetry_spectrum (DoriC subset)
+
+Symmetry spectrum summaries with null-model p/q-values.
+
+**Location**:
+- `metadata/symmetry_spectrum.csv`
+- `metadata/symmetry_spectrum_summary.json`
+
+**Data Columns** (subset):
+| Column | Type | Description |
+|--------|------|-------------|
+| `shift_min` | Int64 | Minimum shift distance |
+| `rev_min` | Int64 | Minimum reverse distance |
+| `shift_min_p` | Float64 | Null p-value (shift) |
+| `rev_min_p` | Float64 | Null p-value (reverse) |
+| `shift_min_q` | Float64 | FDR q-value (shift) |
+| `rev_min_q` | Float64 | FDR q-value (reverse) |
+
 ### atlas_replicons
 
 Primary table for replicon metadata.

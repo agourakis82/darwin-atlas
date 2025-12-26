@@ -197,6 +197,54 @@ function validate_dmin(seqs::Vector{LongDNA}; verbose::Bool=false)::CrossValidat
 end
 
 """
+    validate_hamming_batch(seqs::Vector{LongDNA}; verbose::Bool=false) -> CrossValidationResult
+
+Cross-validate batched Hamming distance between Julia and Demetrios.
+"""
+function validate_hamming_batch(seqs::Vector{LongDNA}; verbose::Bool=false)::CrossValidationResult
+    pairs_a = LongDNA{4}[]
+    pairs_b = LongDNA{4}[]
+
+    for seq in seqs
+        push!(pairs_a, seq)
+        push!(pairs_b, reverse_seq(seq))
+        if length(seq) > 1
+            push!(pairs_a, seq)
+            push!(pairs_b, shift(seq, 1))
+        end
+    end
+
+    demetrios_results = demetrios_hamming_distance_batch(pairs_a, pairs_b)
+
+    n_passed = 0
+    n_failed = 0
+    failed_cases = Tuple{String, Any, Any}[]
+
+    for i in 1:length(pairs_a)
+        julia_result = hamming_distance(pairs_a[i], pairs_b[i])
+        demetrios_result = Int(demetrios_results[i])
+
+        if julia_result == demetrios_result
+            n_passed += 1
+            verbose && println("  ✓ hamming_batch[$i]")
+        else
+            n_failed += 1
+            push!(failed_cases, ("$(string(pairs_a[i])) vs $(string(pairs_b[i]))", julia_result, demetrios_result))
+            verbose && println("  ✗ hamming_batch: Julia=$julia_result, Demetrios=$demetrios_result")
+        end
+    end
+
+    return CrossValidationResult(
+        "hamming_distance_batch",
+        length(pairs_a),
+        n_passed,
+        n_failed,
+        0.0,
+        failed_cases
+    )
+end
+
+"""
     validate_dicyclic(ns::Vector{Int}; verbose::Bool=false) -> CrossValidationResult
 
 Cross-validate verify_double_cover between Julia and Demetrios.
@@ -295,29 +343,33 @@ function run_cross_validation(; verbose::Bool=true, n_random::Int=100, seed::Int
     results = Dict{String, CrossValidationResult}()
 
     # Exact symmetry functions
-    println("[1/6] Validating orbit_size...")
+    println("[1/7] Validating orbit_size...")
     results["orbit_size"] = validate_orbit_size(seqs; verbose=verbose)
     print_result(results["orbit_size"])
 
-    println("[2/6] Validating orbit_ratio...")
+    println("[2/7] Validating orbit_ratio...")
     results["orbit_ratio"] = validate_orbit_ratio(seqs; verbose=verbose)
     print_result(results["orbit_ratio"])
 
-    println("[3/6] Validating is_palindrome...")
+    println("[3/7] Validating is_palindrome...")
     results["is_palindrome"] = validate_palindrome(seqs; verbose=verbose)
     print_result(results["is_palindrome"])
 
-    println("[4/6] Validating is_rc_fixed...")
+    println("[4/7] Validating is_rc_fixed...")
     results["is_rc_fixed"] = validate_rc_fixed(seqs; verbose=verbose)
     print_result(results["is_rc_fixed"])
 
     # Approximate metric
-    println("[5/6] Validating dmin...")
+    println("[5/7] Validating dmin...")
     results["dmin"] = validate_dmin(seqs; verbose=verbose)
     print_result(results["dmin"])
 
+    println("[6/7] Validating hamming_distance_batch...")
+    results["hamming_distance_batch"] = validate_hamming_batch(seqs; verbose=verbose)
+    print_result(results["hamming_distance_batch"])
+
     # Quaternion
-    println("[6/6] Validating verify_double_cover...")
+    println("[7/7] Validating verify_double_cover...")
     results["verify_double_cover"] = validate_dicyclic(collect(2:16); verbose=verbose)
     print_result(results["verify_double_cover"])
 

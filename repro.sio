@@ -1,0 +1,5 @@
+module repro;
+import std::io;
+fn main() with IO {
+    let x = std::io::env::args();
+}

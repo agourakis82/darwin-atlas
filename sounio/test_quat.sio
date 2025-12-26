@@ -1,0 +1,5 @@
+import quaternion;
+pub fn test(n: usize) -> bool {
+    let g = quaternion.DicyclicGroup { n };
+    return quaternion.verify_double_cover(&g);
+}

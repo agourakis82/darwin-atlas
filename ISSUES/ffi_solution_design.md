@@ -77,7 +77,7 @@ Cross-validation is operational and passing all tests.
 The track was based on information from `DEMETRIOS_MISSING_FEATURES.md`:
 
 > "Escritas em ponteiros de saida (`*mut u8`) dentro de `extern \"C\"` parecem ser ignoradas pelo codegen"
-> - Issue: https://github.com/Chiuratto-AI/demetrios/issues/11
+> - Issue: https://github.com/sounio-lang/sounio/issues/11
 > - Status: ainda falha na cross-validation com `dc 0.78.1`
 
 ### What Was Actually Happening?

@@ -1,0 +1,42 @@
+/// Tests for genomic operators
+
+
+import operators;
+
+#[test]
+fn test_shift_identity() {
+    let seq = [operators.A, operators.C, operators.G, operators.T];
+    assert_eq!(operators.shift(&seq, 0), seq);
+    assert_eq!(operators.shift(&seq, 4), seq);
+}
+
+#[test]
+fn test_reverse_involution() {
+    let seq = [operators.A, operators.C, operators.G, operators.T];
+    assert_eq!(operators.reverse(&operators.reverse(&seq)), seq);
+}
+
+#[test]
+fn test_complement_involution() {
+    let seq = [operators.A, operators.C, operators.G, operators.T];
+    assert_eq!(operators.complement(&operators.complement(&seq)), seq);
+}
+
+#[test]
+fn test_rc_composition() {
+    let seq = [operators.A, operators.C, operators.G, operators.T];
+    assert_eq!(operators.reverse_complement(&seq), operators.complement(&operators.reverse(&seq)));
+    assert_eq!(operators.reverse_complement(&seq), operators.reverse(&operators.complement(&seq)));
+}
+
+#[test]
+fn test_dihedral_relation() {
+    let seq = [operators.A, operators.C, operators.G, operators.T, operators.A, operators.C, operators.G, operators.T, operators.A, operators.A];
+    let n = seq.len();
+
+    for k in 1..5 {
+        let lhs = operators.reverse(&operators.shift(&seq, k));
+        let rhs = operators.shift(&operators.reverse(&seq), n - k);
+        assert_eq!(lhs, rhs);
+    }
+}
