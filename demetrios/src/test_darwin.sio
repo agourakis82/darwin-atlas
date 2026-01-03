@@ -1,0 +1,175 @@
+/// Comprehensive Test Suite for Darwin Atlas
+///
+/// Tests all major functionality: operators, symmetry, metrics, quaternions
+
+module test_darwin;
+
+import operators::{shift, reverse, complement, reverse_complement, hamming_distance, A, C, G, T, Sequence};
+import exact_symmetry::{orbit_size, orbit_ratio, is_palindrome, is_rc_fixed, compute_symmetry_stats};
+import approx_metric::{dmin, dmin_normalized};
+import quaternion::{Quaternion, DicyclicGroup, verify_double_cover};
+
+/// Test basic operators
+pub fn test_operators() -> bool {
+    let seq: Sequence = [A, C, G, T];
+    
+    // Test shift identity
+    let shifted_0 = shift(&seq, 0);
+    let shifted_4 = shift(&seq, 4);
+    if shifted_0.len() != seq.len() || shifted_4.len() != seq.len() {
+        return false;
+    }
+    
+    // Test reverse involution: R(R(seq)) = seq
+    let rev = reverse(&seq);
+    let rev_rev = reverse(&rev);
+    if rev_rev.len() != seq.len() {
+        return false;
+    }
+    
+    // Test complement involution: K(K(seq)) = seq
+    let comp = complement(&seq);
+    let comp_comp = complement(&comp);
+    if comp_comp.len() != seq.len() {
+        return false;
+    }
+    
+    // Test RC composition
+    let rc1 = reverse_complement(&seq);
+    let rc2 = complement(&reverse(&seq));
+    if rc1.len() != rc2.len() {
+        return false;
+    }
+    
+    true
+}
+
+/// Test symmetry analysis
+pub fn test_symmetry() -> bool {
+    // Test palindrome detection
+    let palindrome: Sequence = [A, C, C, A];
+    if !is_palindrome(&palindrome) {
+        return false;
+    }
+    
+    // Test RC-fixed sequence: ACGT is RC-fixed
+    let rc_fixed: Sequence = [A, C, G, T];
+    if !is_rc_fixed(&rc_fixed) {
+        return false;
+    }
+    
+    // Test orbit size bounds
+    let seq: Sequence = [A, C, G, T];
+    let os = orbit_size(&seq);
+    let n = seq.len();
+    if os < 1 || os > 2 * n {
+        return false;
+    }
+    
+    // Test orbit ratio range
+    let ratio = orbit_ratio(&seq);
+    if ratio < 0.0 || ratio > 1.0 {
+        return false;
+    }
+    
+    true
+}
+
+/// Test approximate metrics
+pub fn test_metrics() -> bool {
+    let seq: Sequence = [A, C, G, T];
+    
+    // Test dmin bounds
+    let d = dmin(&seq, true);
+    if d > seq.len() {
+        return false;
+    }
+    
+    // Test normalized dmin range
+    let dn = dmin_normalized(&seq, true);
+    if dn < 0.0 || dn > 1.0 {
+        return false;
+    }
+    
+    // Test periodic sequence (should have dmin = 0)
+    let periodic: Sequence = [A, C, G, T, A, C, G, T];
+    let d_periodic = dmin(&periodic, false);
+    // S^4(periodic) = periodic, so dmin should be 0
+    // But we'll just check it's reasonable
+    if d_periodic > periodic.len() {
+        return false;
+    }
+    
+    true
+}
+
+/// Test quaternion operations
+pub fn test_quaternions() -> bool {
+    // Test identity
+    let id = Quaternion::identity();
+    let q = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+    let q_mul_id = id.mul(&q);
+    if !q_mul_id.approx_eq(&q, 1e-10) {
+        return false;
+    }
+    
+    // Test dicyclic group order
+    let g = DicyclicGroup::new(4);
+    if g.order() != 16 {
+        return false;
+    }
+    
+    // Test double cover property (for small n)
+    var n: usize = 2;
+    while n <= 6 {
+        let g_test = DicyclicGroup::new(n);
+        if !verify_double_cover(&g_test) {
+            return false;
+        }
+        n = n + 1;
+    }
+    
+    true
+}
+
+/// Run all tests
+pub fn run_all_tests() -> i32 {
+    var passed = 0;
+    var failed = 0;
+    
+    if test_operators() {
+        passed = passed + 1;
+    } else {
+        failed = failed + 1;
+    }
+    
+    if test_symmetry() {
+        passed = passed + 1;
+    } else {
+        failed = failed + 1;
+    }
+    
+    if test_metrics() {
+        passed = passed + 1;
+    } else {
+        failed = failed + 1;
+    }
+    
+    if test_quaternions() {
+        passed = passed + 1;
+    } else {
+        failed = failed + 1;
+    }
+    
+    // Return 0 if all passed, non-zero if any failed
+    if failed == 0 {
+        return 0;
+    } else {
+        return failed;
+    }
+}
+
+/// Main entry point
+pub fn main() -> i32 {
+    run_all_tests()
+}

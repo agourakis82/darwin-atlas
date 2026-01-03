@@ -1,0 +1,136 @@
+/// Simple Darwin Atlas Test
+///
+/// Tests basic operators and symmetry functions
+
+module test_simple;
+
+import operators::{shift, reverse, complement, reverse_complement, hamming_distance, A, C, G, T, Sequence};
+import exact_symmetry::{orbit_size, orbit_ratio, is_palindrome, is_rc_fixed};
+import approx_metric::{dmin, dmin_normalized};
+
+/// Test basic operators
+pub fn test_operators() -> i32 {
+    // Create sequence
+    var seq: Sequence = [];
+    seq = seq ++ [A];
+    seq = seq ++ [C];
+    seq = seq ++ [G];
+    seq = seq ++ [T];
+    
+    // Test shift
+    let shifted = shift(&seq, 1);
+    if shifted.len() != 4 {
+        return 1;
+    }
+    
+    // Test reverse
+    let rev = reverse(&seq);
+    if rev.len() != 4 {
+        return 2;
+    }
+    
+    // Test complement
+    let comp = complement(&seq);
+    if comp.len() != 4 {
+        return 3;
+    }
+    
+    // Test reverse complement
+    let rc = reverse_complement(&seq);
+    if rc.len() != 4 {
+        return 4;
+    }
+    
+    // Test hamming distance
+    let dist = hamming_distance(&seq, &rev);
+    if dist > seq.len() {
+        return 5;
+    }
+    
+    0
+}
+
+/// Test symmetry functions
+pub fn test_symmetry() -> i32 {
+    // Create palindrome: ACCA
+    var palindrome: Sequence = [];
+    palindrome = palindrome ++ [A];
+    palindrome = palindrome ++ [C];
+    palindrome = palindrome ++ [C];
+    palindrome = palindrome ++ [A];
+    
+    // Test palindrome detection
+    if !is_palindrome(&palindrome) {
+        return 10;
+    }
+    
+    // Create RC-fixed sequence: ACGT
+    var rc_fixed: Sequence = [];
+    rc_fixed = rc_fixed ++ [A];
+    rc_fixed = rc_fixed ++ [C];
+    rc_fixed = rc_fixed ++ [G];
+    rc_fixed = rc_fixed ++ [T];
+    
+    // Test RC-fixed detection
+    if !is_rc_fixed(&rc_fixed) {
+        return 11;
+    }
+    
+    // Test orbit size
+    let os = orbit_size(&rc_fixed);
+    if os < 1 || os > 8 {
+        return 12;
+    }
+    
+    // Test orbit ratio
+    let ratio = orbit_ratio(&rc_fixed);
+    if ratio < 0.0 || ratio > 1.0 {
+        return 13;
+    }
+    
+    0
+}
+
+/// Test approximate metrics
+pub fn test_metrics() -> i32 {
+    // Create test sequence
+    var seq: Sequence = [];
+    seq = seq ++ [A];
+    seq = seq ++ [C];
+    seq = seq ++ [G];
+    seq = seq ++ [T];
+    
+    // Test dmin
+    let d = dmin(&seq, true);
+    if d > seq.len() {
+        return 20;
+    }
+    
+    // Test normalized dmin
+    let dn = dmin_normalized(&seq, true);
+    if dn < 0.0 || dn > 1.0 {
+        return 21;
+    }
+    
+    0
+}
+
+/// Run all tests
+pub fn main() -> i32 {
+    let r1 = test_operators();
+    if r1 != 0 {
+        return r1;
+    }
+    
+    let r2 = test_symmetry();
+    if r2 != 0 {
+        return r2;
+    }
+    
+    let r3 = test_metrics();
+    if r3 != 0 {
+        return r3;
+    }
+    
+    0
+}

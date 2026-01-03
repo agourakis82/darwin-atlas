@@ -1,0 +1,17 @@
+/// Darwin Atlas Kernels - Library Root
+///
+/// High-performance implementations of genomic symmetry operators
+/// with epistemic computing support.
+
+module darwin_kernels;
+
+// Import modules (re-exports will be handled by making functions pub)
+import operators;
+import exact_symmetry;
+import approx_metric;
+import quaternion;
+import ffi;
+
+// Re-export public API by making functions available
+// Note: In Sounio, we import the modules and use qualified paths
+// or make the functions pub in their respective modules

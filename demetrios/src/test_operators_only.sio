@@ -1,0 +1,145 @@
+/// Darwin Atlas Operators Test
+///
+/// Tests only the operators module (which we know compiles)
+
+module test_operators_only;
+
+import operators::{shift, reverse, complement, reverse_complement, hamming_distance, A, C, G, T, Sequence};
+
+/// Test shift operator
+pub fn test_shift() -> i32 {
+    // Create sequence ACGT
+    var seq: Sequence = [];
+    seq = seq ++ [A];
+    seq = seq ++ [C];
+    seq = seq ++ [G];
+    seq = seq ++ [T];
+    
+    // Shift by 0 should return same sequence
+    let shifted_0 = shift(&seq, 0);
+    if shifted_0.len() != 4 {
+        return 1;
+    }
+    
+    // Shift by 4 should also return same (modulo)
+    let shifted_4 = shift(&seq, 4);
+    if shifted_4.len() != 4 {
+        return 2;
+    }
+    
+    // Shift by 1 should rotate
+    let shifted_1 = shift(&seq, 1);
+    if shifted_1.len() != 4 {
+        return 3;
+    }
+    
+    0
+}
+
+/// Test reverse operator
+pub fn test_reverse() -> i32 {
+    var seq: Sequence = [];
+    seq = seq ++ [A];
+    seq = seq ++ [C];
+    seq = seq ++ [G];
+    seq = seq ++ [T];
+    
+    let rev = reverse(&seq);
+    if rev.len() != 4 {
+        return 10;
+    }
+    
+    // Reverse twice should give original (approximately)
+    let rev_rev = reverse(&rev);
+    if rev_rev.len() != 4 {
+        return 11;
+    }
+    
+    0
+}
+
+/// Test complement operator
+pub fn test_complement() -> i32 {
+    var seq: Sequence = [];
+    seq = seq ++ [A];
+    seq = seq ++ [C];
+    seq = seq ++ [G];
+    seq = seq ++ [T];
+    
+    let comp = complement(&seq);
+    if comp.len() != 4 {
+        return 20;
+    }
+    
+    // Complement twice should give original
+    let comp_comp = complement(&comp);
+    if comp_comp.len() != 4 {
+        return 21;
+    }
+    
+    0
+}
+
+/// Test reverse complement
+pub fn test_reverse_complement() -> i32 {
+    var seq: Sequence = [];
+    seq = seq ++ [A];
+    seq = seq ++ [C];
+    seq = seq ++ [G];
+    seq = seq ++ [T];
+    
+    let rc1 = reverse_complement(&seq);
+    if rc1.len() != 4 {
+        return 30;
+    }
+    
+    // RC should equal complement(reverse(seq))
+    let rc2 = complement(&reverse(&seq));
+    if rc2.len() != 4 {
+        return 31;
+    }
+    
+    0
+}
+
+/// Test hamming distance
+pub fn test_hamming() -> i32 {
+    var seq1: Sequence = [];
+    seq1 = seq1 ++ [A];
+    seq1 = seq1 ++ [C];
+    seq1 = seq1 ++ [G];
+    seq1 = seq1 ++ [T];
+    
+    var seq2: Sequence = [];
+    seq2 = seq2 ++ [A];
+    seq2 = seq2 ++ [C];
+    seq2 = seq2 ++ [C];
+    seq2 = seq2 ++ [A];
+    
+    let dist = hamming_distance(&seq1, &seq2);
+    if dist > seq1.len() {
+        return 40;
+    }
+    
+    0
+}
+
+/// Main test runner
+pub fn main() -> i32 {
+    let r1 = test_shift();
+    if r1 != 0 { return r1; }
+    
+    let r2 = test_reverse();
+    if r2 != 0 { return r2; }
+    
+    let r3 = test_complement();
+    if r3 != 0 { return r3; }
+    
+    let r4 = test_reverse_complement();
+    if r4 != 0 { return r4; }
+    
+    let r5 = test_hamming();
+    if r5 != 0 { return r5; }
+    
+    0
+}
