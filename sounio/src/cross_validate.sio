@@ -1,0 +1,125 @@
+/// Cross-validation: Compare Sounio vs Julia D_n results
+
+module cross_validate;
+
+// Constants
+fn A() -> u8 { 0 }
+fn C() -> u8 { 1 }
+fn G() -> u8 { 2 }
+fn T() -> u8 { 3 }
+
+// Operators
+fn reverse(seq: &[u8]) -> [u8] { seq.reverse() }
+fn complement_base(b: u8) -> u8 { (b ^ 3) & 3 }
+fn complement(seq: &[u8]) -> [u8] { seq.map(complement_base) }
+fn reverse_complement(seq: &[u8]) -> [u8] { complement(reverse(seq)) }
+
+fn shift(seq: &[u8], k: usize) -> [u8] {
+    let n = seq.len();
+    if n == 0 { return []; }
+    let k = k % n;
+    seq[k..] ++ seq[..k]
+}
+
+fn seq_equal(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() { return false; }
+    var i: usize = 0;
+    while i < a.len() {
+        if a[i] != b[i] { return false; }
+        i = i + 1;
+    }
+    true
+}
+
+// Symmetry
+fn is_palindrome(seq: &[u8]) -> bool {
+    seq_equal(seq, &reverse(seq))
+}
+
+fn is_rc_fixed(seq: &[u8]) -> bool {
+    seq_equal(seq, &reverse_complement(seq))
+}
+
+fn cyclic_period(seq: &[u8]) -> usize {
+    let n = seq.len();
+    if n == 0 { return 1; }
+    var p: usize = 1;
+    while p < n {
+        if seq_equal(seq, &shift(seq, p)) { return p; }
+        p = p + 1;
+    }
+    n
+}
+
+fn rotational_symmetries(seq: &[u8]) -> usize {
+    let n = seq.len();
+    if n == 0 { return 1; }
+    n / cyclic_period(seq)
+}
+
+fn has_reflective_symmetry(seq: &[u8]) -> bool {
+    let n = seq.len();
+    if n == 0 { return true; }
+    let rev = reverse(seq);
+    var k: usize = 0;
+    while k < n {
+        if seq_equal(&rev, &shift(seq, k)) { return true; }
+        k = k + 1;
+    }
+    false
+}
+
+fn orbit_size(seq: &[u8]) -> usize {
+    let n = seq.len();
+    if n == 0 { return 1; }
+    let two: usize = 2;
+    let group_order = two * n;
+    let rot_sym = rotational_symmetries(seq);
+    let ref_factor: usize = if has_reflective_symmetry(seq) { 2 } else { 1 };
+    group_order / (rot_sym * ref_factor)
+}
+
+pub fn main() -> i32 {
+    print("=== Sounio D_n Cross-Validation ===");
+    print("");
+
+    let two: usize = 2;
+
+    // Test 1: ACGT (A=0, C=1, G=2, T=3)
+    var seq1: [u8] = [];
+    let a1: u8 = 0; let c1: u8 = 1; let g1: u8 = 2; let t1: u8 = 3;
+    seq1 = seq1 ++ [a1]; seq1 = seq1 ++ [c1]; seq1 = seq1 ++ [g1]; seq1 = seq1 ++ [t1];
+    print("ACGT (n=4): orbit=", orbit_size(&seq1), "/", two * 4, ", palindrome=", is_palindrome(&seq1), ", rc_fixed=", is_rc_fixed(&seq1));
+
+    // Test 2: ACGTACGT
+    var seq2: [u8] = [];
+    seq2 = seq2 ++ [a1]; seq2 = seq2 ++ [c1]; seq2 = seq2 ++ [g1]; seq2 = seq2 ++ [t1];
+    seq2 = seq2 ++ [a1]; seq2 = seq2 ++ [c1]; seq2 = seq2 ++ [g1]; seq2 = seq2 ++ [t1];
+    print("ACGTACGT (n=8): orbit=", orbit_size(&seq2), "/", two * 8, ", palindrome=", is_palindrome(&seq2), ", rc_fixed=", is_rc_fixed(&seq2));
+
+    // Test 3: AAAA
+    var seq3: [u8] = [];
+    seq3 = seq3 ++ [a1]; seq3 = seq3 ++ [a1]; seq3 = seq3 ++ [a1]; seq3 = seq3 ++ [a1];
+    print("AAAA (n=4): orbit=", orbit_size(&seq3), "/", two * 4, ", palindrome=", is_palindrome(&seq3), ", rc_fixed=", is_rc_fixed(&seq3));
+
+    // Test 4: ACCA
+    var seq4: [u8] = [];
+    seq4 = seq4 ++ [a1]; seq4 = seq4 ++ [c1]; seq4 = seq4 ++ [c1]; seq4 = seq4 ++ [a1];
+    print("ACCA (n=4): orbit=", orbit_size(&seq4), "/", two * 4, ", palindrome=", is_palindrome(&seq4), ", rc_fixed=", is_rc_fixed(&seq4));
+
+    // Test 5: ACGTTGCA
+    var seq5: [u8] = [];
+    seq5 = seq5 ++ [a1]; seq5 = seq5 ++ [c1]; seq5 = seq5 ++ [g1]; seq5 = seq5 ++ [t1];
+    seq5 = seq5 ++ [t1]; seq5 = seq5 ++ [g1]; seq5 = seq5 ++ [c1]; seq5 = seq5 ++ [a1];
+    print("ACGTTGCA (n=8): orbit=", orbit_size(&seq5), "/", two * 8, ", palindrome=", is_palindrome(&seq5), ", rc_fixed=", is_rc_fixed(&seq5));
+
+    print("");
+    print("=== Expected Julia results ===");
+    print("ACGT (n=4): orbit=8/8, palindrome=false, rc_fixed=true");
+    print("ACGTACGT (n=8): orbit=8/16, palindrome=false, rc_fixed=true");
+    print("AAAA (n=4): orbit=1/8, palindrome=true, rc_fixed=false");
+    print("ACCA (n=4): orbit=4/8, palindrome=true, rc_fixed=false");
+    print("ACGTTGCA (n=8): orbit=8/16, palindrome=true, rc_fixed=false");
+
+    0
+}

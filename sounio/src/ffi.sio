@@ -1,0 +1,50 @@
+/// FFI Module - Public API Re-exports
+///
+/// Re-exports core functions for external use.
+/// Note: Native FFI compilation pending Sounio compiler support.
+
+module ffi;
+
+import operators::{Sequence, Base, A, C, G, T, shift, reverse, complement, reverse_complement, hamming_distance};
+import exact_symmetry::{orbit_size, orbit_ratio, is_palindrome, is_rc_fixed};
+import approx_metric::{dmin, dmin_normalized};
+// Note: quaternion module has compatibility issues, skip for now
+// import quaternion::{verify_double_cover};
+
+/// Library version
+pub const VERSION: &str = "0.1.0";
+
+/// Re-export all public functions
+/// These will be callable via native FFI when supported
+
+pub fn darwin_orbit_size(seq: &Sequence) -> usize {
+    orbit_size(seq)
+}
+
+pub fn darwin_orbit_ratio(seq: &Sequence) -> f64 {
+    orbit_ratio(seq)
+}
+
+pub fn darwin_is_palindrome(seq: &Sequence) -> bool {
+    is_palindrome(seq)
+}
+
+pub fn darwin_is_rc_fixed(seq: &Sequence) -> bool {
+    is_rc_fixed(seq)
+}
+
+pub fn darwin_dmin(seq: &Sequence, include_rc: bool) -> usize {
+    dmin(seq, include_rc)
+}
+
+pub fn darwin_dmin_normalized(seq: &Sequence, include_rc: bool) -> f64 {
+    dmin_normalized(seq, include_rc)
+}
+
+pub fn darwin_hamming_distance(a: &Sequence, b: &Sequence) -> usize {
+    hamming_distance(a, b)
+}
+
+// pub fn darwin_verify_double_cover(n: usize) -> bool {
+//     verify_double_cover(n)  // Pending quaternion module fix
+// }

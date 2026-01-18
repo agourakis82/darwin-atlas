@@ -1,0 +1,178 @@
+/// Darwin Atlas Benchmark
+///
+/// Benchmarks all D₄ operators and symmetry operations
+
+module benchmark;
+
+type Sequence = [u8];
+
+/// Shift sequence by k positions (cyclic)
+fn shift(seq: &Sequence, k: usize) -> Sequence {
+    let n = seq.len();
+    if n == 0 { return []; }
+    let k = k % n;
+    seq[k..] ++ seq[..k]
+}
+
+/// Reverse sequence (using built-in .reverse())
+fn reverse(seq: &Sequence) -> Sequence {
+    seq.reverse()
+}
+
+/// Complement a base: A↔T, C↔G
+fn complement_base(b: u8) -> u8 {
+    (b ^ 3) & 3
+}
+
+/// Complement sequence (using built-in .map())
+fn complement(seq: &Sequence) -> Sequence {
+    seq.map(complement_base)
+}
+
+/// Reverse complement
+fn reverse_complement(seq: &Sequence) -> Sequence {
+    complement(reverse(seq))
+}
+
+/// Hamming distance
+fn hamming_distance(a: &Sequence, b: &Sequence) -> usize {
+    var count: usize = 0;
+    var i: usize = 0;
+    while i < a.len() {
+        if a[i] != b[i] {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    count
+}
+
+/// Check if palindrome
+fn is_palindrome(seq: &Sequence) -> bool {
+    let rev = reverse(seq);
+    var i: usize = 0;
+    while i < seq.len() {
+        if seq[i] != rev[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    true
+}
+
+/// Check if RC-fixed
+fn is_rc_fixed(seq: &Sequence) -> bool {
+    let rc = reverse_complement(seq);
+    var i: usize = 0;
+    while i < seq.len() {
+        if seq[i] != rc[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    true
+}
+
+/// Generate pseudo-random sequence using LCG
+/// Uses high-order bits for better randomness
+fn generate_sequence(length: usize, seed: usize) -> Sequence {
+    var result: Sequence = [];
+    var x = seed + 1;
+    var i: usize = 0;
+
+    while i < length {
+        x = (x * 1103515245 + 12345) % 2147483648;
+        // Use bits 16-17 (higher-order bits have longer periods)
+        let b: u8 = ((x / 65536) % 4) as u8;
+        result = result ++ [b];
+        i = i + 1;
+    }
+
+    result
+}
+
+/// Benchmark operators (full D₄)
+fn benchmark_operators(seq: &Sequence, iterations: usize) -> usize {
+    var total_ops: usize = 0;
+    var iter: usize = 0;
+
+    while iter < iterations {
+        let _ = shift(seq, 1);
+        let _ = shift(seq, seq.len() / 2);
+        let rev = reverse(seq);
+        let comp = complement(seq);
+        let rc = reverse_complement(seq);
+        let _ = hamming_distance(seq, &rev);
+        let _ = hamming_distance(seq, &rc);
+        total_ops = total_ops + 7;
+        iter = iter + 1;
+    }
+
+    total_ops
+}
+
+/// Benchmark symmetry
+fn benchmark_symmetry(seq: &Sequence, iterations: usize) -> usize {
+    var total_ops: usize = 0;
+    var iter: usize = 0;
+
+    while iter < iterations {
+        let _ = is_palindrome(seq);
+        let _ = is_rc_fixed(seq);
+        total_ops = total_ops + 2;
+        iter = iter + 1;
+    }
+
+    total_ops
+}
+
+/// Main
+pub fn main() -> i32 {
+    print("============================================================");
+    print("DARWIN ATLAS BENCHMARK - SOUNIO");
+    print("============================================================");
+    print("");
+
+    let iterations: usize = 100;
+    let seed: usize = 42;
+
+    var total_ops: usize = 0;
+
+    // Sequence length 10
+    print("Sequence length: 10");
+    let seq10 = generate_sequence(10, seed);
+    let ops10 = benchmark_operators(&seq10, iterations);
+    let sym10 = benchmark_symmetry(&seq10, iterations);
+    total_ops = total_ops + ops10 + sym10;
+    print("  Operators: ", ops10, " ops");
+    print("  Symmetry:  ", sym10, " ops");
+    print("");
+
+    // Sequence length 50
+    print("Sequence length: 50");
+    let seq50 = generate_sequence(50, seed + 1);
+    let ops50 = benchmark_operators(&seq50, iterations);
+    let sym50 = benchmark_symmetry(&seq50, iterations);
+    total_ops = total_ops + ops50 + sym50;
+    print("  Operators: ", ops50, " ops");
+    print("  Symmetry:  ", sym50, " ops");
+    print("");
+
+    // Sequence length 100
+    print("Sequence length: 100");
+    let seq100 = generate_sequence(100, seed + 2);
+    let ops100 = benchmark_operators(&seq100, iterations);
+    let sym100 = benchmark_symmetry(&seq100, iterations);
+    total_ops = total_ops + ops100 + sym100;
+    print("  Operators: ", ops100, " ops");
+    print("  Symmetry:  ", sym100, " ops");
+    print("");
+
+    print("============================================================");
+    print("SUMMARY");
+    print("============================================================");
+    print("Total operations: ", total_ops);
+    print("============================================================");
+
+    0
+}

@@ -1,0 +1,178 @@
+/// FASTA Parser for Darwin Atlas
+///
+/// Parses FASTA format files and converts to 2-bit encoded sequences.
+
+module fasta;
+
+type Base = u8;
+type Sequence = [Base];
+
+// ============================================================================
+// FASTA Record
+// ============================================================================
+
+/// A parsed FASTA sequence record
+pub struct FastaRecord {
+    identifier: str,
+    sequence: Sequence,
+    length: usize,
+}
+
+// ============================================================================
+// Base Encoding
+// ============================================================================
+
+/// Convert ASCII base to 2-bit encoding: A=0, C=1, G=2, T=3
+/// Returns 0 for unknown bases (N, etc.)
+fn encode_base(ch: u8) -> Base {
+    let zero: Base = 0;
+    let one: Base = 1;
+    let two: Base = 2;
+    let three: Base = 3;
+    if ch == 65 || ch == 97 { return zero; }   // A, a
+    if ch == 67 || ch == 99 { return one; }    // C, c
+    if ch == 71 || ch == 103 { return two; }   // G, g
+    if ch == 84 || ch == 116 { return three; } // T, t
+    zero  // Default for N, etc.
+}
+
+/// Check if character is a valid DNA base
+fn is_valid_base(ch: u8) -> bool {
+    // A, C, G, T, N (upper and lower)
+    ch == 65 || ch == 97 ||   // A, a
+    ch == 67 || ch == 99 ||   // C, c
+    ch == 71 || ch == 103 ||  // G, g
+    ch == 84 || ch == 116 ||  // T, t
+    ch == 78 || ch == 110     // N, n
+}
+
+// ============================================================================
+// FASTA Parsing
+// ============================================================================
+
+/// Result of parsing: sequence and next position
+pub struct ParseResult {
+    sequence: Sequence,
+    length: usize,
+    next_pos: usize,
+}
+
+/// Parse a single FASTA record from content starting at given position
+fn parse_record(content: &[u8], start: usize) -> ParseResult {
+    let n = content.len();
+    var pos = start;
+
+    // Skip to next header line (starts with '>')
+    while pos < n && content[pos] != 62 {  // '>' = 62
+        pos = pos + 1;
+    }
+
+    if pos >= n {
+        // No more records
+        return ParseResult { sequence: [], length: 0, next_pos: n };
+    }
+
+    // Skip '>'
+    pos = pos + 1;
+
+    // Skip to end of header line
+    while pos < n && content[pos] != 10 {
+        pos = pos + 1;
+    }
+    // Skip newline
+    if pos < n { pos = pos + 1; }
+
+    // Read sequence lines until next '>' or EOF
+    var seq: Sequence = [];
+    while pos < n && content[pos] != 62 {
+        let ch = content[pos];
+        // Skip whitespace (newlines, spaces)
+        if ch == 10 || ch == 13 || ch == 32 {
+            pos = pos + 1;
+        } else if is_valid_base(ch) {
+            let base = encode_base(ch);
+            seq = seq ++ [base];
+            pos = pos + 1;
+        } else {
+            // Skip unknown characters
+            pos = pos + 1;
+        }
+    }
+
+    ParseResult { sequence: seq, length: seq.len(), next_pos: pos }
+}
+
+/// Parse all FASTA records from content, returns array of sequences
+pub fn parse_fasta(content: &[u8]) -> [Sequence] {
+    var sequences: [Sequence] = [];
+    var pos: usize = 0;
+    let n = content.len();
+
+    while pos < n {
+        let result = parse_record(content, pos);
+        if result.length > 0 {
+            sequences = sequences ++ [result.sequence];
+        }
+        if result.next_pos <= pos {
+            // No progress, break to avoid infinite loop
+            pos = pos + 1;
+        } else {
+            pos = result.next_pos;
+        }
+    }
+
+    sequences
+}
+
+/// Count sequences in FASTA content (quick scan)
+pub fn count_sequences(content: &[u8]) -> usize {
+    var count: usize = 0;
+    var i: usize = 0;
+    while i < content.len() {
+        if content[i] == 62 {  // '>'
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    count
+}
+
+// ============================================================================
+// Test
+// ============================================================================
+
+pub fn main() -> i32 {
+    print("FASTA Parser Test");
+    print("");
+
+    // Test with inline FASTA-like data (simulated)
+    // >seq1
+    // ACGT
+    var test_data: [u8] = [];
+    test_data = test_data ++ [62];   // >
+    test_data = test_data ++ [115];  // s
+    test_data = test_data ++ [101];  // e
+    test_data = test_data ++ [113];  // q
+    test_data = test_data ++ [49];   // 1
+    test_data = test_data ++ [10];   // \n
+    test_data = test_data ++ [65];   // A
+    test_data = test_data ++ [67];   // C
+    test_data = test_data ++ [71];   // G
+    test_data = test_data ++ [84];   // T
+    test_data = test_data ++ [10];   // \n
+
+    let count = count_sequences(&test_data);
+    print("Sequences found: ", count);
+
+    let sequences = parse_fasta(&test_data);
+    print("Sequences parsed: ", sequences.len());
+
+    if sequences.len() > 0 {
+        let seq = sequences[0];
+        print("First sequence length: ", seq.len());
+        print("First sequence: ", seq[0], " ", seq[1], " ", seq[2], " ", seq[3]);
+        print("Expected: 0 1 2 3 (ACGT)");
+    }
+
+    0
+}

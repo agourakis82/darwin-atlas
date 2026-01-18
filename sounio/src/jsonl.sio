@@ -1,0 +1,226 @@
+/// JSONL Epistemic Output for Darwin Atlas
+///
+/// Exports symmetry analysis results with epistemic metadata.
+
+module jsonl;
+
+type Base = u8;
+type Sequence = [Base];
+
+// ============================================================================
+// JSON String Building
+// ============================================================================
+
+/// Escape a string for JSON (minimal: just quotes and backslashes)
+fn json_escape_char(ch: u8) -> [u8] {
+    if ch == 34 {  // "
+        return [92, 34];  // \"
+    }
+    if ch == 92 {  // \
+        return [92, 92];  // \\
+    }
+    if ch == 10 {  // \n
+        return [92, 110];  // \n
+    }
+    [ch]
+}
+
+/// Format integer as decimal string bytes
+fn int_to_bytes(n: usize) -> [u8] {
+    if n == 0 { return [48]; }  // "0"
+
+    var digits: [u8] = [];
+    var val = n;
+    while val > 0 {
+        let digit: u8 = ((val % 10) + 48) as u8;
+        digits = [digit] ++ digits;
+        val = val / 10;
+    }
+    digits
+}
+
+/// Format float with 6 decimal places as bytes
+fn float_to_bytes(f: f64) -> [u8] {
+    // Simple implementation: integer part + "." + fractional part
+    let int_part = f as usize;
+    let frac = f - (int_part as f64);
+    let frac_scaled = (frac * 1000000.0) as usize;
+
+    var result = int_to_bytes(int_part);
+    result = result ++ [46];  // "."
+
+    // Pad fractional part with leading zeros if needed
+    var frac_bytes = int_to_bytes(frac_scaled);
+    let six: usize = 6;
+    while frac_bytes.len() < six {
+        frac_bytes = [48] ++ frac_bytes;
+    }
+    result ++ frac_bytes
+}
+
+/// Format boolean as bytes
+fn bool_to_bytes(b: bool) -> [u8] {
+    if b {
+        [116, 114, 117, 101]  // "true"
+    } else {
+        [102, 97, 108, 115, 101]  // "false"
+    }
+}
+
+// ============================================================================
+// Epistemic Record Builder
+// ============================================================================
+
+/// Build a JSONL record for a metric
+pub fn build_metric_record(
+    record_type: &[u8],
+    metric_name: &[u8],
+    value_int: usize,
+    is_float: bool,
+    value_float: f64,
+    is_bool: bool,
+    value_bool: bool,
+    epsilon: f64,
+    confidence: f64,
+    replicon_id: &[u8],
+    pipeline_version: &[u8]
+) -> [u8] {
+    var json: [u8] = [];
+
+    // Opening brace
+    json = json ++ [123];  // {
+
+    // "record_type": "..."
+    json = json ++ [34, 114, 101, 99, 111, 114, 100, 95, 116, 121, 112, 101, 34];  // "record_type"
+    json = json ++ [58, 34];  // :"
+    json = json ++ record_type[..];
+    json = json ++ [34, 44];  // ",
+
+    // "metric_name": "..."
+    json = json ++ [34, 109, 101, 116, 114, 105, 99, 95, 110, 97, 109, 101, 34];  // "metric_name"
+    json = json ++ [58, 34];  // :"
+    json = json ++ metric_name[..];
+    json = json ++ [34, 44];  // ",
+
+    // "value": ...
+    json = json ++ [34, 118, 97, 108, 117, 101, 34, 58];  // "value":
+    if is_bool {
+        json = json ++ bool_to_bytes(value_bool);
+    } else if is_float {
+        json = json ++ float_to_bytes(value_float);
+    } else {
+        json = json ++ int_to_bytes(value_int);
+    }
+    json = json ++ [44];  // ,
+
+    // "epsilon": ...
+    json = json ++ [34, 101, 112, 115, 105, 108, 111, 110, 34, 58];  // "epsilon":
+    json = json ++ float_to_bytes(epsilon);
+    json = json ++ [44];  // ,
+
+    // "confidence": ...
+    json = json ++ [34, 99, 111, 110, 102, 105, 100, 101, 110, 99, 101, 34, 58];  // "confidence":
+    json = json ++ float_to_bytes(confidence);
+    json = json ++ [44];  // ,
+
+    // "provenance": {...}
+    json = json ++ [34, 112, 114, 111, 118, 101, 110, 97, 110, 99, 101, 34, 58, 123];  // "provenance":{
+
+    // "replicon_id": "..."
+    json = json ++ [34, 114, 101, 112, 108, 105, 99, 111, 110, 95, 105, 100, 34, 58, 34];  // "replicon_id":"
+    json = json ++ replicon_id[..];
+    json = json ++ [34, 44];  // ",
+
+    // "pipeline_version": "..."
+    json = json ++ [34, 112, 105, 112, 101, 108, 105, 110, 101, 95, 118, 101, 114, 115, 105, 111, 110, 34, 58, 34];  // "pipeline_version":"
+    json = json ++ pipeline_version[..];
+    json = json ++ [34];  // "
+
+    // Close provenance and record
+    json = json ++ [125, 125];  // }}
+
+    json
+}
+
+/// Build exact metric (epsilon=0, confidence=1)
+pub fn build_exact_int(
+    metric_name: &[u8],
+    value: usize,
+    replicon_id: &[u8]
+) -> [u8] {
+    let record_type: [u8] = [119, 105, 110, 100, 111, 119, 95, 109, 101, 116, 114, 105, 99];  // "window_metric"
+    let version: [u8] = [115, 111, 117, 110, 105, 111, 45, 118, 50, 46, 48];  // "sounio-v2.0"
+    build_metric_record(
+        &record_type,
+        metric_name,
+        value,
+        false, 0.0,
+        false, false,
+        0.0, 1.0,
+        replicon_id,
+        &version
+    )
+}
+
+/// Build exact float metric
+pub fn build_exact_float(
+    metric_name: &[u8],
+    value: f64,
+    replicon_id: &[u8]
+) -> [u8] {
+    let record_type: [u8] = [119, 105, 110, 100, 111, 119, 95, 109, 101, 116, 114, 105, 99];
+    let version: [u8] = [115, 111, 117, 110, 105, 111, 45, 118, 50, 46, 48];
+    build_metric_record(
+        &record_type,
+        metric_name,
+        0,
+        true, value,
+        false, false,
+        0.0, 1.0,
+        replicon_id,
+        &version
+    )
+}
+
+/// Build exact boolean metric
+pub fn build_exact_bool(
+    metric_name: &[u8],
+    value: bool,
+    replicon_id: &[u8]
+) -> [u8] {
+    let record_type: [u8] = [119, 105, 110, 100, 111, 119, 95, 109, 101, 116, 114, 105, 99];
+    let version: [u8] = [115, 111, 117, 110, 105, 111, 45, 118, 50, 46, 48];
+    build_metric_record(
+        &record_type,
+        metric_name,
+        0,
+        false, 0.0,
+        true, value,
+        0.0, 1.0,
+        replicon_id,
+        &version
+    )
+}
+
+// ============================================================================
+// Test
+// ============================================================================
+
+pub fn main() -> i32 {
+    print("JSONL Epistemic Output Test");
+    print("");
+
+    // Test building a metric record
+    let metric_name: [u8] = [111, 114, 98, 105, 116, 95, 115, 105, 122, 101];  // "orbit_size"
+    let replicon: [u8] = [116, 101, 115, 116, 95, 115, 101, 113];  // "test_seq"
+
+    let json = build_exact_int(&metric_name, 42, &replicon);
+
+    print("Generated JSONL record length: ", json.len(), " bytes");
+
+    // Print first few characters to verify structure
+    print("First bytes (expect '{' = 123): ", json[0]);
+    print("Contains record_type, metric_name, value, epsilon, confidence, provenance");
+
+    0
+}
