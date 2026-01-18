@@ -1,23 +1,23 @@
 """
-    DemetriosFFI.jl
+    SounioFFI.jl
 
-FFI wrappers for calling Demetrios kernels from Julia.
+FFI wrappers for calling Sounio kernels from Julia.
 
-This module provides ccall bindings to the compiled Demetrios library.
+This module provides ccall bindings to the compiled Sounio library.
 Only loaded when the library is available.
 """
 
 using BioSequences: LongDNA, DNA_A, DNA_C, DNA_G, DNA_T
 
 # Library path
-const LIBPATH = joinpath(@__DIR__, "..", "..", "demetrios", "target", "release", "libdarwin_kernels.so")
+const LIBPATH = joinpath(@__DIR__, "..", "..", "sounio", "target", "release", "libdarwin_kernels.so")
 
 """
-    demetrios_available() -> Bool
+    sounio_available() -> Bool
 
-Check if the Demetrios library is available.
+Check if the Sounio library is available.
 """
-function demetrios_available()::Bool
+function sounio_available()::Bool
     return isfile(LIBPATH)
 end
 
@@ -55,11 +55,11 @@ end
 # ============================================================================
 
 """
-    demetrios_orbit_size(seq::LongDNA) -> Int
+    sounio_orbit_size(seq::LongDNA) -> Int
 
-Compute orbit size using Demetrios implementation.
+Compute orbit size using Sounio implementation.
 """
-function demetrios_orbit_size(seq::LongDNA)::Int
+function sounio_orbit_size(seq::LongDNA)::Int
     bytes = seq_to_bytes(seq)
     result = ccall(
         (:darwin_orbit_size, LIBPATH),
@@ -71,11 +71,11 @@ function demetrios_orbit_size(seq::LongDNA)::Int
 end
 
 """
-    demetrios_orbit_ratio(seq::LongDNA) -> Float64
+    sounio_orbit_ratio(seq::LongDNA) -> Float64
 
-Compute orbit ratio using Demetrios implementation.
+Compute orbit ratio using Sounio implementation.
 """
-function demetrios_orbit_ratio(seq::LongDNA)::Float64
+function sounio_orbit_ratio(seq::LongDNA)::Float64
     bytes = seq_to_bytes(seq)
     result = ccall(
         (:darwin_orbit_ratio, LIBPATH),
@@ -87,11 +87,11 @@ function demetrios_orbit_ratio(seq::LongDNA)::Float64
 end
 
 """
-    demetrios_is_palindrome(seq::LongDNA) -> Bool
+    sounio_is_palindrome(seq::LongDNA) -> Bool
 
-Check if sequence is palindrome using Demetrios implementation.
+Check if sequence is palindrome using Sounio implementation.
 """
-function demetrios_is_palindrome(seq::LongDNA)::Bool
+function sounio_is_palindrome(seq::LongDNA)::Bool
     bytes = seq_to_bytes(seq)
     result = ccall(
         (:darwin_is_palindrome, LIBPATH),
@@ -103,11 +103,11 @@ function demetrios_is_palindrome(seq::LongDNA)::Bool
 end
 
 """
-    demetrios_is_rc_fixed(seq::LongDNA) -> Bool
+    sounio_is_rc_fixed(seq::LongDNA) -> Bool
 
-Check if sequence is RC-fixed using Demetrios implementation.
+Check if sequence is RC-fixed using Sounio implementation.
 """
-function demetrios_is_rc_fixed(seq::LongDNA)::Bool
+function sounio_is_rc_fixed(seq::LongDNA)::Bool
     bytes = seq_to_bytes(seq)
     result = ccall(
         (:darwin_is_rc_fixed, LIBPATH),
@@ -123,11 +123,11 @@ end
 # ============================================================================
 
 """
-    demetrios_dmin(seq::LongDNA; include_rc::Bool=true) -> Int
+    sounio_dmin(seq::LongDNA; include_rc::Bool=true) -> Int
 
-Compute d_min using Demetrios implementation.
+Compute d_min using Sounio implementation.
 """
-function demetrios_dmin(seq::LongDNA; include_rc::Bool=true)::Int
+function sounio_dmin(seq::LongDNA; include_rc::Bool=true)::Int
     bytes = seq_to_bytes(seq)
     result = ccall(
         (:darwin_dmin, LIBPATH),
@@ -139,11 +139,11 @@ function demetrios_dmin(seq::LongDNA; include_rc::Bool=true)::Int
 end
 
 """
-    demetrios_dmin_normalized(seq::LongDNA; include_rc::Bool=true) -> Float64
+    sounio_dmin_normalized(seq::LongDNA; include_rc::Bool=true) -> Float64
 
-Compute normalized d_min using Demetrios implementation.
+Compute normalized d_min using Sounio implementation.
 """
-function demetrios_dmin_normalized(seq::LongDNA; include_rc::Bool=true)::Float64
+function sounio_dmin_normalized(seq::LongDNA; include_rc::Bool=true)::Float64
     bytes = seq_to_bytes(seq)
     result = ccall(
         (:darwin_dmin_normalized, LIBPATH),
@@ -155,11 +155,11 @@ function demetrios_dmin_normalized(seq::LongDNA; include_rc::Bool=true)::Float64
 end
 
 """
-    demetrios_hamming_distance(a::LongDNA, b::LongDNA) -> Int
+    sounio_hamming_distance(a::LongDNA, b::LongDNA) -> Int
 
-Compute Hamming distance using Demetrios implementation.
+Compute Hamming distance using Sounio implementation.
 """
-function demetrios_hamming_distance(a::LongDNA, b::LongDNA)::Int
+function sounio_hamming_distance(a::LongDNA, b::LongDNA)::Int
     @assert length(a) == length(b) "Sequences must have equal length"
 
     bytes_a = seq_to_bytes(a)
@@ -179,11 +179,11 @@ end
 # ============================================================================
 
 """
-    demetrios_verify_double_cover(n::Int) -> Bool
+    sounio_verify_double_cover(n::Int) -> Bool
 
-Verify dicyclic double cover property using Demetrios implementation.
+Verify dicyclic double cover property using Sounio implementation.
 """
-function demetrios_verify_double_cover(n::Int)::Bool
+function sounio_verify_double_cover(n::Int)::Bool
     result = ccall(
         (:darwin_verify_double_cover, LIBPATH),
         Bool,
@@ -198,12 +198,11 @@ end
 # ============================================================================
 
 """
-    demetrios_version() -> String
+    sounio_version() -> String
 
-Get Demetrios library version.
+Get Sounio library version.
 """
-function demetrios_version()::String
+function sounio_version()::String
     ptr = ccall((:darwin_version, LIBPATH), Ptr{UInt8}, ())
     return unsafe_string(ptr)
 end
-

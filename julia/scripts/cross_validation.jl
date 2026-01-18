@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 """
-Cross-validation script for Julia vs Demetrios implementations.
+Cross-validation script for Julia vs Sounio implementations.
 
 Usage:
     julia --project=julia julia/scripts/cross_validation.jl [--verbose] [--seed SEED] [--n-random N]
@@ -24,11 +24,11 @@ for i in 1:length(ARGS)
     end
 end
 
-# Check if Demetrios is available
-if !DarwinAtlas.HAS_DEMETRIOS[]
-    println("⚠️  Demetrios library not found")
-    println("   Expected location: demetrios/target/release/libdarwin_kernels.so")
-    println("   Build with: make demetrios")
+# Check if Sounio is available
+if !DarwinAtlas.HAS_SOUNIO[]
+    println("⚠️  Sounio library not found")
+    println("   Expected location: sounio/target/release/libdarwin_kernels.so")
+    println("   Build with: make sounio")
     println()
     println("Running Julia-only validation instead...")
     println()
@@ -56,4 +56,3 @@ results = run_cross_validation(; verbose=verbose, n_random=n_random, seed=seed)
 # Exit with appropriate code
 total_failed = sum(r.n_failed for r in values(results))
 exit(total_failed > 0 ? 1 : 0)
-

@@ -60,14 +60,14 @@ include("QuaternionLift.jl")
 include("NCBIFetch.jl")
 include("Validation.jl")
 
-# Optional FFI (requires compiled Demetrios library)
-const HAS_DEMETRIOS = Ref(false)
+# Optional FFI (requires compiled Sounio library)
+const HAS_SOUNIO = Ref(false)
 function __init__()
-    # Check for Demetrios shared library
-    libpath = joinpath(@__DIR__, "..", "..", "demetrios", "target", "release", "libdarwin_kernels.so")
+    # Check for Sounio shared library
+    libpath = joinpath(@__DIR__, "..", "..", "sounio", "target", "release", "libdarwin_kernels.so")
     if isfile(libpath)
-        HAS_DEMETRIOS[] = true
-        include("DemetriosFFI.jl")
+        HAS_SOUNIO[] = true
+        include("SounioFFI.jl")
         include("CrossValidation.jl")
     end
 end

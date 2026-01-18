@@ -11,8 +11,8 @@ data/tables/*.csv
 *.jl.*.cov
 *.jl.mem
 
-# Demetrios
-demetrios/target/
+# Sounio
+sounio/target/
 *.so
 *.dylib
 *.dll

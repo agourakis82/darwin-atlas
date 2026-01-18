@@ -2,7 +2,7 @@
 """
     verify_knowledge.jl
 
-Verify Atlas epistemic Knowledge JSONL against Demetrios schema.
+Verify Atlas epistemic Knowledge JSONL against Sounio schema.
 Checks:
 1. Provenance fields present and non-empty (assembly_accession, replicon_id, seed, max, git_sha, timestamp)
 2. Epsilon/error bounds >= 0

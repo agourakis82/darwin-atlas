@@ -1,20 +1,20 @@
-.PHONY: all setup demetrios julia test cross-validate pipeline reproduce clean help epistemic export-knowledge verify-knowledge
+.PHONY: all setup sounio julia test cross-validate pipeline reproduce clean help epistemic export-knowledge verify-knowledge
 
 JULIA := julia --project=julia
-DEMETRIOS := dc
+SOUNIO := souc
 
 # Default target
-all: setup demetrios julia test
+all: setup sounio julia test
 
 help:
 	@echo "Darwin Operator Symmetry Atlas - Build System"
 	@echo ""
 	@echo "Targets:"
 	@echo "  setup          Install dependencies"
-	@echo "  demetrios      Build Demetrios kernels"
+	@echo "  sounio         Build Sounio kernels"
 	@echo "  julia          Build Julia package"
 	@echo "  test           Run all tests"
-	@echo "  cross-validate Run Demetrios vs Julia validation"
+	@echo "  cross-validate Run Sounio vs Julia validation"
 	@echo "  pipeline       Run full analysis pipeline"
 	@echo "  epistemic      Export + verify epistemic Knowledge layer"
 	@echo "  reproduce      Clean + rebuild + verify checksums"
@@ -27,27 +27,33 @@ help:
 	@echo "  make epistemic MAX=50    # Export + validate Knowledge layer"
 
 # Setup
-setup: setup-julia setup-demetrios
+setup: setup-julia setup-sounio
 
 setup-julia:
 	@echo "Installing Julia dependencies..."
 	$(JULIA) -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
 
-setup-demetrios:
-	@echo "Setting up Demetrios..."
-	@if command -v dc >/dev/null 2>&1; then \
-		cd demetrios && dc build; \
+setup-sounio:
+	@echo "Setting up Sounio..."
+	@if command -v $(SOUNIO) >/dev/null 2>&1; then \
+		cd sounio && $(SOUNIO) check src/operators.sio && \
+		$(SOUNIO) check src/exact_symmetry.sio && \
+		$(SOUNIO) check src/approx_metric.sio && \
+		echo "Sounio setup complete"; \
 	else \
-		echo "Demetrios compiler (dc) not found - skipping"; \
+		echo "Sounio compiler (souc) not found - skipping"; \
 	fi
 
 # Build targets
-demetrios:
-	@echo "Building Demetrios kernels..."
-	@if command -v dc >/dev/null 2>&1; then \
-		cd demetrios && dc build --release --target=cdylib; \
+sounio:
+	@echo "Checking Sounio kernels..."
+	@if command -v $(SOUNIO) >/dev/null 2>&1; then \
+		cd sounio && $(SOUNIO) check src/operators.sio && \
+		$(SOUNIO) check src/exact_symmetry.sio && \
+		$(SOUNIO) check src/approx_metric.sio && \
+		echo "Sounio kernels verified"; \
 	else \
-		echo "Demetrios compiler (dc) not found - skipping"; \
+		echo "Sounio compiler (souc) not found - skipping"; \
 	fi
 
 julia:
@@ -55,22 +61,24 @@ julia:
 	$(JULIA) -e 'using Pkg; Pkg.build()'
 
 # Test targets
-test: test-julia test-demetrios
+test: test-julia test-sounio
 
 test-julia:
 	@echo "Running Julia tests..."
 	$(JULIA) -e 'using Pkg; Pkg.test()'
 
-test-demetrios:
-	@echo "Running Demetrios tests..."
-	@if command -v dc >/dev/null 2>&1; then \
-		cd demetrios && dc test; \
+test-sounio:
+	@echo "Running Sounio tests..."
+	@if command -v $(SOUNIO) >/dev/null 2>&1; then \
+		cd sounio && $(SOUNIO) run src/test_simple.sio && \
+		$(SOUNIO) run src/test_operators_only.sio && \
+		echo "Sounio tests passed"; \
 	else \
-		echo "Demetrios compiler (dc) not found - skipping"; \
+		echo "Sounio compiler not found - skipping"; \
 	fi
 
 # Cross-validation
-cross-validate: demetrios julia
+cross-validate: sounio julia
 	@echo "Running cross-validation..."
 	$(JULIA) julia/scripts/cross_validation.jl
 
@@ -96,7 +104,7 @@ clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf data/tables/*.csv
 	rm -rf data/manifest/*.jsonl
-	rm -rf demetrios/target
+	rm -rf sounio/target
 	rm -rf julia/Manifest.toml
 
 cleanall: clean
@@ -104,7 +112,7 @@ cleanall: clean
 	rm -rf data/raw/*
 
 # =============================================================================
-# Epistemic Knowledge Layer (Demetrios L0 integration)
+# Epistemic Knowledge Layer (Sounio L0 integration)
 # =============================================================================
 
 # Export Atlas tables to Knowledge JSONL
@@ -113,15 +121,15 @@ export-knowledge:
 	@mkdir -p data/epistemic
 	PIPELINE_MAX=$(MAX) PIPELINE_SEED=$(SEED) $(JULIA) julia/scripts/export_knowledge.jl
 
-# Verify Knowledge JSONL against Demetrios schema
+# Verify Knowledge JSONL against Sounio schema
 verify-knowledge:
 	@echo "Verifying epistemic Knowledge layer..."
-	@if command -v dc >/dev/null 2>&1; then \
-		dc run demetrios/src/verify_knowledge.d -- \
+	@if command -v $(SOUNIO) >/dev/null 2>&1; then \
+		$(SOUNIO) run sounio/src/verify_knowledge.sio -- \
 			data/epistemic/atlas_knowledge.jsonl \
 			data/epistemic/atlas_knowledge_report.md; \
 	else \
-		echo "Demetrios compiler (dc) not found - using Julia fallback"; \
+		echo "Sounio compiler not found - using Julia fallback"; \
 		$(JULIA) julia/scripts/verify_knowledge.jl; \
 	fi
 

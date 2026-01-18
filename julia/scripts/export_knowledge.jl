@@ -2,7 +2,7 @@
 """
     export_knowledge.jl
 
-Export Atlas CSV tables to Demetrios epistemic Knowledge JSONL format.
+Export Atlas CSV tables to Sounio epistemic Knowledge JSONL format.
 Produces:
 - data/epistemic/atlas_knowledge.jsonl
 - data/epistemic/atlas_provenance.json
@@ -285,7 +285,7 @@ function main()
     base_prov = Dict(
         "atlas_git_sha" => git_sha,
         "atlas_version" => ATLAS_VERSION,
-        "demetrios_schema_version" => SCHEMA_VERSION,
+        "sounio_schema_version" => SCHEMA_VERSION,
         "timestamp_utc" => timestamp,
         "pipeline_max" => pipeline_max,
         "pipeline_seed" => pipeline_seed,

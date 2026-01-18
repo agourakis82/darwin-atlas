@@ -1,7 +1,7 @@
 """
     CrossValidation.jl
 
-Cross-validation between Julia and Demetrios implementations.
+Cross-validation between Julia and Sounio implementations.
 
 Ensures both implementations produce identical results,
 catching bugs in either implementation.
@@ -11,7 +11,7 @@ using BioSequences: LongDNA, @dna_str
 using Random
 
 # Include FFI module
-include("DemetriosFFI.jl")
+include("SounioFFI.jl")
 
 """
     CrossValidationResult
@@ -24,13 +24,13 @@ struct CrossValidationResult
     n_passed::Int
     n_failed::Int
     max_error::Float64
-    failed_cases::Vector{Tuple{String, Any, Any}}  # (input_repr, julia_result, demetrios_result)
+    failed_cases::Vector{Tuple{String, Any, Any}}  # (input_repr, julia_result, sounio_result)
 end
 
 """
     validate_orbit_size(seqs::Vector{LongDNA}; verbose::Bool=false) -> CrossValidationResult
 
-Cross-validate orbit_size between Julia and Demetrios.
+Cross-validate orbit_size between Julia and Sounio.
 """
 function validate_orbit_size(seqs::Vector{LongDNA}; verbose::Bool=false)::CrossValidationResult
     n_passed = 0
@@ -39,15 +39,15 @@ function validate_orbit_size(seqs::Vector{LongDNA}; verbose::Bool=false)::CrossV
 
     for seq in seqs
         julia_result = orbit_size(seq)
-        demetrios_result = demetrios_orbit_size(seq)
+        sounio_result = sounio_orbit_size(seq)
 
-        if julia_result == demetrios_result
+        if julia_result == sounio_result
             n_passed += 1
             verbose && println("  ✓ orbit_size($(string(seq)[1:min(20, end)])...)")
         else
             n_failed += 1
-            push!(failed_cases, (string(seq), julia_result, demetrios_result))
-            verbose && println("  ✗ orbit_size: Julia=$julia_result, Demetrios=$demetrios_result")
+            push!(failed_cases, (string(seq), julia_result, sounio_result))
+            verbose && println("  ✗ orbit_size: Julia=$julia_result, Sounio=$sounio_result")
         end
     end
 
@@ -64,7 +64,7 @@ end
 """
     validate_orbit_ratio(seqs::Vector{LongDNA}; verbose::Bool=false, tol::Float64=1e-12) -> CrossValidationResult
 
-Cross-validate orbit_ratio between Julia and Demetrios.
+Cross-validate orbit_ratio between Julia and Sounio.
 """
 function validate_orbit_ratio(seqs::Vector{LongDNA}; verbose::Bool=false, tol::Float64=1e-12)::CrossValidationResult
     n_passed = 0
@@ -74,8 +74,8 @@ function validate_orbit_ratio(seqs::Vector{LongDNA}; verbose::Bool=false, tol::F
 
     for seq in seqs
         julia_result = orbit_ratio(seq)
-        demetrios_result = demetrios_orbit_ratio(seq)
-        error = abs(julia_result - demetrios_result)
+        sounio_result = sounio_orbit_ratio(seq)
+        error = abs(julia_result - sounio_result)
         max_error = max(max_error, error)
 
         if error < tol
@@ -83,8 +83,8 @@ function validate_orbit_ratio(seqs::Vector{LongDNA}; verbose::Bool=false, tol::F
             verbose && println("  ✓ orbit_ratio (error=$error)")
         else
             n_failed += 1
-            push!(failed_cases, (string(seq), julia_result, demetrios_result))
-            verbose && println("  ✗ orbit_ratio: Julia=$julia_result, Demetrios=$demetrios_result")
+            push!(failed_cases, (string(seq), julia_result, sounio_result))
+            verbose && println("  ✗ orbit_ratio: Julia=$julia_result, Sounio=$sounio_result")
         end
     end
 
@@ -101,7 +101,7 @@ end
 """
     validate_palindrome(seqs::Vector{LongDNA}; verbose::Bool=false) -> CrossValidationResult
 
-Cross-validate is_palindrome between Julia and Demetrios.
+Cross-validate is_palindrome between Julia and Sounio.
 """
 function validate_palindrome(seqs::Vector{LongDNA}; verbose::Bool=false)::CrossValidationResult
     n_passed = 0
@@ -110,13 +110,13 @@ function validate_palindrome(seqs::Vector{LongDNA}; verbose::Bool=false)::CrossV
 
     for seq in seqs
         julia_result = is_palindrome(seq)
-        demetrios_result = demetrios_is_palindrome(seq)
+        sounio_result = sounio_is_palindrome(seq)
 
-        if julia_result == demetrios_result
+        if julia_result == sounio_result
             n_passed += 1
         else
             n_failed += 1
-            push!(failed_cases, (string(seq), julia_result, demetrios_result))
+            push!(failed_cases, (string(seq), julia_result, sounio_result))
         end
     end
 
@@ -133,7 +133,7 @@ end
 """
     validate_rc_fixed(seqs::Vector{LongDNA}; verbose::Bool=false) -> CrossValidationResult
 
-Cross-validate is_rc_fixed between Julia and Demetrios.
+Cross-validate is_rc_fixed between Julia and Sounio.
 """
 function validate_rc_fixed(seqs::Vector{LongDNA}; verbose::Bool=false)::CrossValidationResult
     n_passed = 0
@@ -142,13 +142,13 @@ function validate_rc_fixed(seqs::Vector{LongDNA}; verbose::Bool=false)::CrossVal
 
     for seq in seqs
         julia_result = is_rc_fixed(seq)
-        demetrios_result = demetrios_is_rc_fixed(seq)
+        sounio_result = sounio_is_rc_fixed(seq)
 
-        if julia_result == demetrios_result
+        if julia_result == sounio_result
             n_passed += 1
         else
             n_failed += 1
-            push!(failed_cases, (string(seq), julia_result, demetrios_result))
+            push!(failed_cases, (string(seq), julia_result, sounio_result))
         end
     end
 
@@ -165,7 +165,7 @@ end
 """
     validate_dmin(seqs::Vector{LongDNA}; verbose::Bool=false) -> CrossValidationResult
 
-Cross-validate dmin between Julia and Demetrios.
+Cross-validate dmin between Julia and Sounio.
 """
 function validate_dmin(seqs::Vector{LongDNA}; verbose::Bool=false)::CrossValidationResult
     n_passed = 0
@@ -174,13 +174,13 @@ function validate_dmin(seqs::Vector{LongDNA}; verbose::Bool=false)::CrossValidat
 
     for seq in seqs
         julia_result = dmin(seq)
-        demetrios_result = demetrios_dmin(seq)
+        sounio_result = sounio_dmin(seq)
 
-        if julia_result == demetrios_result
+        if julia_result == sounio_result
             n_passed += 1
         else
             n_failed += 1
-            push!(failed_cases, (string(seq), julia_result, demetrios_result))
+            push!(failed_cases, (string(seq), julia_result, sounio_result))
         end
     end
 
@@ -197,7 +197,7 @@ end
 """
     validate_dicyclic(ns::Vector{Int}; verbose::Bool=false) -> CrossValidationResult
 
-Cross-validate verify_double_cover between Julia and Demetrios.
+Cross-validate verify_double_cover between Julia and Sounio.
 """
 function validate_dicyclic(ns::Vector{Int}; verbose::Bool=false)::CrossValidationResult
     n_passed = 0
@@ -207,13 +207,13 @@ function validate_dicyclic(ns::Vector{Int}; verbose::Bool=false)::CrossValidatio
     for n in ns
         g = DicyclicGroup(n)
         julia_result = verify_double_cover(g)
-        demetrios_result = demetrios_verify_double_cover(n)
+        sounio_result = sounio_verify_double_cover(n)
 
-        if julia_result == demetrios_result
+        if julia_result == sounio_result
             n_passed += 1
         else
             n_failed += 1
-            push!(failed_cases, ("Dic_$n", julia_result, demetrios_result))
+            push!(failed_cases, ("Dic_$n", julia_result, sounio_result))
         end
     end
 
@@ -269,14 +269,14 @@ Run full cross-validation suite.
 Returns dictionary with results for each function.
 """
 function run_cross_validation(; verbose::Bool=true, n_random::Int=100, seed::Int=42)::Dict
-    if !demetrios_available()
-        error("Demetrios library not available at $LIBPATH")
+    if !sounio_available()
+        error("Sounio library not available at $LIBPATH")
     end
 
     println("\n" * "="^60)
-    println("CROSS-VALIDATION: Julia vs Demetrios")
+    println("CROSS-VALIDATION: Julia vs Sounio")
     println("="^60)
-    println("Demetrios version: $(demetrios_version())")
+    println("Sounio version: $(sounio_version())")
     println("Random seed: $seed")
     println()
 
@@ -333,10 +333,10 @@ function run_cross_validation(; verbose::Bool=true, n_random::Int=100, seed::Int
         for (name, result) in results
             if result.n_failed > 0
                 println("  $name: $(result.n_failed) failures")
-                for (input, julia_res, demetrios_res) in result.failed_cases
+                for (input, julia_res, sounio_res) in result.failed_cases
                     println("    Input: $(input[1:min(40, end)])...")
                     println("    Julia: $julia_res")
-                    println("    Demetrios: $demetrios_res")
+                    println("    Sounio: $sounio_res")
                 end
             end
         end
@@ -356,4 +356,3 @@ function print_result(result::CrossValidationResult)
         println("    Max numerical error: $(result.max_error)")
     end
 end
-

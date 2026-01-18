@@ -1,6 +1,6 @@
 # Atlas Epistemic Knowledge Layer
 
-This document describes the Demetrios L0 epistemic computing integration for the Darwin Operator Symmetry Atlas.
+This document describes the Sounio L0 epistemic computing integration for the Darwin Operator Symmetry Atlas.
 
 ## Why Knowledge Layer Exists
 
@@ -13,7 +13,7 @@ The Knowledge layer wraps Atlas computed metrics with **epistemic metadata**:
 This enables:
 1. Reproducibility audits (trace any metric back to its source)
 2. Uncertainty propagation in downstream analyses
-3. Automatic validation against Demetrios type constraints
+3. Automatic validation against Sounio type constraints
 4. FDA/EMA-style provenance for regulatory contexts
 
 ## How to Reproduce
@@ -57,7 +57,7 @@ Each JSONL record has:
   "replicon_id": "GCF_000001234.1_rep1",
   "atlas_git_sha": "abc123...",
   "atlas_version": "2.0.0-alpha",
-  "demetrios_schema_version": "1.0.0",
+  "sounio_schema_version": "1.0.0",
   "timestamp_utc": "2025-01-01T12:00:00Z",
   "pipeline_max": 50,
   "pipeline_seed": 42,
@@ -115,14 +115,14 @@ The verifier checks:
 9. **dmin_range**: d_min/L in [0,1]
 10. **length_positive**: Sequence length > 0
 
-## Demetrios Integration
+## Sounio Integration
 
-When the Demetrios compiler (`dc`) is available, the verifier runs natively:
+When the Sounio compiler is available, the verifier runs natively:
 ```bash
-dc run demetrios/src/verify_knowledge.d -- data/epistemic/atlas_knowledge.jsonl
+sounio run sounio/src/verify_knowledge.sio -- data/epistemic/atlas_knowledge.jsonl
 ```
 
-Without `dc`, a Julia fallback provides equivalent validation.
+Without the Sounio compiler, a Julia fallback provides equivalent validation.
 
 ## Schema Reference
 
