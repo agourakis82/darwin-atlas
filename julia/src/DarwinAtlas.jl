@@ -59,6 +59,7 @@ include("ApproxMetric.jl")
 include("QuaternionLift.jl")
 include("NCBIFetch.jl")
 include("Validation.jl")
+include("WindowAnalysis.jl")
 
 # Optional FFI (requires compiled Sounio library)
 const HAS_SOUNIO = Ref(false)
@@ -77,7 +78,7 @@ export SymmetryStats, RepliconRecord, WindowResult
 
 # Exports - Operators
 export shift, reverse_seq, complement_seq, rev_comp
-export hamming_distance
+export hamming_distance, gc_content, gc_shuffle
 
 # Exports - Exact Symmetry
 export orbit_size, orbit_ratio, is_palindrome, is_rc_fixed
@@ -97,5 +98,9 @@ export fetch_ncbi, run_pipeline, generate_tables
 # Exports - Validation
 export validate_operators, validate_symmetry, run_technical_validation
 export generate_tables, generate_theoretical_tables
+
+# Exports - Window Analysis
+export extract_window, analyze_window, analyze_replicon_windows
+export analyze_manifest_windows, load_replicon_sequence
 
 end # module

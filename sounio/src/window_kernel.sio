@@ -1,0 +1,267 @@
+/// Darwin Atlas Window Analysis Kernel
+///
+/// High-performance batch window analysis for genome-wide symmetry computation.
+/// Designed for streaming processing of large genomes.
+
+module window_kernel;
+
+// ============================================================================
+// Base Operations
+// ============================================================================
+
+fn complement_base(b: u8) -> u8 {
+    (b ^ 3) & 3
+}
+
+fn reverse(seq: &[u8]) -> [u8] {
+    seq.reverse()
+}
+
+fn complement(seq: &[u8]) -> [u8] {
+    seq.map(complement_base)
+}
+
+fn reverse_complement(seq: &[u8]) -> [u8] {
+    complement(reverse(seq))
+}
+
+// ============================================================================
+// Sequence Comparison
+// ============================================================================
+
+fn seq_equal(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() { return false; }
+    var i: usize = 0;
+    while i < a.len() {
+        if a[i] != b[i] { return false; }
+        i = i + 1;
+    }
+    true
+}
+
+fn hamming_distance(a: &[u8], b: &[u8]) -> usize {
+    if a.len() != b.len() { return a.len(); }
+    var dist: usize = 0;
+    var i: usize = 0;
+    while i < a.len() {
+        if a[i] != b[i] { dist = dist + 1; }
+        i = i + 1;
+    }
+    dist
+}
+
+// ============================================================================
+// Cyclic Operations
+// ============================================================================
+
+fn shift(seq: &[u8], k: usize) -> [u8] {
+    let n = seq.len();
+    if n == 0 { return []; }
+    let k = k % n;
+    seq[k..] ++ seq[..k]
+}
+
+fn cyclic_period(seq: &[u8]) -> usize {
+    let n = seq.len();
+    if n == 0 { return 1; }
+    var p: usize = 1;
+    while p < n {
+        let shifted = shift(seq, p);
+        if seq_equal(seq, &shifted) { return p; }
+        p = p + 1;
+    }
+    n
+}
+
+fn rotational_symmetries(seq: &[u8]) -> usize {
+    let n = seq.len();
+    if n == 0 { return 1; }
+    n / cyclic_period(seq)
+}
+
+// ============================================================================
+// Symmetry Detection
+// ============================================================================
+
+fn is_palindrome(seq: &[u8]) -> bool {
+    let rev = reverse(seq);
+    seq_equal(seq, &rev)
+}
+
+fn is_rc_fixed(seq: &[u8]) -> bool {
+    let rc = reverse_complement(seq);
+    seq_equal(seq, &rc)
+}
+
+fn has_reflective_symmetry(seq: &[u8]) -> bool {
+    let n = seq.len();
+    if n == 0 { return true; }
+    let rev = reverse(seq);
+    var k: usize = 0;
+    while k < n {
+        let shifted = shift(seq, k);
+        if seq_equal(&rev, &shifted) { return true; }
+        k = k + 1;
+    }
+    false
+}
+
+// ============================================================================
+// Orbit Computation
+// ============================================================================
+
+fn orbit_size(seq: &[u8]) -> usize {
+    let n = seq.len();
+    if n == 0 { return 1; }
+    let two: usize = 2;
+    let group_order = two * n;
+    let rot_sym = rotational_symmetries(seq);
+    let ref_factor: usize = if has_reflective_symmetry(seq) { 2 } else { 1 };
+    group_order / (rot_sym * ref_factor)
+}
+
+fn orbit_ratio(seq: &[u8]) -> f64 {
+    let n = seq.len();
+    if n == 0 { return 1.0; }
+    let two: usize = 2;
+    (orbit_size(seq) as f64) / ((two * n) as f64)
+}
+
+// ============================================================================
+// Approximate Metric (d_min)
+// ============================================================================
+
+fn dmin(seq: &[u8]) -> usize {
+    let n = seq.len();
+    if n == 0 { return 0; }
+
+    var min_dist: usize = n;  // Maximum possible distance
+
+    // Check shifts (excluding identity)
+    var k: usize = 1;
+    while k < n {
+        let shifted = shift(seq, k);
+        let d = hamming_distance(seq, &shifted);
+        if d < min_dist { min_dist = d; }
+        k = k + 1;
+    }
+
+    // Check reverse
+    let rev = reverse(seq);
+    let d_rev = hamming_distance(seq, &rev);
+    if d_rev < min_dist { min_dist = d_rev; }
+
+    // Check reverse + shifts
+    var j: usize = 0;
+    while j < n {
+        let shifted_rev = shift(&rev, j);
+        let d = hamming_distance(seq, &shifted_rev);
+        if d < min_dist { min_dist = d; }
+        j = j + 1;
+    }
+
+    min_dist
+}
+
+fn dmin_normalized(seq: &[u8]) -> f64 {
+    let n = seq.len();
+    if n == 0 { return 0.0; }
+    (dmin(seq) as f64) / (n as f64)
+}
+
+// ============================================================================
+// Window Extraction (Circular)
+// ============================================================================
+
+/// Extract a window from a circular sequence
+/// Handles wraparound for positions near the end
+fn extract_window(seq: &[u8], start: usize, window_size: usize) -> [u8] {
+    let n = seq.len();
+    if n == 0 || window_size == 0 { return []; }
+    if window_size > n { return seq[..]; }
+
+    let start_mod = start % n;
+    let end_pos = start_mod + window_size;
+
+    if end_pos <= n {
+        // No wraparound
+        seq[start_mod..end_pos]
+    } else {
+        // Wraparound: concatenate end and beginning
+        seq[start_mod..n] ++ seq[0..(end_pos - n)]
+    }
+}
+
+// ============================================================================
+// Window Analysis - Print results directly
+// ============================================================================
+
+fn analyze_window_print(seq: &[u8], window_start: usize, window_size: usize) {
+    let window = extract_window(seq, window_start, window_size);
+    let os = orbit_size(&window);
+    let or_val = orbit_ratio(&window);
+    let dm = dmin(&window);
+    let dm_norm = dmin_normalized(&window);
+    let is_pal = is_palindrome(&window);
+    let is_rcf = is_rc_fixed(&window);
+
+    print("  start=", window_start, ", orbit=", os, ", orbit_ratio=", or_val,
+          ", dmin=", dm, ", dmin_norm=", dm_norm,
+          ", palindrome=", is_pal, ", rc_fixed=", is_rcf);
+}
+
+// ============================================================================
+// Test Entry Point
+// ============================================================================
+
+pub fn main() -> i32 {
+    print("============================================================");
+    print("DARWIN ATLAS - WINDOW KERNEL TEST");
+    print("============================================================");
+    print("");
+
+    // Create test sequence (100 bp, pseudorandom)
+    var seq: [u8] = [];
+    var x: usize = 12345;
+    var i: usize = 0;
+    let len: usize = 100;
+    while i < len {
+        x = (x * 1103515245 + 12345) % 2147483648;
+        let b: u8 = ((x / 65536) % 4) as u8;
+        seq = seq ++ [b];
+        i = i + 1;
+    }
+
+    print("Test sequence length: ", seq.len(), " bp");
+    print("");
+
+    // Test window extraction
+    let window1 = extract_window(&seq, 0, 20);
+    print("Window [0:20]: ", window1.len(), " bp");
+
+    let window2 = extract_window(&seq, 90, 20);  // Wraparound
+    print("Window [90:110 wrap]: ", window2.len(), " bp");
+    print("");
+
+    // Test single window analysis
+    print("=== Window Analysis (size=20) ===");
+    analyze_window_print(&seq, 0, 20);
+    print("");
+
+    // Test batch analysis (5 windows)
+    print("=== Batch Analysis (5 windows, size=20) ===");
+    var pos: usize = 0;
+    var count: usize = 0;
+    while pos < 100 && count < 5 {
+        analyze_window_print(&seq, pos, 20);
+        pos = pos + 20;
+        count = count + 1;
+    }
+    print("");
+
+    print("============================================================");
+    print("WINDOW KERNEL TEST COMPLETE");
+    print("============================================================");
+
+    0
+}

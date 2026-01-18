@@ -31,9 +31,9 @@ identifiers:
     description: "GitHub Release"
 references:
   - type: software
-    title: "Demetrios Programming Language"
+    title: "Sounio Programming Language"
     authors:
       - family-names: "Agourakis"
         given-names: "Demetrios Chiuratto"
-    repository-code: "https://github.com/Chiuratto-AI/demetrios"
+    repository-code: "https://github.com/sounio-lang/sounio"
     abstract: "Scientific programming language with epistemic computing support"
