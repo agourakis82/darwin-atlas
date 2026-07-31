@@ -138,7 +138,11 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 # Engineering canonical products (Fase E): cohort_assemblies (all assemblies),
 # atlas_replicons + excluded_records (all four replicons), and window products
 # for both plasmids, each recomputed byte-exact in independent Base-only
-# Julia (engineering scope; chromosome windows deferred to the benchmark)
+# Julia (engineering scope; chromosome windows deferred to the benchmark).
+# The same runner also applies the deterministic stratified Julia sample of
+# spec 12.2 to each plasmid window product (Fase F): a fixed stratum
+# definition seeded from the persisted parameter hash selects windows whose
+# recomputation must match byte-exact
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make cohort-products
 

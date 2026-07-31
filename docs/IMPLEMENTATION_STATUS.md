@@ -2,8 +2,8 @@
 
 **Observed:** 2026-07-31
 
-**Base commit:** the canonical-products commit updating this file on branch
-`codex/sounio-primary-wip` (previous published baseline: `792be9d`);
+**Base commit:** the sample-validation commit updating this file on branch
+`codex/sounio-primary-wip` (previous published baseline: `46a14fd`);
 the evidence below was produced from that exact tree.
 
 **Specification:** 0.1.0 normative draft
@@ -40,6 +40,7 @@ from older pins or older source hashes is stale and was regenerated.
 | Canonical product schemas | PASS | `cohort_assemblies`, `atlas_replicons`, and `excluded_records` schemas 0.1.0 parse and fix field order/reason-code enums; contract assertions in `make contract` |
 | Engineering canonical products (Fase E) | PASS | All four replicons: Sounio `--replicon-profile` and `--exclusions` products emitted and recomputed byte-exact in Julia (4 profiles, 38 exclusions, tolerance 0); plasmid window products (207 + 5,796 lines) byte-identical across two runs and byte-exact vs the independent Julia recomputation (6,003/6,003 windows); cohort product rebuilt independently from the frozen manifest; chromosome window products deferred to the Fase I benchmark; engineering scope, not the pilot dataset |
 | Corrupted-artifact detector check | PASS | Julia rejects a one-digit perturbation of the persisted JSONL (positional and k-mer fields) |
+| Deterministic stratified Julia atlas sample (spec §12.2, Fase F) | PASS | Fixed sample definition 0.1.0 (strata: all excluded-status windows, first/last window per record, plus ok windows with `fmix64(seed, record_index, window_index) mod 64 = 0`; seed bound to the first 16 hex of the persisted `parameters_sha256`): 5/207 windows on pOSAK1 and 90/5,796 on pO157 recomputed byte-exact at tolerance 0 by the Julia validator (sample coordinate manifests sha256 `62f51dc9db292406be718eca601d01e1412fd6924c641ff69def4e1c476ecc0f` and `d7ed3e4ad17a41788520a6f89ef0503cb4b9f35d705741866d03cd4f1bf35309`); perturbing a sampled line is rejected while perturbing an unsampled line passes, confirming detector scope; runs wired into `scripts/run_cohort_products.sh` |
 | Canonical pipeline with missing Sounio producer | BLOCKED as designed, exit 2 | `make pipeline` |
 | Mini-pipeline with missing `SOUNIO_REPO` | BLOCKED as designed, exit 2 | `scripts/run_sounio_mini_pipeline.sh` |
 | Cross-validation with missing Sounio library | BLOCKED as designed, exit 2 | `julia --project=julia julia/scripts/cross_validation.jl` |
@@ -229,7 +230,7 @@ labeled as SHA-256, 256-character analysis cap).
 | G0 source/compiler binding | PARTIAL | official compiler/source/executable hashes recorded; atlas tree is not a clean released commit |
 | G1 Sounio executable fixtures | PARTIAL | positional, streaming FASTA, and parameterized mini-pipeline fixtures (positional + masked k-mer k=1..8 with dual kernels and strict parameter validation) execute; complete-replicon smoke and product modes (`--replicon-profile`, `--exclusions`) execute on the frozen cohort; the metamorphic suite of spec §12.1 remains absent |
 | G2 miniature NCBI end-to-end fixture | PASS (fixture scope + engineering products) | frozen NCBI-prefix + synthetic fixtures run end to end through Sounio to deterministic JSONL at the full predeclared k=1..8 pilot range; the frozen cohort additionally yields byte-validated engineering products: replicon profiles and exclusions for all four replicons and window products for both plasmids; chromosome-scale window products and the canonical pilot run are pending |
-| G3 independent Julia differential validation | PARTIAL | operator, six FASTA cases, both mini-pipeline JSONL artifacts (96/96 windows), the complete-replicon smoke (207/207 windows), both plasmid window products (6,003/6,003 windows), and the three non-window products (4 profiles, 38 exclusions, cohort rebuild) reproduced byte-exact at tolerance 0; deterministic stratified atlas sample per spec §12.2 absent |
+| G3 independent Julia differential validation | PARTIAL | operator, six FASTA cases, both mini-pipeline JSONL artifacts (96/96 windows), the complete-replicon smoke (207/207 windows), both plasmid window products (6,003/6,003 windows), and the three non-window products (4 profiles, 38 exclusions, cohort rebuild) reproduced byte-exact at tolerance 0; deterministic stratified atlas sample per spec §12.2 wired into the products runner (5/207 + 90/5,796 windows byte-exact, seed bound to the parameter hash); chromosome-scale products will be covered by the same sample in the Fase I benchmark |
 | G4 schema/provenance/checksum closure | PARTIAL | receipt, window JSONL 0.2.0, pipeline parameter, and the three product schemas exist; mini-pipeline input checksum closure verified (including parameter fixtures); frozen cohort checksum closure verified against official NCBI MD5s; no real receipt or release-scope canonical artifacts |
 | G5 scale benchmark | RED | no pilot executable; the only scale data points are fixture-level timings (k8 fixture 57.2 s -> 1.8 s after the orbit-set optimization; NC_002127.1 smoke 207 windows in 4 s wall) |
 | G6 DOI-ready immutable bundle | RED | upstream gates incomplete |
@@ -239,8 +240,7 @@ labeled as SHA-256, 256-character analysis cap).
 1. Emit the two-stage Sounio run receipt bound to a clean released commit
    over the engineering products (Fase H), then extend the product set with
    chromosome-scale window artifacts under the Fase I benchmark.
-2. Add the deterministic stratified Julia atlas sample (spec §12.2) and the
-   null-model fixtures (additive window schema 0.3.0); set the pilot
+2. Add the null-model fixtures (additive window schema 0.3.0); set the pilot
    `min_kmer_effective_count` per proposed ADR-0002.
 3. Repair or replace the local Julia 1.12.2 project environment so the
    validator-development test suite can run.

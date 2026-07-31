@@ -321,6 +321,15 @@ julia --startup-file=no "$atlas_root/julia/scripts/validate_mini_pipeline.jl" \
 julia --startup-file=no "$atlas_root/julia/scripts/validate_cohort_products.jl" \
   "$products_log" "$cohort_dir" "$work_dir"
 
+# Deterministic stratified sample validation (spec 12.2) over each plasmid
+# window product; the coordinates file hash binds the sample in the report.
+for alias in pOSAK1 pO157; do
+  julia --startup-file=no "$atlas_root/julia/scripts/validate_window_sample.jl" \
+    "$work_dir/windows_$alias.jsonl" "$work_dir/$alias/record.fa" \
+    "$work_dir/$alias/metadata.tsv" "$flat_path" "$work_dir/sample_$alias.txt"
+  echo "DOSA_SAMPLE_ARTIFACT name=windows_$alias coordinates=$work_dir/sample_$alias.txt sha256=$(sha256_file "$work_dir/sample_$alias.txt")"
+done
+
 echo "sounio_products_runner_log=$products_log"
 echo "sounio_products_runner_log_sha256=$(sha256_file "$products_log")"
 echo "DOSA_COHORT_PRODUCTS_OK work_dir=$work_dir"
