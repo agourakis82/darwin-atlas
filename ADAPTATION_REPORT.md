@@ -1,5 +1,10 @@
 # Relatório de Adaptação: Darwin Atlas para Sounio
 
+> **Limite de evidência (2026-07-30):** relatório histórico de adaptação e
+> compilação, não reexecutado neste checkout. Não comprova execução dos kernels
+> nem validação científica. A especificação normativa atual está em
+> `docs/SCIENTIFIC_SPEC.md`.
+
 ## ✅ Status: Compilação Bem-Sucedida
 
 O módulo `operators.sio` foi adaptado e compilado com sucesso usando o backend nativo Sounio!

@@ -1,10 +1,11 @@
 """
     NCBIFetch.jl
 
-NCBI genome download and manifest management.
+Legacy Julia NCBI genome download and manifest management.
 
-Downloads complete bacterial genomes from NCBI RefSeq/GenBank
-with full provenance tracking.
+This module predates ADR-0001 and is retained for migration diagnostics. The
+canonical cohort is acquired with NCBI Datasets CLI and frozen by
+accession.version and package checksums outside the Julia validator.
 """
 
 using HTTP

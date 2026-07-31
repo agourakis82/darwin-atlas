@@ -1,5 +1,9 @@
 # Atlas Epistemic Knowledge Layer
 
+> **Legacy design:** this document describes the pre-ADR Julia/Demetrios export
+> path. It is retained for migration reference and cannot satisfy the canonical
+> Sounio producer or release-receipt requirements in `SCIENTIFIC_SPEC.md`.
+
 This document describes the Demetrios L0 epistemic computing integration for the Darwin Operator Symmetry Atlas.
 
 ## Why Knowledge Layer Exists
@@ -19,14 +23,14 @@ This enables:
 ## How to Reproduce
 
 ```bash
-# 1. Run pipeline (if tables don't exist)
-make pipeline MAX=50 SEED=42
+# 1. Run the historical Julia pipeline (diagnostic only)
+make legacy-julia-pipeline MAX=50 SEED=42
 
-# 2. Export + validate Knowledge layer
-make epistemic MAX=50 SEED=42
+# 2. Export and verify the legacy Knowledge layer
+make legacy-export-knowledge MAX=50 SEED=42
+make legacy-verify-knowledge
 
-# Or in one step:
-make epistemic-full MAX=50 SEED=42
+# These artifacts are noncanonical and cannot enter a release receipt.
 ```
 
 Outputs:
@@ -117,12 +121,15 @@ The verifier checks:
 
 ## Demetrios Integration
 
-When the Demetrios compiler (`dc`) is available, the verifier runs natively:
+The historical native verifier was designed to run with the old Demetrios
+compiler surface:
 ```bash
 dc run demetrios/src/verify_knowledge.d -- data/epistemic/atlas_knowledge.jsonl
 ```
 
-Without `dc`, a Julia fallback provides equivalent validation.
+The current architecture does not treat Julia verification as an equivalent
+fallback for missing Sounio execution. `make legacy-verify-knowledge` is a
+diagnostic schema check only.
 
 ## Schema Reference
 

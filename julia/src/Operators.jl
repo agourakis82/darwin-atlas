@@ -1,7 +1,7 @@
 """
     Operators.jl
 
-Pure Julia implementation of genomic sequence operators (Layer 0).
+Independent Julia implementation of genomic sequence operators for validation.
 
 These operators form the generators of the dihedral group D_n acting on
 circular DNA sequences of length n.

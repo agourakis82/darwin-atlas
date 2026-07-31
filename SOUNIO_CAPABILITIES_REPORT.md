@@ -1,8 +1,16 @@
 # Relatório: Capacidades do Sounio com Darwin Atlas
 
-## 🎯 Status: SUCESSO TOTAL
+> **Evidence boundary (2026-07-30):** historical compilation report only. The
+> commands and numbers below were not re-executed in the current checkout. They
+> support at most the state `COMPILES`; they do not establish fixture execution,
+> algorithmic correctness, or a scientifically validated atlas. See
+> `docs/SCIENTIFIC_SPEC.md`.
 
-O Sounio compilou com sucesso o código do Darwin Atlas usando o backend nativo, demonstrando capacidades avançadas de compilação e análise.
+## Status: historical Sounio compilation observation
+
+An earlier run reported successful native-backend compilation of selected
+Darwin Atlas fixtures. This file preserves that observation while the project
+builds executable and scientific receipts.
 
 ## 📊 Resultados da Compilação
 
@@ -158,7 +166,7 @@ Isso demonstra que o Sounio pode:
 3. Adicionar mais testes de integração
 4. Implementar FFI para integração com Julia
 
-## 🏆 Resultado Final
+## Evidence conclusion
 
 **O Sounio demonstrou capacidade completa de:**
 - ✅ Compilar código científico de produção
@@ -167,4 +175,5 @@ Isso demonstra que o Sounio pode:
 - ✅ Gerar código machine eficiente
 - ✅ Manter semântica científica complexa
 
-**Status: SUCESSO TOTAL** 🎉
+**Recorded state: COMPILES (historical, not reverified).** Execution and
+scientific-validation gates remain open.

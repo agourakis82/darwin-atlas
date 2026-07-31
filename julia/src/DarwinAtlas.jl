@@ -1,10 +1,11 @@
 """
     DarwinAtlas
 
-Darwin Operator Symmetry Atlas - Julia implementation.
+Darwin Operator Symmetry Atlas - independent Julia validator under migration.
 
-Provides Layer 0 (pure Julia reference) and Layer 1 (orchestration + FFI) for
-computing operator-defined symmetries in bacterial genomes.
+The pure Julia functions are retained for independent recomputation. Historical
+acquisition, orchestration, and FFI surfaces are development diagnostics and do
+not produce canonical release artifacts; Sounio is the canonical producer.
 
 # Exports
 
@@ -13,7 +14,7 @@ computing operator-defined symmetries in bacterial genomes.
 - `RepliconRecord`: Metadata for a replicon
 - `WindowResult`: Results for a sliding window analysis
 
-## Operators (Layer 0)
+## Independent operator implementation
 - `shift`: Cyclic shift operator S
 - `reverse_seq`: Reverse operator R
 - `complement_seq`: Complement operator K
@@ -33,9 +34,9 @@ computing operator-defined symmetries in bacterial genomes.
 - `dicyclic_element`: Generate Dic_n element
 - `verify_double_cover`: Verify Dic_n → D_n cover
 
-## Pipeline
-- `fetch_ncbi`: Download genomes from NCBI
-- `run_pipeline`: Execute full analysis pipeline
+## Legacy migration surfaces
+- `fetch_ncbi`: Historical Julia acquisition helper
+- `run_pipeline`: Historical noncanonical pipeline
 """
 module DarwinAtlas
 
@@ -60,10 +61,10 @@ include("QuaternionLift.jl")
 include("NCBIFetch.jl")
 include("Validation.jl")
 
-# Optional FFI (requires compiled Demetrios library)
+# Transitional development-only FFI (not the publication validation boundary)
 const HAS_DEMETRIOS = Ref(false)
 function __init__()
-    # Check for Demetrios shared library
+    # Check for the transitional Sounio shared library in its legacy path.
     libpath = joinpath(@__DIR__, "..", "..", "demetrios", "target", "release", "libdarwin_kernels.so")
     if isfile(libpath)
         HAS_DEMETRIOS[] = true

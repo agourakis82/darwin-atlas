@@ -1,6 +1,9 @@
 #!/usr/bin/env julia
 """
-Run the full Darwin Atlas analysis pipeline.
+Run the historical Julia-only Darwin Atlas pipeline.
+
+This entry point is noncanonical under ADR-0001. It is retained for migration
+diagnostics and MUST NOT produce release-eligible artifacts.
 """
 
 using Pkg
@@ -44,8 +47,9 @@ function main()
     args = parse_args()
 
     println("\n" * "="^60)
-    println("DARWIN OPERATOR SYMMETRY ATLAS")
-    println("Pipeline Runner v2.0.0-alpha")
+    println("WARNING: NONCANONICAL LEGACY JULIA PIPELINE")
+    println("Sounio is the required producer for release artifacts.")
+    println("This run is for migration diagnostics only.")
     println("="^60)
     println("Start time: $(now())")
     println("Data directory: $(args["data-dir"])")

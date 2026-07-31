@@ -8,14 +8,36 @@ on:
     branches: [main]
 
 jobs:
-  test-julia:
-    name: Julia ${{ matrix.julia-version }} - ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+  contract:
+    name: Scientific contract and fail-closed boundary
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate normative documents and JSON syntax
+        run: make contract
+
+      - name: Assert canonical pipeline cannot fall back to Julia
+        run: |
+          set +e
+          make pipeline
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+      - name: Preserve locked Julia environment
+        run: |
+          test -f julia/Manifest.toml
+          ! rg -n 'rm -rf julia/[M]anifest.toml' Makefile
+
+  test-julia-validator:
+    name: Julia validator development — ${{ matrix.julia-version }}
+    runs-on: ubuntu-latest
+    needs: contract
     strategy:
       fail-fast: false
       matrix:
         julia-version: ['1.10', '1.11']
-        os: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -28,26 +50,51 @@ jobs:
       - name: Cache Julia packages
         uses: julia-actions/cache@v2
 
-      - name: Install dependencies
-        run: |
-          julia --project=julia -e 'using Pkg; Pkg.instantiate()'
+      - name: Install locked dependencies
+        run: julia --project=julia -e 'using Pkg; Pkg.instantiate()'
 
-      - name: Run tests
-        run: |
-          julia --project=julia -e 'using Pkg; Pkg.test()'
+      - name: Run validator-development tests
+        run: make test-julia
 
-      - name: Run technical validation
-        run: |
-          julia --project=julia -e '
-            using DarwinAtlas
-            results = run_technical_validation("data")
-            @assert results["all_passed"] "Technical validation failed"
-          '
-
-  validate-schema:
-    name: Validate Output Schema
+  sounio-official-fixture:
+    name: Official pinned Sounio executable fixtures
     runs-on: ubuntu-latest
-    needs: test-julia
+    needs: contract
+
+    steps:
+      - name: Checkout Darwin Atlas
+        uses: actions/checkout@v4
+        with:
+          path: atlas
+
+      - name: Checkout pinned official Sounio
+        uses: actions/checkout@v4
+        with:
+          repository: sounio-lang/sounio
+          ref: 41fc4261d60fe2654da0bdd11056495016371e36
+          path: sounio-upstream
+          sparse-checkout: |
+            bin
+            scripts/lib
+            tools/science_boundary
+
+      - name: Setup Julia oracle
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10'
+
+      - name: Check, compile, execute, and independently validate the operator fixture
+        working-directory: atlas
+        run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make operator-differential-fixture
+
+      - name: Stream FASTA fixtures and independently validate IUPAC and errors
+        working-directory: atlas
+        run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make fasta-differential-fixture
+
+  cross-validation-boundary:
+    name: Missing Sounio is blocked, never a pass
+    runs-on: ubuntu-latest
+    needs: test-julia-validator
 
     steps:
       - uses: actions/checkout@v4
@@ -60,72 +107,13 @@ jobs:
       - name: Cache Julia packages
         uses: julia-actions/cache@v2
 
-      - name: Install dependencies
+      - name: Install locked dependencies
+        run: julia --project=julia -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Require blocked exit when the Sounio producer is absent
         run: |
-          julia --project=julia -e 'using Pkg; Pkg.instantiate()'
-
-      - name: Generate theoretical tables
-        run: |
-          julia --project=julia -e '
-            using DarwinAtlas
-            generate_tables("data")
-          '
-
-      - name: Validate CSV schema
-        run: |
-          julia --project=julia -e '
-            using CSV, DataFrames
-
-            # Check dicyclic_lifts.csv
-            df = CSV.read("data/tables/dicyclic_lifts.csv", DataFrame)
-            @assert "dihedral_order" in names(df)
-            @assert "verified_double_cover" in names(df)
-            @assert "lift_group" in names(df)
-            @assert all(df.verified_double_cover) "All double covers must verify"
-
-            # Check quaternion_results.csv
-            df2 = CSV.read("data/tables/quaternion_results.csv", DataFrame)
-            @assert "n" in names(df2)
-            @assert "double_cover_verified" in names(df2)
-            @assert all(df2.double_cover_verified) "All quaternion verifications must pass"
-
-            println("✅ Schema validation passed")
-          '
-
-  reproducibility:
-    name: Reproducibility Check
-    runs-on: ubuntu-latest
-    needs: test-julia
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Julia
-        uses: julia-actions/setup-julia@v2
-        with:
-          version: '1.10'
-
-      - name: Verify Manifest.toml exists
-        run: |
-          test -f julia/Manifest.toml || (echo "ERROR: Manifest.toml missing" && exit 1)
-          echo "✅ Manifest.toml present for reproducibility"
-
-      - name: Install exact dependencies
-        run: |
-          julia --project=julia -e 'using Pkg; Pkg.instantiate()'
-
-      - name: Verify deterministic output
-        run: |
-          julia --project=julia -e '
-            using DarwinAtlas, Random
-
-            # Test with fixed seed
-            Random.seed!(42)
-            seq1 = DarwinAtlas.gc_shuffle(LongDNA{4}("ACGTACGTACGT"); rng=Random.MersenneTwister(42))
-
-            Random.seed!(42)
-            seq2 = DarwinAtlas.gc_shuffle(LongDNA{4}("ACGTACGTACGT"); rng=Random.MersenneTwister(42))
-
-            @assert seq1 == seq2 "Shuffle must be deterministic with same seed"
-            println("✅ Reproducibility verified")
-          '
+          set +e
+          julia --project=julia julia/scripts/cross_validation.jl
+          rc=$?
+          set -e
+          test "$rc" -eq 2

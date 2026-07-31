@@ -11,10 +11,10 @@ authors:
 repository-code: "https://github.com/agourakis82/darwin-atlas"
 url: "https://github.com/agourakis82/darwin-atlas"
 abstract: >-
-  A reproducible, DOI-versioned database of operator-defined symmetries
-  in complete bacterial replicons. Implements dihedral group D_n actions
-  (shift, reverse, complement, reverse-complement) on circular DNA sequences,
-  with epistemic Knowledge layer for provenance tracking and validation.
+  An operator-resolved, provenance-bound atlas of positional,
+  reverse-complement compositional, periodic, and circular-representation
+  symmetries in complete bacterial RefSeq replicons. Sounio is the canonical
+  scientific producer and Julia is an independent artifact validator.
 keywords:
   - bacterial genomics
   - dihedral symmetry
@@ -23,17 +23,12 @@ keywords:
   - reproducible research
   - NCBI RefSeq
 license: MIT
-version: "0.1.0-epistemic"
-date-released: "2025-12-15"
-identifiers:
-  - type: url
-    value: "https://github.com/agourakis82/darwin-atlas/releases/tag/v0.1.0-epistemic"
-    description: "GitHub Release"
+version: "0.1.0-alpha"
 references:
   - type: software
-    title: "Demetrios Programming Language"
+    title: "Sounio Programming Language"
     authors:
       - family-names: "Agourakis"
         given-names: "Demetrios Chiuratto"
-    repository-code: "https://github.com/Chiuratto-AI/demetrios"
+    repository-code: "https://github.com/sounio-lang/sounio"
     abstract: "Scientific programming language with epistemic computing support"

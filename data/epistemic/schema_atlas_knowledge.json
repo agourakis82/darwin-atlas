@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/agourakis82/darwin-atlas/epistemic/atlas_knowledge",
   "title": "Atlas Knowledge Record",
-  "description": "Demetrios epistemic Knowledge[T] record for Atlas pipeline outputs",
+  "description": "Legacy pre-ADR epistemic Knowledge[T] record retained for migration; not a canonical Sounio release schema",
   "type": "object",
   "required": ["record_type", "metric_name", "value", "validity", "provenance"],
   "properties": {

@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "repository": "https://github.com/sounio-lang/sounio.git",
+  "commit": "41fc4261d60fe2654da0bdd11056495016371e36",
+  "observed_utc": "2026-07-30T14:30:52Z",
+  "policy": "Refresh from official main before a new evidence run; pin the observed commit before compiling."
+}

@@ -1,0 +1,197 @@
+//@ run-pass
+//@ expect-stdout: DOSA_SOUNIO_OPERATOR_FIXTURE_OK
+
+// Darwin Atlas positional-operator fixture.
+// Normative reference: docs/SCIENTIFIC_SPEC.md 0.1.0, sections 4, 5, 7, 12.
+//
+// Base encoding is deliberately compatible with stdlib/genomics/core.sio:
+// A=0, C=1, G=2, T=3. Any other value is ambiguous/invalid for positional
+// metrics and is rejected. It is never coerced to a canonical base.
+
+struct Dna256 {
+    data: [i32; 256],
+    len: i32,
+}
+
+struct MetricCount {
+    code: i32,
+    mismatches: i32,
+    denominator: i32,
+}
+
+fn metric_ok() -> i32 { 0 }
+fn metric_err_empty() -> i32 { 1 }
+fn metric_err_ambiguous() -> i32 { 2 }
+
+fn base_is_canonical(base: i32) -> bool {
+    base >= 0 && base <= 3
+}
+
+fn base_complement(base: i32) -> i32 {
+    if base == 0 { return 3 }
+    if base == 1 { return 2 }
+    if base == 2 { return 1 }
+    if base == 3 { return 0 }
+    return -1
+}
+
+fn dna4(b0: i32, b1: i32, b2: i32, b3: i32) -> Dna256 with Mut, Panic {
+    var seq = Dna256 { data: [-1; 256], len: 4 }
+    seq.data[0] = b0
+    seq.data[1] = b1
+    seq.data[2] = b2
+    seq.data[3] = b3
+    seq
+}
+
+fn dna3(b0: i32, b1: i32, b2: i32) -> Dna256 with Mut, Panic {
+    var seq = Dna256 { data: [-1; 256], len: 3 }
+    seq.data[0] = b0
+    seq.data[1] = b1
+    seq.data[2] = b2
+    seq
+}
+
+fn dna_is_canonical(seq: Dna256) -> bool with Mut, Panic, Div {
+    if seq.len <= 0 { return false }
+    var i: i32 = 0
+    while i < seq.len {
+        if !base_is_canonical(seq.data[i]) { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn dna_reverse(seq: Dna256) -> Dna256 with Mut, Panic, Div {
+    var out = Dna256 { data: [-1; 256], len: seq.len }
+    var i: i32 = 0
+    while i < seq.len {
+        out.data[i] = seq.data[seq.len - 1 - i]
+        i = i + 1
+    }
+    out
+}
+
+fn dna_complement(seq: Dna256) -> Dna256 with Mut, Panic, Div {
+    var out = Dna256 { data: [-1; 256], len: seq.len }
+    var i: i32 = 0
+    while i < seq.len {
+        out.data[i] = base_complement(seq.data[i])
+        i = i + 1
+    }
+    out
+}
+
+fn dna_reverse_complement(seq: Dna256) -> Dna256 with Mut, Panic, Div {
+    dna_complement(dna_reverse(seq))
+}
+
+fn dna_equal(a: Dna256, b: Dna256) -> bool with Mut, Panic, Div {
+    if a.len != b.len { return false }
+    var i: i32 = 0
+    while i < a.len {
+        if a.data[i] != b.data[i] { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn positional_distance_reverse(seq: Dna256) -> MetricCount with Mut, Panic, Div {
+    if seq.len <= 0 {
+        return MetricCount { code: metric_err_empty(), mismatches: 0, denominator: 0 }
+    }
+    if !dna_is_canonical(seq) {
+        return MetricCount { code: metric_err_ambiguous(), mismatches: 0, denominator: seq.len }
+    }
+
+    var mismatches: i32 = 0
+    var i: i32 = 0
+    while i < seq.len {
+        if seq.data[i] != seq.data[seq.len - 1 - i] {
+            mismatches = mismatches + 1
+        }
+        i = i + 1
+    }
+    MetricCount { code: metric_ok(), mismatches: mismatches, denominator: seq.len }
+}
+
+fn positional_distance_rc(seq: Dna256) -> MetricCount with Mut, Panic, Div {
+    if seq.len <= 0 {
+        return MetricCount { code: metric_err_empty(), mismatches: 0, denominator: 0 }
+    }
+    if !dna_is_canonical(seq) {
+        return MetricCount { code: metric_err_ambiguous(), mismatches: 0, denominator: seq.len }
+    }
+
+    var mismatches: i32 = 0
+    var i: i32 = 0
+    while i < seq.len {
+        let transformed = base_complement(seq.data[seq.len - 1 - i])
+        if seq.data[i] != transformed {
+            mismatches = mismatches + 1
+        }
+        i = i + 1
+    }
+    MetricCount { code: metric_ok(), mismatches: mismatches, denominator: seq.len }
+}
+
+fn fixed_reverse(seq: Dna256) -> bool with Mut, Panic, Div {
+    let metric = positional_distance_reverse(seq)
+    metric.code == metric_ok() && metric.mismatches == 0
+}
+
+fn fixed_rc(seq: Dna256) -> bool with Mut, Panic, Div {
+    let metric = positional_distance_rc(seq)
+    metric.code == metric_ok() && metric.mismatches == 0
+}
+
+fn print_observation(sequence: string, metric: string, result: MetricCount) with IO {
+    print("DOSA_OBSERVATION sequence=")
+    print(sequence)
+    print(" metric=")
+    print(metric)
+    print(" mismatches=")
+    print_int(result.mismatches as i64)
+    print(" denominator=")
+    print_int(result.denominator as i64)
+    print("\n")
+}
+
+fn main() -> i64 with Mut, Panic, Div, IO {
+    let acgt = dna4(0, 1, 2, 3)
+    let acca = dna4(0, 1, 1, 0)
+    let odd = dna3(0, 1, 2)
+    let ambiguous = dna3(0, -1, 3)
+
+    let acgt_r = positional_distance_reverse(acgt)
+    let acgt_rc = positional_distance_rc(acgt)
+    assert(acgt_r.code == metric_ok())
+    assert(acgt_r.mismatches == 4)
+    assert(acgt_r.denominator == 4)
+    assert(acgt_rc.code == metric_ok())
+    assert(acgt_rc.mismatches == 0)
+    assert(fixed_rc(acgt))
+    assert(!fixed_reverse(acgt))
+
+    let acca_r = positional_distance_reverse(acca)
+    let acca_rc = positional_distance_rc(acca)
+    assert(acca_r.mismatches == 0)
+    assert(acca_rc.mismatches == 4)
+    assert(fixed_reverse(acca))
+    assert(!fixed_rc(acca))
+
+    assert(!fixed_rc(odd))
+    assert(positional_distance_rc(ambiguous).code == metric_err_ambiguous())
+
+    assert(dna_equal(dna_reverse(dna_reverse(acgt)), acgt))
+    assert(dna_equal(dna_complement(dna_complement(acgt)), acgt))
+    assert(dna_equal(dna_reverse_complement(dna_reverse_complement(acgt)), acgt))
+    assert(dna_equal(dna_reverse(dna_complement(acgt)), dna_complement(dna_reverse(acgt))))
+
+    println("DOSA_SOUNIO_OPERATOR_FIXTURE_OK")
+    print_observation("ACGT", "delta_R", acgt_r)
+    print_observation("ACGT", "delta_RC", acgt_rc)
+    print_observation("ACCA", "delta_R", acca_r)
+    print_observation("ACCA", "delta_RC", acca_rc)
+    return 0
+}

@@ -1,0 +1,707 @@
+//@ run-pass
+
+// Darwin Atlas streaming FASTA executable specification.
+//
+// This deliberately does not use the current upstream genomics FASTA helper:
+// that helper is Seq256-bound and maps N to the canonical code for A. DOSA
+// preserves all DNA IUPAC symbols and rejects every other sequence byte.
+//
+// The native runtime currently exposes argc/argv through arg_count/get_arg and
+// POSIX I/O through syscall6. A 17-byte buffer forces parser state to cross
+// chunk boundaries in the fixture.
+
+const FASTA_CHUNK_BYTES: i64 = 17
+const FASTA_HASH_MODULUS: i64 = 1000000007
+const PIPELINE_WINDOW_BYTES: i64 = 4
+const HEADER_ID_BYTES: i64 = 256
+
+fn fasta_ok() -> i64 { 0 }
+fn fasta_err_open_failed() -> i64 { 1 }
+fn fasta_err_read_failed() -> i64 { 2 }
+fn fasta_err_sequence_before_header() -> i64 { 3 }
+fn fasta_err_empty_header() -> i64 { 4 }
+fn fasta_err_empty_sequence() -> i64 { 5 }
+fn fasta_err_invalid_symbol() -> i64 { 6 }
+fn fasta_err_no_records() -> i64 { 7 }
+fn fasta_err_header_token_too_long() -> i64 { 8 }
+fn fasta_err_metadata_invalid() -> i64 { 9 }
+fn fasta_err_metadata_mismatch() -> i64 { 10 }
+
+var FASTA_BUF: [i8; 17] = [0; 17]
+var SYMBOL_COUNTS: [i64; 15] = [0; 15]
+var HEADER_ID_BUF: [i8; 256] = [0; 256]
+var WINDOW_BASES: [i64; 4] = [0; 4]
+
+var G_ERROR_CODE: i64 = 0
+var G_ERROR_OFFSET: i64 = 0
+var G_ERROR_BYTE: i64 = 0
+var G_BYTES_READ: i64 = 0
+var G_CHUNKS_READ: i64 = 0
+var G_RECORD_INDEX: i64 = 0
+var G_HEADER_NONSPACE: i64 = 0
+var G_SEQUENCE_LENGTH: i64 = 0
+var G_CANONICAL_COUNT: i64 = 0
+var G_AMBIGUOUS_COUNT: i64 = 0
+var G_SEQUENCE_HASH: i64 = 0
+var G_HEADER_ID_LEN: i64 = 0
+var G_WINDOW_LEN: i64 = 0
+var G_WINDOW_START: i64 = 0
+var G_RECORD_WINDOW_INDEX: i64 = 0
+var G_WINDOWS_EMITTED: i64 = 0
+var G_METADATA_COUNT: i64 = 0
+var G_HAVE_HEADER: bool = false
+var G_IN_HEADER: bool = false
+var G_AT_LINE_START: bool = true
+var G_HEADER_TOKEN_DONE: bool = false
+var G_PIPELINE_MODE: bool = false
+var G_METADATA_TEXT: string = ""
+var G_META_SEQUENCE: string = ""
+var G_META_ASSEMBLY: string = ""
+var G_META_CLASS: string = ""
+var G_META_TOPOLOGY: string = ""
+var G_META_SOURCE_SCOPE: string = ""
+
+struct MetadataRow {
+    found: bool,
+    sequence_accession_version: string,
+    assembly_accession_version: string,
+    replicon_class: string,
+    declared_topology: string,
+    source_scope: string,
+}
+
+fn iupac_index(ch: i64) -> i64 {
+    if ch == 65 || ch == 97 { return 0 }   // A
+    if ch == 67 || ch == 99 { return 1 }   // C
+    if ch == 71 || ch == 103 { return 2 }  // G
+    if ch == 84 || ch == 116 { return 3 }  // T
+    if ch == 82 || ch == 114 { return 4 }  // R
+    if ch == 89 || ch == 121 { return 5 }  // Y
+    if ch == 83 || ch == 115 { return 6 }  // S
+    if ch == 87 || ch == 119 { return 7 }  // W
+    if ch == 75 || ch == 107 { return 8 }  // K
+    if ch == 77 || ch == 109 { return 9 }  // M
+    if ch == 66 || ch == 98 { return 10 }  // B
+    if ch == 68 || ch == 100 { return 11 } // D
+    if ch == 72 || ch == 104 { return 12 } // H
+    if ch == 86 || ch == 118 { return 13 } // V
+    if ch == 78 || ch == 110 { return 14 } // N
+    -1
+}
+
+fn fasta_error_name(code: i64) -> string {
+    if code == fasta_err_open_failed() { return "OPEN_FAILED" }
+    if code == fasta_err_read_failed() { return "READ_FAILED" }
+    if code == fasta_err_sequence_before_header() { return "SEQUENCE_BEFORE_HEADER" }
+    if code == fasta_err_empty_header() { return "EMPTY_HEADER" }
+    if code == fasta_err_empty_sequence() { return "EMPTY_SEQUENCE" }
+    if code == fasta_err_invalid_symbol() { return "INVALID_SYMBOL" }
+    if code == fasta_err_no_records() { return "NO_RECORDS" }
+    if code == fasta_err_header_token_too_long() { return "HEADER_TOKEN_TOO_LONG" }
+    if code == fasta_err_metadata_invalid() { return "METADATA_INVALID" }
+    if code == fasta_err_metadata_mismatch() { return "METADATA_MISMATCH" }
+    "OK"
+}
+
+fn reset_record() with Mut, Panic {
+    var i: i64 = 0
+    while i < 15 {
+        SYMBOL_COUNTS[i as usize] = 0
+        i = i + 1
+    }
+    G_HEADER_NONSPACE = 0
+    G_SEQUENCE_LENGTH = 0
+    G_CANONICAL_COUNT = 0
+    G_AMBIGUOUS_COUNT = 0
+    G_SEQUENCE_HASH = 0
+    G_HEADER_ID_LEN = 0
+    G_HEADER_TOKEN_DONE = false
+    G_WINDOW_LEN = 0
+    G_WINDOW_START = 0
+    G_RECORD_WINDOW_INDEX = 0
+    G_META_SEQUENCE = ""
+    G_META_ASSEMBLY = ""
+    G_META_CLASS = ""
+    G_META_TOPOLOGY = ""
+    G_META_SOURCE_SCOPE = ""
+}
+
+fn set_error(code: i64, offset: i64, byte: i64) with Mut {
+    if G_ERROR_CODE == fasta_ok() {
+        G_ERROR_CODE = code
+        G_ERROR_OFFSET = offset
+        G_ERROR_BYTE = byte
+    }
+}
+
+fn parse_decimal_digit(ch: i64) -> i64 {
+    if ch >= 48 && ch <= 57 { ch - 48 } else { -1 }
+}
+
+fn parse_nonnegative_i64(raw: string) -> i64 with Mut, Panic, Div {
+    let n = str_len(raw)
+    if n <= 0 { return -1 }
+
+    var value: i64 = 0
+    var i: i64 = 0
+    while i < n {
+        let digit = parse_decimal_digit(str_char_at(raw, i))
+        if digit < 0 { return -1 }
+        value = value * 10 + digit
+        i = i + 1
+    }
+    value
+}
+
+fn tsv_field_count(line: string) -> i64 with Mut, Panic, Div {
+    var count: i64 = 1
+    var i: i64 = 0
+    let n = str_len(line)
+    while i < n {
+        if str_char_at(line, i) == 9 { count = count + 1 }
+        i = i + 1
+    }
+    count
+}
+
+fn tsv_get_field(line: string, target: i64) -> string with Mut, Panic, Div {
+    if target < 0 { return "" }
+
+    let n = str_len(line)
+    var field: i64 = 0
+    var start: i64 = 0
+    var i: i64 = 0
+    while i < n {
+        if str_char_at(line, i) == 9 {
+            if field == target { return str_slice(line, start, i) }
+            field = field + 1
+            start = i + 1
+        }
+        i = i + 1
+    }
+    if field == target { str_slice(line, start, n) } else { "" }
+}
+
+fn metadata_value_is_json_safe(value: string) -> bool with Mut, Panic, Div {
+    let n = str_len(value)
+    if n <= 0 { return false }
+
+    var i: i64 = 0
+    while i < n {
+        let ch = str_char_at(value, i)
+        let upper = ch >= 65 && ch <= 90
+        let lower = ch >= 97 && ch <= 122
+        let digit = ch >= 48 && ch <= 57
+        if !upper && !lower && !digit && ch != 46 && ch != 95 && ch != 45 {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+fn metadata_line_is_header(line: string) -> bool with Mut, Panic, Div {
+    tsv_field_count(line) == 6
+        && str_eq(tsv_get_field(line, 0), "record_index")
+        && str_eq(tsv_get_field(line, 1), "sequence_accession_version")
+        && str_eq(tsv_get_field(line, 2), "assembly_accession_version")
+        && str_eq(tsv_get_field(line, 3), "replicon_class")
+        && str_eq(tsv_get_field(line, 4), "declared_topology")
+        && str_eq(tsv_get_field(line, 5), "source_scope")
+}
+
+fn metadata_data_line_is_valid(line: string, expected_index: i64) -> bool with Mut, Panic, Div {
+    if tsv_field_count(line) != 6 { return false }
+    if parse_nonnegative_i64(tsv_get_field(line, 0)) != expected_index { return false }
+
+    let sequence = tsv_get_field(line, 1)
+    let assembly = tsv_get_field(line, 2)
+    let replicon_class = tsv_get_field(line, 3)
+    let topology = tsv_get_field(line, 4)
+    let source_scope = tsv_get_field(line, 5)
+
+    if !metadata_value_is_json_safe(sequence) { return false }
+    if !metadata_value_is_json_safe(assembly) { return false }
+    if !metadata_value_is_json_safe(replicon_class) { return false }
+    if !metadata_value_is_json_safe(topology) { return false }
+    if !metadata_value_is_json_safe(source_scope) { return false }
+    if !str_eq(topology, "circular") && !str_eq(topology, "linear") && !str_eq(topology, "unknown") {
+        return false
+    }
+    true
+}
+
+fn load_metadata(path: string) -> bool with IO, Mut, Panic, Div {
+    let text = read_file(path)
+    let n = str_len(text)
+    if n <= 0 {
+        set_error(fasta_err_metadata_invalid(), 0, -1)
+        return false
+    }
+
+    var start: i64 = 0
+    var logical_line: i64 = 0
+    var data_count: i64 = 0
+    while start <= n {
+        var end = start
+        while end < n && str_char_at(text, end) != 10 {
+            end = end + 1
+        }
+
+        var line = str_slice(text, start, end)
+        if str_len(line) > 0 && str_char_at(line, str_len(line) - 1) == 13 {
+            line = str_slice(line, 0, str_len(line) - 1)
+        }
+
+        if str_len(line) > 0 {
+            if logical_line == 0 {
+                if !metadata_line_is_header(line) {
+                    set_error(fasta_err_metadata_invalid(), start, -1)
+                    return false
+                }
+            } else {
+                let expected_index = data_count + 1
+                if !metadata_data_line_is_valid(line, expected_index) {
+                    set_error(fasta_err_metadata_invalid(), start, -1)
+                    return false
+                }
+                data_count = data_count + 1
+            }
+            logical_line = logical_line + 1
+        }
+
+        if end >= n { break }
+        start = end + 1
+    }
+
+    if logical_line <= 1 || data_count <= 0 {
+        set_error(fasta_err_metadata_invalid(), n, -1)
+        return false
+    }
+
+    G_METADATA_TEXT = text
+    G_METADATA_COUNT = data_count
+    true
+}
+
+fn empty_metadata_row() -> MetadataRow {
+    MetadataRow {
+        found: false,
+        sequence_accession_version: "",
+        assembly_accession_version: "",
+        replicon_class: "",
+        declared_topology: "",
+        source_scope: "",
+    }
+}
+
+fn metadata_row_at(target_index: i64) -> MetadataRow with Mut, Panic, Div {
+    let n = str_len(G_METADATA_TEXT)
+    var start: i64 = 0
+    var logical_line: i64 = 0
+    var data_index: i64 = 0
+    while start <= n {
+        var end = start
+        while end < n && str_char_at(G_METADATA_TEXT, end) != 10 {
+            end = end + 1
+        }
+
+        var line = str_slice(G_METADATA_TEXT, start, end)
+        if str_len(line) > 0 && str_char_at(line, str_len(line) - 1) == 13 {
+            line = str_slice(line, 0, str_len(line) - 1)
+        }
+
+        if str_len(line) > 0 {
+            if logical_line > 0 {
+                data_index = data_index + 1
+                if data_index == target_index {
+                    return MetadataRow {
+                        found: true,
+                        sequence_accession_version: tsv_get_field(line, 1),
+                        assembly_accession_version: tsv_get_field(line, 2),
+                        replicon_class: tsv_get_field(line, 3),
+                        declared_topology: tsv_get_field(line, 4),
+                        source_scope: tsv_get_field(line, 5),
+                    }
+                }
+            }
+            logical_line = logical_line + 1
+        }
+
+        if end >= n { break }
+        start = end + 1
+    }
+    empty_metadata_row()
+}
+
+fn validate_header_metadata(offset: i64) with Mut, Panic, Div {
+    if !G_PIPELINE_MODE { return }
+    if G_HEADER_ID_LEN <= 0 {
+        set_error(fasta_err_empty_header(), offset, -1)
+        return
+    }
+
+    let row = metadata_row_at(G_RECORD_INDEX)
+    if !row.found {
+        set_error(fasta_err_metadata_mismatch(), offset, -1)
+        return
+    }
+
+    let header_id = str_from_bytes(HEADER_ID_BUF, G_HEADER_ID_LEN)
+    if !str_eq(header_id, row.sequence_accession_version) {
+        set_error(fasta_err_metadata_mismatch(), offset, -1)
+        return
+    }
+
+    G_META_SEQUENCE = row.sequence_accession_version
+    G_META_ASSEMBLY = row.assembly_accession_version
+    G_META_CLASS = row.replicon_class
+    G_META_TOPOLOGY = row.declared_topology
+    G_META_SOURCE_SCOPE = row.source_scope
+}
+
+fn base_complement(base: i64) -> i64 {
+    if base == 0 { return 3 }
+    if base == 1 { return 2 }
+    if base == 2 { return 1 }
+    if base == 3 { return 0 }
+    -1
+}
+
+fn window_is_canonical() -> bool with Mut, Panic, Div {
+    var i: i64 = 0
+    while i < G_WINDOW_LEN {
+        let base = WINDOW_BASES[i as usize]
+        if base < 0 || base > 3 { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn print_ratio_6(numerator: i64, denominator: i64) with IO, Div {
+    let scaled = (numerator * 1000000) / denominator
+    print_int(scaled / 1000000)
+    print(".")
+    var divisor: i64 = 100000
+    while divisor > 0 {
+        print_int((scaled / divisor) % 10)
+        divisor = divisor / 10
+    }
+}
+
+fn print_json_bool(value: bool) with IO {
+    if value { print("true") } else { print("false") }
+}
+
+fn emit_pipeline_window() with IO, Mut, Panic, Div {
+    let partial = G_WINDOW_LEN < PIPELINE_WINDOW_BYTES
+    let canonical = window_is_canonical()
+    let excluded = partial || !canonical
+    let window_end = G_WINDOW_START + G_WINDOW_LEN
+
+    var reverse_mismatches: i64 = 0
+    var rc_mismatches: i64 = 0
+    if !excluded {
+        var i: i64 = 0
+        while i < G_WINDOW_LEN {
+            let opposite = WINDOW_BASES[(G_WINDOW_LEN - 1 - i) as usize]
+            if WINDOW_BASES[i as usize] != opposite {
+                reverse_mismatches = reverse_mismatches + 1
+            }
+            if WINDOW_BASES[i as usize] != base_complement(opposite) {
+                rc_mismatches = rc_mismatches + 1
+            }
+            i = i + 1
+        }
+    }
+
+    print("{\"schema_version\":\"0.1.0\",\"metric_version\":\"0.1.0\",\"assembly_accession_version\":\"")
+    print(G_META_ASSEMBLY)
+    print("\",\"sequence_accession_version\":\"")
+    print(G_META_SEQUENCE)
+    print("\",\"replicon_class\":\"")
+    print(G_META_CLASS)
+    print("\",\"declared_topology\":\"")
+    print(G_META_TOPOLOGY)
+    print("\",\"source_scope\":\"")
+    print(G_META_SOURCE_SCOPE)
+    print("\",\"record_index\":")
+    print_int(G_RECORD_INDEX)
+    print(",\"window_index\":")
+    print_int(G_RECORD_WINDOW_INDEX)
+    print(",\"window_start\":")
+    print_int(G_WINDOW_START)
+    print(",\"window_end\":")
+    print_int(window_end)
+    print(",\"window_length\":")
+    print_int(G_WINDOW_LEN)
+    print(",\"ambiguity_policy\":\"canonical_only\",\"status\":\"")
+    if excluded { print("excluded") } else { print("ok") }
+    print("\",\"reason_code\":")
+    if partial {
+        print("\"PARTIAL_WINDOW\"")
+    } else if !canonical {
+        print("\"AMBIGUOUS_WINDOW\"")
+    } else {
+        print("null")
+    }
+    print(",\"effective_count\":")
+    if excluded { print_int(0) } else { print_int(G_WINDOW_LEN) }
+    print(",\"delta_R_mismatches\":")
+    if excluded { print("null") } else { print_int(reverse_mismatches) }
+    print(",\"delta_RC_mismatches\":")
+    if excluded { print("null") } else { print_int(rc_mismatches) }
+    print(",\"denominator\":")
+    if excluded { print("null") } else { print_int(G_WINDOW_LEN) }
+    print(",\"delta_R\":")
+    if excluded { print("null") } else { print_ratio_6(reverse_mismatches, G_WINDOW_LEN) }
+    print(",\"delta_RC\":")
+    if excluded { print("null") } else { print_ratio_6(rc_mismatches, G_WINDOW_LEN) }
+    print(",\"fixed_R\":")
+    if excluded { print("null") } else { print_json_bool(reverse_mismatches == 0) }
+    print(",\"fixed_RC\":")
+    if excluded { print("null") } else { print_json_bool(rc_mismatches == 0) }
+    print("}\n")
+
+    G_WINDOW_START = window_end
+    G_WINDOW_LEN = 0
+    G_RECORD_WINDOW_INDEX = G_RECORD_WINDOW_INDEX + 1
+    G_WINDOWS_EMITTED = G_WINDOWS_EMITTED + 1
+}
+
+fn print_record() with IO, Mut, Panic {
+    print("DOSA_FASTA_RECORD index=")
+    print_int(G_RECORD_INDEX)
+    print(" length=")
+    print_int(G_SEQUENCE_LENGTH)
+    print(" canonical=")
+    print_int(G_CANONICAL_COUNT)
+    print(" ambiguous=")
+    print_int(G_AMBIGUOUS_COUNT)
+    print(" hash_mod=")
+    print_int(G_SEQUENCE_HASH)
+    print(" a=")
+    print_int(SYMBOL_COUNTS[0])
+    print(" c=")
+    print_int(SYMBOL_COUNTS[1])
+    print(" g=")
+    print_int(SYMBOL_COUNTS[2])
+    print(" t=")
+    print_int(SYMBOL_COUNTS[3])
+    print(" r=")
+    print_int(SYMBOL_COUNTS[4])
+    print(" y=")
+    print_int(SYMBOL_COUNTS[5])
+    print(" s=")
+    print_int(SYMBOL_COUNTS[6])
+    print(" w=")
+    print_int(SYMBOL_COUNTS[7])
+    print(" k=")
+    print_int(SYMBOL_COUNTS[8])
+    print(" m=")
+    print_int(SYMBOL_COUNTS[9])
+    print(" b=")
+    print_int(SYMBOL_COUNTS[10])
+    print(" d=")
+    print_int(SYMBOL_COUNTS[11])
+    print(" h=")
+    print_int(SYMBOL_COUNTS[12])
+    print(" v=")
+    print_int(SYMBOL_COUNTS[13])
+    print(" n=")
+    print_int(SYMBOL_COUNTS[14])
+    print("\n")
+}
+
+fn finish_record(offset: i64, byte: i64) with IO, Mut, Panic {
+    if G_SEQUENCE_LENGTH <= 0 {
+        set_error(fasta_err_empty_sequence(), offset, byte)
+        return
+    }
+    if G_PIPELINE_MODE {
+        if G_WINDOW_LEN > 0 { emit_pipeline_window() }
+    } else {
+        print_record()
+    }
+}
+
+fn process_fasta_byte(ch: i64, offset: i64) with IO, Mut, Panic, Div {
+    if ch == 13 { return } // CR in CRLF input
+
+    if ch == 10 {
+        if G_IN_HEADER {
+            if G_HEADER_NONSPACE <= 0 {
+                set_error(fasta_err_empty_header(), offset, ch)
+                return
+            }
+            validate_header_metadata(offset)
+            if G_ERROR_CODE != fasta_ok() { return }
+            G_IN_HEADER = false
+        }
+        G_AT_LINE_START = true
+        return
+    }
+
+    if G_AT_LINE_START && ch == 62 { // '>'
+        if G_HAVE_HEADER {
+            finish_record(offset, ch)
+            if G_ERROR_CODE != fasta_ok() { return }
+        }
+        G_RECORD_INDEX = G_RECORD_INDEX + 1
+        reset_record()
+        G_HAVE_HEADER = true
+        G_IN_HEADER = true
+        G_AT_LINE_START = false
+        return
+    }
+
+    G_AT_LINE_START = false
+    if G_IN_HEADER {
+        if ch != 32 && ch != 9 {
+            G_HEADER_NONSPACE = G_HEADER_NONSPACE + 1
+        }
+        if !G_HEADER_TOKEN_DONE {
+            if ch == 32 || ch == 9 {
+                G_HEADER_TOKEN_DONE = true
+            } else {
+                if G_HEADER_ID_LEN >= HEADER_ID_BYTES {
+                    set_error(fasta_err_header_token_too_long(), offset, ch)
+                    return
+                }
+                HEADER_ID_BUF[G_HEADER_ID_LEN as usize] = ch as i8
+                G_HEADER_ID_LEN = G_HEADER_ID_LEN + 1
+            }
+        }
+        return
+    }
+
+    if !G_HAVE_HEADER {
+        set_error(fasta_err_sequence_before_header(), offset, ch)
+        return
+    }
+
+    let index = iupac_index(ch)
+    if index < 0 {
+        set_error(fasta_err_invalid_symbol(), offset, ch)
+        return
+    }
+
+    SYMBOL_COUNTS[index as usize] = SYMBOL_COUNTS[index as usize] + 1
+    G_SEQUENCE_LENGTH = G_SEQUENCE_LENGTH + 1
+    if index < 4 {
+        G_CANONICAL_COUNT = G_CANONICAL_COUNT + 1
+    } else {
+        G_AMBIGUOUS_COUNT = G_AMBIGUOUS_COUNT + 1
+    }
+    G_SEQUENCE_HASH = (G_SEQUENCE_HASH * 131 + index + 1) % FASTA_HASH_MODULUS
+
+    if G_PIPELINE_MODE {
+        WINDOW_BASES[G_WINDOW_LEN as usize] = index
+        G_WINDOW_LEN = G_WINDOW_LEN + 1
+        if G_WINDOW_LEN == PIPELINE_WINDOW_BYTES {
+            emit_pipeline_window()
+        }
+    }
+}
+
+fn parse_fasta_stream(path: string) -> i64 with IO, Mut, Panic, Div {
+    let fd = syscall6(2, path, 0, 0, 0, 0, 0)
+    if fd < 0 {
+        set_error(fasta_err_open_failed(), 0, -1)
+        return G_ERROR_CODE
+    }
+
+    while G_ERROR_CODE == fasta_ok() {
+        let n = syscall6(0, fd, &! FASTA_BUF, FASTA_CHUNK_BYTES, 0, 0, 0)
+        if n < 0 {
+            set_error(fasta_err_read_failed(), G_BYTES_READ, -1)
+            break
+        }
+        if n == 0 { break }
+
+        G_CHUNKS_READ = G_CHUNKS_READ + 1
+        var i: i64 = 0
+        while i < n && G_ERROR_CODE == fasta_ok() {
+            let ch = FASTA_BUF[i as usize] as i64
+            let offset = G_BYTES_READ
+            G_BYTES_READ = G_BYTES_READ + 1
+            process_fasta_byte(ch, offset)
+            i = i + 1
+        }
+    }
+
+    let _closed = syscall6(3, fd, 0, 0, 0, 0, 0)
+    if G_ERROR_CODE != fasta_ok() { return G_ERROR_CODE }
+
+    if G_IN_HEADER {
+        if G_HEADER_NONSPACE <= 0 {
+            set_error(fasta_err_empty_header(), G_BYTES_READ, -1)
+            return G_ERROR_CODE
+        }
+        validate_header_metadata(G_BYTES_READ)
+        if G_ERROR_CODE != fasta_ok() { return G_ERROR_CODE }
+        G_IN_HEADER = false
+    }
+    if !G_HAVE_HEADER {
+        set_error(fasta_err_no_records(), G_BYTES_READ, -1)
+        return G_ERROR_CODE
+    }
+
+    finish_record(G_BYTES_READ, -1)
+    if G_ERROR_CODE == fasta_ok() && G_PIPELINE_MODE && G_RECORD_INDEX != G_METADATA_COUNT {
+        set_error(fasta_err_metadata_mismatch(), G_BYTES_READ, -1)
+    }
+    G_ERROR_CODE
+}
+
+fn print_error() with IO {
+    print("DOSA_FASTA_ERROR code=")
+    print(fasta_error_name(G_ERROR_CODE))
+    print(" record=")
+    print_int(G_RECORD_INDEX)
+    print(" offset=")
+    print_int(G_ERROR_OFFSET)
+    print(" byte=")
+    print_int(G_ERROR_BYTE)
+    print("\n")
+}
+
+fn main() -> i64 with IO, Mut, Panic, Div {
+    let argc = arg_count()
+    let summary_mode = argc == 1
+    let pipeline_mode = argc == 3 && str_eq(get_arg(0), "--pipeline")
+    if !summary_mode && !pipeline_mode {
+        print("usage: fasta_stream_fixture <input.fa> | --pipeline <input.fa> <metadata.tsv>\n")
+        return 64
+    }
+
+    reset_record()
+    var input_path = get_arg(0)
+    if pipeline_mode {
+        G_PIPELINE_MODE = true
+        input_path = get_arg(1)
+        if !load_metadata(get_arg(2)) {
+            print_error()
+            return G_ERROR_CODE
+        }
+    }
+
+    let code = parse_fasta_stream(input_path)
+    if code != fasta_ok() {
+        print_error()
+        return code
+    }
+
+    if pipeline_mode { return 0 }
+
+    print("DOSA_SOUNIO_FASTA_STREAM_OK records=")
+    print_int(G_RECORD_INDEX)
+    print(" bytes=")
+    print_int(G_BYTES_READ)
+    print(" chunks=")
+    print_int(G_CHUNKS_READ)
+    print(" chunk_bytes=")
+    print_int(FASTA_CHUNK_BYTES)
+    print("\n")
+    0
+}

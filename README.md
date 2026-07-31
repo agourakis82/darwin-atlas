@@ -1,134 +1,159 @@
 # Darwin Operator Symmetry Atlas (DOSA)
 
-A reproducible, DOI-versioned database of operator-defined symmetries in complete bacterial replicons.
+An operator-resolved, provenance-bound atlas of sequence symmetry in complete
+bacterial RefSeq replicons.
 
-[![CI](https://github.com/YOUR_USERNAME/darwin-atlas/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/darwin-atlas/actions/workflows/ci.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
+> **Current state:** specification and implementation migration. This checkout
+> does not yet produce a publication-ready atlas. Sounio kernels are partial;
+> executable operator and streaming FASTA fixtures now pass independent Julia
+> checks. Julia remains a validator, never the canonical producer.
 
-## Overview
+## Scientific scope
 
-DOSA implements a hybrid architecture combining:
-- **Julia** (Layer 0+1): Reference implementation and orchestration
-- **Demetrios** (Layer 2): High-performance kernels with epistemic computing
+DOSA separates four concepts that must not be collapsed into one score:
 
-The atlas computes:
-- **Exact symmetry metrics**: Orbit sizes, palindrome detection, RC-fixed sequences
-- **Approximate symmetry**: d_min/L (minimum normalized dihedral distance)
-- **Algebraic verification**: Dicyclic group Dic_n → D_n double cover
+- positional reversal and reverse-complement similarity;
+- reverse-complement symmetry of k-mer composition;
+- sequence periodicity;
+- representation equivalence under origin/strand changes for circular dsDNA.
 
-## Quick Start
+The project does not claim to be the first database of palindromes or inverted
+repeats. The novelty target is the operator-resolved dataset, its explicitly
+controlled null models, and evidence bound to the producing compiler and
+artifacts.
+
+The normative definitions, hypotheses, schemas, and release gates are in
+[`docs/SCIENTIFIC_SPEC.md`](docs/SCIENTIFIC_SPEC.md). Architecture decision
+[`ADR-0001`](docs/ADR-0001-sounio-primary-julia-validator.md) defines the
+implementation roles. The latest evidence-bounded local snapshot is
+[`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
+
+## Architecture
+
+```text
+NCBI Datasets CLI + checksums
+              |
+              v
+immutable accession.version manifest
+              |
+              v
+Sounio canonical producer --------> data artifacts + run receipt
+              |                                  |
+              +----------------------------------+
+                                                 v
+                                  independent Julia validator
+                                                 |
+                                                 v
+                                  comparison/publication gate
+```
+
+- **Sounio is required for production.** No other implementation may silently
+  substitute for it.
+- **Julia validates persisted artifacts independently.** It is not a production
+  fallback.
+- **A missing validator is not a pass.** Sounio can generate development output,
+  but release remains blocked until Julia validation succeeds.
+- **File artifacts are the scientific boundary.** FFI comparisons are allowed
+  only as development diagnostics.
+
+## Evidence states
+
+The repository reports these states separately:
+
+1. `COMPILES`: Sounio accepted a source file.
+2. `EXECUTES`: a hashed executable ran successfully on a named fixture.
+3. `SCIENTIFICALLY_VALIDATED`: schemas, provenance, metamorphic properties, and
+   independent Julia recomputation all passed.
+
+Older capability reports document compilation experiments only. They are not
+receipts for a completed atlas pipeline.
+
+## Repository map
+
+```text
+docs/                         normative specification and decisions
+schemas/                      machine-readable release contracts
+demetrios/src/*.sio           legacy migration location for Sounio experiments
+sounio/                       canonical Sounio producer implementation
+julia/                        independent validator under migration
+data/                         local inputs and generated artifacts
+.github/workflows/ci.yml      contract and validator-development checks
+```
+
+The legacy `demetrios/` directory remains migration evidence. Removing or
+renaming it waits until the canonical `sounio/` surface contains the integrated
+FASTA-to-artifact pipeline and stable output writer.
+
+## Development commands
 
 ```bash
-# Clone repository
-git clone https://github.com/YOUR_USERNAME/darwin-atlas.git
-cd darwin-atlas
+# Show current toolchain and implementation status
+make status
 
-# Setup (Julia only)
-make setup-julia
+# Validate the normative documentation and JSON contracts
+make contract
 
-# Run tests
+# Run Julia validator-development tests (not a production run)
 make test-julia
 
-# Run full pipeline (downloads ~50,000 genomes)
-make pipeline MAX=200  # Start small for testing
-```
+# Check, compile, and execute with an official pinned Sounio checkout
+SOUNIO_REPO=/path/to/sounio make sounio-fixture
 
-## Directory Structure
+# Apple Silicon: execute the official Linux x86-64 Madaros in Lima
+SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux make sounio-fixture
 
-```
-darwin-atlas/
-├── CLAUDE.md           # Detailed project specification
-├── README.md           # This file
-├── Makefile            # Build orchestration
-├── demetrios/          # Demetrios kernels (Layer 2)
-├── julia/              # Julia implementation (Layer 0+1)
-├── data/               # Output data (gitignored)
-└── paper/              # Scientific Data manuscript
-```
+# Compile/execute in Sounio, persist stdout, then recompute in Base-only Julia
+SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
+  make operator-differential-fixture
 
-## Requirements
+# Stream multi-record FASTA in Sounio and recompute records/errors in Julia
+SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
+  make fasta-differential-fixture
 
-### Julia (required)
-- Julia 1.10+
-- Dependencies in `julia/Project.toml`
-
-### Demetrios (optional)
-- Demetrios compiler v0.63.0+
-- Features: units, refinement, ffi
-
-## Usage
-
-### Run Pipeline
-
-```bash
-# Full pipeline
-make pipeline
-
-# With custom parameters
-make pipeline MAX=1000 SEED=123
-
-# Skip download (use existing data)
-julia --project=julia julia/scripts/run_pipeline.jl --skip-download
-```
-
-### Run Tests
-
-```bash
-# All tests
-make test
-
-# Julia only
-make test-julia
-
-# Validation only
-make validate
-```
-
-### Cross-Validation
-
-```bash
-# Compare Demetrios and Julia outputs
+# Must fail unless both implementations are actually available
 make cross-validate
 ```
 
-## Data Schema
+`make pipeline` is intentionally fail-closed until the verified streaming reader
+is connected to the operator kernels and a deterministic artifact writer. The
+historical Julia-only pipeline is available only through the explicitly named
+`make legacy-julia-pipeline` diagnostic target; its output is not release
+eligible.
 
-### atlas_replicons.csv
-| Column | Type | Description |
-|--------|------|-------------|
-| assembly_accession | String | NCBI assembly ID |
-| replicon_id | String | Internal stable ID |
-| length_bp | Int64 | Sequence length |
-| gc_fraction | Float64 | GC content [0,1] |
+Because the official Sounio repository moves rapidly, fixture runners accept
+only the clean commit pinned in `toolchains/sounio.lock.json`. Refresh that pin
+deliberately before a new evidence run; a moving branch name is never part of a
+scientific receipt.
 
-### approx_symmetry_stats.csv
-| Column | Type | Description |
-|--------|------|-------------|
-| replicon_id | String | Foreign key |
-| window_length | Int64 | Window size (bp) |
-| dmin_normalized | Float64 | d_min / L [0,1] |
+## Planned data products
 
-## Citation
+- `cohort_assemblies`: immutable acquisition cohort and checksums;
+- `atlas_replicons`: replicon metadata, topology, ambiguity, and inclusion;
+- `window_operator_profiles`: positional and compositional operator metrics;
+- `replicon_operator_summary`: periodicity and whole-replicon summaries;
+- `excluded_records`: complete reason-coded exclusions;
+- `run_receipt.json`: compiler, source, input, parameter, command, artifact, and
+  validator bindings.
 
-If you use this dataset, please cite:
+The run receipt schema is
+[`schemas/run_receipt.schema.json`](schemas/run_receipt.schema.json).
 
-```bibtex
-@article{agourakis2025dosa,
-  title={Darwin Operator Symmetry Atlas: A database of dihedral symmetries in bacterial genomes},
-  author={Agourakis, Demetrios Chiuratto},
-  journal={Scientific Data},
-  year={2025},
-  publisher={Nature Publishing Group}
-}
-```
+## Reproducibility rules
 
-## License
+- Freeze every NCBI accession with its version and package checksum.
+- Preserve IUPAC ambiguity; never coerce `N` to `A`.
+- Keep `julia/Manifest.toml` committed.
+- Record the Sounio compiler path, version, and SHA256 together with the
+  produced executable SHA256.
+- Invalidate downstream evidence whenever a bound hash changes.
+- Require exact agreement for discrete fields and predeclared tolerances for
+  floating-point fields.
 
-- **Code**: MIT License
-- **Data**: CC-BY 4.0
+## Licensing and citation
 
-## Contact
+- Code: MIT
+- Released data: CC BY 4.0
+- Citation metadata: [`CITATION.cff`](CITATION.cff)
 
-- **Author**: Demetrios Chiuratto Agourakis
-- **Email**: demetrios@agourakis.med.br
-- **Issues**: GitHub Issues
+Release and DOI placeholders are intentionally not presented as completed
+publication identifiers.
