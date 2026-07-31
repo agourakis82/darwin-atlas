@@ -312,11 +312,15 @@ differential agreement. A chunked, multi-record IUPAC FASTA fixture also reaches
 inputs. A frozen mini-pipeline fixture — two 16 bp NCBI prefixes plus two
 synthetic controls, associated with a metadata TSV, windowed without overlap,
 scored with `delta_R`/`delta_RC`, with explicit `AMBIGUOUS_WINDOW` and
-`PARTIAL_WINDOW` exclusions — reaches `EXECUTES` with deterministic JSONL and
-byte-exact Base-only Julia agreement, including negative metadata fixtures.
-These executable specifications do not elevate the absent full cohort pipeline
-to `SCIENTIFICALLY_VALIDATED`. Successful parsing/code generation by itself
-remains evidence only for `COMPILES`.
+`PARTIAL_WINDOW` exclusions, and with masked k-mer composition
+(`reverse_kmer_imbalance_k`/`rc_kmer_imbalance_k` as defined in §7.2) for
+`k=1..4` — reaches `EXECUTES` with deterministic JSONL and byte-exact Base-only
+Julia agreement, including negative metadata fixtures. The k=1..4 range and
+`KMER_MIN_EFFECTIVE_COUNT=1` are executable-fixture parameters; the predeclared
+pilot range k=1..8, its minimum expected count, and all null models remain
+unimplemented. These executable specifications do not elevate the absent full
+cohort pipeline to `SCIENTIFICALLY_VALIDATED`. Successful parsing/code
+generation by itself remains evidence only for `COMPILES`.
 
 ## 15. Change control
 

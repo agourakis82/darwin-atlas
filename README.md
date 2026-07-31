@@ -5,8 +5,9 @@ bacterial RefSeq replicons.
 
 > **Current state:** specification and implementation migration. This checkout
 > does not yet produce a publication-ready atlas. Sounio kernels are partial;
-> executable operator, streaming FASTA, and frozen mini-pipeline fixtures now
-> pass independent Julia checks. Julia remains a validator, never the canonical
+> executable operator, streaming FASTA, and frozen mini-pipeline fixtures
+> (positional metrics plus masked k-mer composition for k=1..4) now pass
+> independent Julia checks. Julia remains a validator, never the canonical
 > producer.
 
 ## Scientific scope
@@ -112,7 +113,8 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make fasta-differential-fixture
 
 # Run the frozen mini-pipeline (FASTA + metadata -> windows -> delta_R/delta_RC
-# -> exclusions -> deterministic JSONL) and recompute it byte-exact in Julia
+# -> masked k-mer imbalance k=1..4 -> exclusions -> deterministic JSONL) and
+# recompute it byte-exact in Julia
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make mini-pipeline-differential-fixture
 

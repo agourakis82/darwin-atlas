@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/agourakis82/darwin-atlas/schemas/window_operator_profile.schema.json",
   "title": "DOSA window operator profile (mini-pipeline JSONL line)",
-  "description": "One line of the deterministic JSONL emitted by the Sounio mini-pipeline (sounio/src/fasta_stream_fixture.sio --pipeline). Serialization constraints that JSON Schema cannot express are normative text: object members MUST appear in the order listed in 'required', numbers delta_R/delta_RC MUST serialize with exactly six fractional digits, integers without padding, strings are restricted to [A-Za-z0-9._-] so no JSON escaping ever occurs, and each line is terminated by a single LF. Excluded windows (status=excluded) MUST carry null for every metric field and effective_count 0.",
+  "description": "One line of the deterministic JSONL emitted by the Sounio mini-pipeline (sounio/src/fasta_stream_fixture.sio --pipeline). Serialization constraints that JSON Schema cannot express are normative text: object members MUST appear in the order listed in 'required', numbers delta_R/delta_RC MUST serialize with exactly six fractional digits, integers without padding, strings are restricted to [A-Za-z0-9._-] so no JSON escaping ever occurs, and each line is terminated by a single LF. Excluded windows (status=excluded) MUST carry null for every POSITIONAL metric field and effective_count 0; the positional status never forces k-mer fields to null. K-mer fields use the masked policy: when kmer_<k>_effective_count is 0 the six reverse/rc imbalance fields for that k MUST be null; when it is >= kmer_min_effective_count they MUST be integers/numbers with denominator == effective_count.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -28,11 +28,45 @@
     "delta_R",
     "delta_RC",
     "fixed_R",
-    "fixed_RC"
+    "fixed_RC",
+    "kmer_ambiguity_policy",
+    "kmer_min_effective_count",
+    "kmer_1_effective_count",
+    "reverse_kmer_imbalance_1_numerator",
+    "reverse_kmer_imbalance_1_denominator",
+    "reverse_kmer_imbalance_1",
+    "rc_kmer_imbalance_1_numerator",
+    "rc_kmer_imbalance_1_denominator",
+    "rc_kmer_imbalance_1",
+    "kmer_2_effective_count",
+    "reverse_kmer_imbalance_2_numerator",
+    "reverse_kmer_imbalance_2_denominator",
+    "reverse_kmer_imbalance_2",
+    "rc_kmer_imbalance_2_numerator",
+    "rc_kmer_imbalance_2_denominator",
+    "rc_kmer_imbalance_2",
+    "kmer_3_effective_count",
+    "reverse_kmer_imbalance_3_numerator",
+    "reverse_kmer_imbalance_3_denominator",
+    "reverse_kmer_imbalance_3",
+    "rc_kmer_imbalance_3_numerator",
+    "rc_kmer_imbalance_3_denominator",
+    "rc_kmer_imbalance_3",
+    "kmer_4_effective_count",
+    "reverse_kmer_imbalance_4_numerator",
+    "reverse_kmer_imbalance_4_denominator",
+    "reverse_kmer_imbalance_4",
+    "rc_kmer_imbalance_4_numerator",
+    "rc_kmer_imbalance_4_denominator",
+    "rc_kmer_imbalance_4"
   ],
   "properties": {
-    "schema_version": { "const": "0.1.0" },
-    "metric_version": { "const": "0.1.0" },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "metric_version": {
+      "const": "0.1.0"
+    },
     "assembly_accession_version": {
       "type": "string",
       "pattern": "^[A-Za-z0-9._-]+$"
@@ -48,33 +82,62 @@
     },
     "declared_topology": {
       "type": "string",
-      "enum": ["circular", "linear", "unknown"]
+      "enum": [
+        "circular",
+        "linear",
+        "unknown"
+      ]
     },
     "source_scope": {
       "type": "string",
       "pattern": "^[A-Za-z0-9._-]+$",
       "description": "ncbi_prefix_1_16 for NCBI prefix records (not complete replicons); synthetic_control for synthetic controls."
     },
-    "record_index": { "type": "integer", "minimum": 1 },
-    "window_index": { "type": "integer", "minimum": 0 },
+    "record_index": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "window_index": {
+      "type": "integer",
+      "minimum": 0
+    },
     "window_start": {
       "type": "integer",
       "minimum": 0,
       "description": "Zero-based start of the half-open window [window_start, window_end) in the submitted orientation; no wraparound."
     },
-    "window_end": { "type": "integer", "minimum": 1 },
+    "window_end": {
+      "type": "integer",
+      "minimum": 1
+    },
     "window_length": {
       "type": "integer",
       "minimum": 1,
       "maximum": 4,
       "description": "Full windows have length 4 (window size = stride = 4); only a trailing partial window may be shorter, and it is always excluded."
     },
-    "ambiguity_policy": { "const": "canonical_only" },
-    "status": { "type": "string", "enum": ["ok", "excluded"] },
+    "ambiguity_policy": {
+      "const": "canonical_only"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "excluded"
+      ]
+    },
     "reason_code": {
       "anyOf": [
-        { "type": "null" },
-        { "type": "string", "enum": ["AMBIGUOUS_WINDOW", "PARTIAL_WINDOW"] }
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "AMBIGUOUS_WINDOW",
+            "PARTIAL_WINDOW"
+          ]
+        }
       ]
     },
     "effective_count": {
@@ -83,55 +146,766 @@
       "description": "Canonical base count contributing to metrics; 0 for excluded windows."
     },
     "delta_R_mismatches": {
-      "anyOf": [{ "type": "null" }, { "type": "integer", "minimum": 0 }]
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
     },
     "delta_RC_mismatches": {
-      "anyOf": [{ "type": "null" }, { "type": "integer", "minimum": 0 }]
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
     },
     "denominator": {
-      "anyOf": [{ "type": "null" }, { "type": "integer", "minimum": 1 }]
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        }
+      ]
     },
     "delta_R": {
-      "anyOf": [{ "type": "null" }, { "type": "number", "minimum": 0, "maximum": 1 }],
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ],
       "description": "delta_R_mismatches/denominator, serialized with exactly six fractional digits."
     },
     "delta_RC": {
-      "anyOf": [{ "type": "null" }, { "type": "number", "minimum": 0, "maximum": 1 }],
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ],
       "description": "delta_RC_mismatches/denominator, serialized with exactly six fractional digits."
     },
-    "fixed_R": { "anyOf": [{ "type": "null" }, { "type": "boolean" }] },
-    "fixed_RC": { "anyOf": [{ "type": "null" }, { "type": "boolean" }] }
+    "fixed_R": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "fixed_RC": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "kmer_ambiguity_policy": {
+      "const": "masked"
+    },
+    "kmer_min_effective_count": {
+      "const": 1,
+      "description": "Executable-fixture parameter, not the final pilot threshold."
+    },
+    "kmer_1_effective_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Canonical 1-mer count after the masked ambiguity policy; independent of the positional status."
+    },
+    "reverse_kmer_imbalance_1_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_1_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_1": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "rc_kmer_imbalance_1_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_1_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_1": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "kmer_2_effective_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Canonical 2-mer count after the masked ambiguity policy; independent of the positional status."
+    },
+    "reverse_kmer_imbalance_2_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_2_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_2": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "rc_kmer_imbalance_2_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_2_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_2": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "kmer_3_effective_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Canonical 3-mer count after the masked ambiguity policy; independent of the positional status."
+    },
+    "reverse_kmer_imbalance_3_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_3_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_3": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "rc_kmer_imbalance_3_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_3_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_3": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "kmer_4_effective_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Canonical 4-mer count after the masked ambiguity policy; independent of the positional status."
+    },
+    "reverse_kmer_imbalance_4_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_4_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_4": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "rc_kmer_imbalance_4_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_4_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_4": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    }
   },
   "allOf": [
     {
-      "if": { "properties": { "status": { "const": "ok" } } },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ok"
+          }
+        }
+      },
       "then": {
         "properties": {
-          "reason_code": { "type": "null" },
-          "effective_count": { "const": 4 },
-          "delta_R_mismatches": { "type": "integer" },
-          "delta_RC_mismatches": { "type": "integer" },
-          "denominator": { "const": 4 },
-          "delta_R": { "type": "number" },
-          "delta_RC": { "type": "number" },
-          "fixed_R": { "type": "boolean" },
-          "fixed_RC": { "type": "boolean" }
+          "reason_code": {
+            "type": "null"
+          },
+          "effective_count": {
+            "const": 4
+          },
+          "delta_R_mismatches": {
+            "type": "integer"
+          },
+          "delta_RC_mismatches": {
+            "type": "integer"
+          },
+          "denominator": {
+            "const": 4
+          },
+          "delta_R": {
+            "type": "number"
+          },
+          "delta_RC": {
+            "type": "number"
+          },
+          "fixed_R": {
+            "type": "boolean"
+          },
+          "fixed_RC": {
+            "type": "boolean"
+          }
         }
       }
     },
     {
-      "if": { "properties": { "status": { "const": "excluded" } } },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "excluded"
+          }
+        }
+      },
       "then": {
         "properties": {
-          "reason_code": { "type": "string" },
-          "effective_count": { "const": 0 },
-          "delta_R_mismatches": { "type": "null" },
-          "delta_RC_mismatches": { "type": "null" },
-          "denominator": { "type": "null" },
-          "delta_R": { "type": "null" },
-          "delta_RC": { "type": "null" },
-          "fixed_R": { "type": "null" },
-          "fixed_RC": { "type": "null" }
+          "reason_code": {
+            "type": "string"
+          },
+          "effective_count": {
+            "const": 0
+          },
+          "delta_R_mismatches": {
+            "type": "null"
+          },
+          "delta_RC_mismatches": {
+            "type": "null"
+          },
+          "denominator": {
+            "type": "null"
+          },
+          "delta_R": {
+            "type": "null"
+          },
+          "delta_RC": {
+            "type": "null"
+          },
+          "fixed_R": {
+            "type": "null"
+          },
+          "fixed_RC": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_1_effective_count": {
+            "const": 0
+          }
+        },
+        "required": [
+          "kmer_1_effective_count"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reverse_kmer_imbalance_1_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_1_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_1_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_1_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_1": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_1": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_1_effective_count": {
+            "minimum": 1
+          }
+        },
+        "required": [
+          "kmer_1_effective_count"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reverse_kmer_imbalance_1_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_1_denominator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_1_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_1_denominator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_1": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "rc_kmer_imbalance_1": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_2_effective_count": {
+            "const": 0
+          }
+        },
+        "required": [
+          "kmer_2_effective_count"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reverse_kmer_imbalance_2_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_2_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_2_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_2_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_2": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_2": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_2_effective_count": {
+            "minimum": 1
+          }
+        },
+        "required": [
+          "kmer_2_effective_count"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reverse_kmer_imbalance_2_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_2_denominator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_2_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_2_denominator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_2": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "rc_kmer_imbalance_2": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_3_effective_count": {
+            "const": 0
+          }
+        },
+        "required": [
+          "kmer_3_effective_count"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reverse_kmer_imbalance_3_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_3_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_3_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_3_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_3": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_3": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_3_effective_count": {
+            "minimum": 1
+          }
+        },
+        "required": [
+          "kmer_3_effective_count"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reverse_kmer_imbalance_3_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_3_denominator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_3_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_3_denominator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_3": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "rc_kmer_imbalance_3": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_4_effective_count": {
+            "const": 0
+          }
+        },
+        "required": [
+          "kmer_4_effective_count"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reverse_kmer_imbalance_4_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_4_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_4_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_4_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_4": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_4": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_4_effective_count": {
+            "minimum": 1
+          }
+        },
+        "required": [
+          "kmer_4_effective_count"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reverse_kmer_imbalance_4_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_4_denominator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_4_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_4_denominator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_4": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "rc_kmer_imbalance_4": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
         }
       }
     }

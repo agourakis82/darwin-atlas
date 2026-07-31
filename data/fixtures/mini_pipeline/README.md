@@ -17,9 +17,12 @@ JSONL. They are inputs to an executable specification, not a release cohort.
    `plasmid`, declared topology `circular`.
 3. `synthetic_ambiguity_control` — **synthetic control** (`ACGTNRYA`) with
    non-canonical IUPAC symbols; its second window must be excluded with
-   `AMBIGUOUS_WINDOW`.
+   `AMBIGUOUS_WINDOW`. Under the masked k-mer policy that window still has one
+   valid 1-mer (`A`), so `kmer_1_*` fields are populated while `kmer_2..4_*`
+   imbalance fields are null.
 4. `synthetic_partial_control` — **synthetic control** (`ACGTA`) whose final
-   one-base window must be excluded with `PARTIAL_WINDOW`.
+   one-base window must be excluded with `PARTIAL_WINDOW`; that window has
+   valid k-mers only for `k=1`.
 
 Both 16 bp prefixes were re-verified against NCBI Entrez (`efetch`,
 `seq_start=1&seq_stop=16`) on 2026-07-31.

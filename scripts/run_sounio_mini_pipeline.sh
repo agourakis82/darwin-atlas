@@ -95,6 +95,20 @@ check_main_artifact() {
     echo "mini-pipeline JSONL is contaminated by a non-JSON line" >&2
     return 1
   fi
+  EXPECTED_JSONL_LINES="$expected_jsonl_lines" ruby -rjson -e '
+    lines = File.readlines(ARGV[0], chomp: true)
+    expected = Integer(ENV.fetch("EXPECTED_JSONL_LINES"))
+    abort "expected #{expected} JSONL objects, got #{lines.size}" unless lines.size == expected
+    lines.each_with_index do |line, index|
+      begin
+        object = JSON.parse(line)
+      rescue JSON::ParserError => e
+        abort "JSONL line #{index + 1} is not valid JSON: #{e.message}"
+      end
+      abort "JSONL line #{index + 1} is not a JSON object" unless object.is_a?(Hash)
+      abort "JSONL line #{index + 1} has #{object.size} fields, expected 53" unless object.size == 53
+    end
+  ' "$path"
 }
 
 run_cases() {

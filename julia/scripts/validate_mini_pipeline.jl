@@ -42,6 +42,11 @@ const CASE_SPECS = [
     (name="metadata_short", metadata="metadata_short.tsv", rc=10),
 ]
 
+const KMER_MAX_K = 4
+const KMER_MIN_EFFECTIVE_COUNT = 1
+const DNA_BASES = "ACGT"
+const DNA_COMPLEMENT = Dict('A' => 'T', 'C' => 'G', 'G' => 'C', 'T' => 'A')
+
 struct PipelineError
     code::String
     record::Int
@@ -116,6 +121,110 @@ function format_ratio(numerator::Int, denominator::Int)
     string(div(scaled, 1_000_000), ".", lpad(string(mod(scaled, 1_000_000)), 6, '0'))
 end
 
+"""
+Enumerate the canonical k-mers of a window as strings, independently of the
+Sounio base-4 encoding. Spans containing a non-canonical IUPAC symbol are
+omitted (masked policy); they are never coerced to a canonical base.
+"""
+function valid_kmers(window::Vector{Int}, k::Int)
+    kmers = String[]
+    for start in 1:(length(window) - k + 1)
+        span = window[start:start + k - 1]
+        all(base -> 0 <= base <= 3, span) || continue
+        push!(kmers, join(DNA_BASES[base + 1] for base in span))
+    end
+    return kmers
+end
+
+"""
+Orbit-paired k-mer imbalance for a transform T (an involution), following
+specification 0.1.0 §7.2: unordered pairs {u,T(u)}, self-transformed k-mers
+contribute zero to the numerator and their count once to the denominator. The
+orbit representative is min(u, T(u)) over the union of observed k-mers and
+their transforms, so zero-count partners are enumerated exactly once. An
+unavailable combination (below KMER_MIN_EFFECTIVE_COUNT) is never zero-filled.
+"""
+function kmer_imbalance(kmers::Vector{String}, transform)
+    effective = length(kmers)
+    effective >= KMER_MIN_EFFECTIVE_COUNT ||
+        return (effective=effective, available=false, numerator=0, denominator=0)
+
+    counts = Dict{String, Int}()
+    for u in kmers
+        counts[u] = get(counts, u, 0) + 1
+    end
+
+    candidates = Set{String}()
+    for u in keys(counts)
+        push!(candidates, u)
+        push!(candidates, transform(u))
+    end
+
+    numerator = 0
+    denominator = 0
+    for u in candidates
+        v = transform(u)
+        u == min(u, v) || continue
+        if u == v
+            denominator += counts[u]
+        else
+            left = get(counts, u, 0)
+            right = get(counts, v, 0)
+            numerator += abs(left - right)
+            denominator += left + right
+        end
+    end
+    return (effective=effective, available=denominator > 0,
+            numerator=numerator, denominator=denominator)
+end
+
+reverse_transform(u::String) = reverse(u)
+rc_transform(u::String) = String(reverse(map(c -> DNA_COMPLEMENT[c], collect(u))))
+
+"""Append the masked k-mer fields in exact Sounio order and assert the
+specification invariants on the independent recomputation."""
+function print_kmer_fields(io::IOBuffer, window::Vector{Int})
+    print(io, ",\"kmer_ambiguity_policy\":\"masked\",\"kmer_min_effective_count\":",
+        KMER_MIN_EFFECTIVE_COUNT)
+    for k in 1:KMER_MAX_K
+        kmers = valid_kmers(window, k)
+        reverse_metric = kmer_imbalance(kmers, reverse_transform)
+        rc_metric = kmer_imbalance(kmers, rc_transform)
+
+        for (label, metric) in (("reverse", reverse_metric), ("rc", rc_metric))
+            if metric.available
+                metric.denominator == metric.effective || error(
+                    "invariant violated at k=$k ($label): denominator $(metric.denominator) " *
+                    "!= effective_count $(metric.effective)",
+                )
+                0 <= metric.numerator <= metric.denominator || error(
+                    "invariant violated at k=$k ($label): ratio outside [0,1]",
+                )
+            else
+                metric.effective < KMER_MIN_EFFECTIVE_COUNT || error(
+                    "invariant violated at k=$k ($label): unavailable metric with " *
+                    "$(metric.effective) valid k-mers",
+                )
+            end
+        end
+        if reverse_metric.available && k == 1
+            reverse_metric.numerator == 0 || error(
+                "invariant violated: reverse_kmer_imbalance_1_numerator must be 0",
+            )
+        end
+
+        print(io, ",\"kmer_", k, "_effective_count\":", reverse_metric.effective)
+        for (prefix, metric) in (("reverse", reverse_metric), ("rc", rc_metric))
+            print(io, ",\"", prefix, "_kmer_imbalance_", k, "_numerator\":",
+                metric.available ? string(metric.numerator) : "null")
+            print(io, ",\"", prefix, "_kmer_imbalance_", k, "_denominator\":",
+                metric.available ? string(metric.denominator) : "null")
+            print(io, ",\"", prefix, "_kmer_imbalance_", k, "\":",
+                metric.available ? format_ratio(metric.numerator, metric.denominator) : "null")
+        end
+    end
+end
+
 """Build one JSONL line with the exact Sounio field order and formatting."""
 function emit_window(row::MetadataRow, record_index::Int, window_index::Int,
                      window_start::Int, window::Vector{Int})
@@ -164,6 +273,7 @@ function emit_window(row::MetadataRow, record_index::Int, window_index::Int,
     print(io, ",\"delta_RC\":", excluded ? "null" : format_ratio(rc_mismatches, window_length))
     print(io, ",\"fixed_R\":", excluded ? "null" : string(reverse_mismatches == 0))
     print(io, ",\"fixed_RC\":", excluded ? "null" : string(rc_mismatches == 0))
+    print_kmer_fields(io, window)
     print(io, "}")
     return String(take!(io))
 end

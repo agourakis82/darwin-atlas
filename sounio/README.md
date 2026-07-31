@@ -39,6 +39,19 @@ NCBI prefixes — not complete replicons — and two synthetic controls) with
 SHA-256 checksums in `SHA256SUMS`; each JSONL line is specified by
 `schemas/window_operator_profile.schema.json`.
 
+Each window is additionally scored with masked k-mer composition for `k=1..4`
+(fixture scope; the normative pilot range k=1..8 is not implemented):
+canonical k-mers are encoded in base 4, k-mers containing ambiguous symbols
+are omitted, and `reverse_kmer_imbalance_<k>` / `rc_kmer_imbalance_<k>` are
+computed over unordered orbits `{u,T(u)}` with self-transformed k-mers
+contributing zero to the numerator and their count once to the denominator
+(specification §7.2). A `k` with no valid k-mer reports
+`kmer_<k>_effective_count: 0` and null imbalance fields — never zero-filled.
+K-mer fields are independent of the positional `status`: an
+`AMBIGUOUS_WINDOW` may still emit k-mer metrics (the fixture's `NRYA` window
+has one valid 1-mer). `KMER_MIN_EFFECTIVE_COUNT=1` is an executable-fixture
+parameter, not the pilot threshold.
+
 Two native-backend constraints shape the implementation: `str_slice` ignores
 its third argument (suffix only), and `str_from_bytes` resolves only local
 array handles. Bounded spans are built through a local copy buffer, and header
@@ -53,8 +66,8 @@ make mini-pipeline-differential-fixture
 ```
 
 Passing the mini-pipeline fixture establishes an executable end-to-end slice
-only. It does not establish k-mer composition, null models, run receipts, NCBI
-cohort acquisition, or scale.
+only. It does not establish the normative k=1..8 range, null models, run
+receipts, NCBI cohort acquisition, or scale.
 
 Run against an official pinned Sounio checkout:
 
