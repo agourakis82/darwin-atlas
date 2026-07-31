@@ -3,6 +3,7 @@
 	sounio-fasta-fixture fasta-differential-fixture \
 	sounio-mini-pipeline mini-pipeline-differential-fixture \
 	cohort-smoke-differential \
+	cohort-products \
 	cross-validate pipeline release-gate \
 	legacy-julia-pipeline legacy-export-knowledge legacy-verify-knowledge clean
 
@@ -31,6 +32,7 @@ help:
 	@echo "  sounio-mini-pipeline    Run frozen FASTA+metadata mini-pipeline in pinned Sounio"
 	@echo "  mini-pipeline-differential-fixture  Sounio JSONL + independent Base-only Julia check"
 	@echo "  cohort-smoke-differential  Complete-replicon engineering smoke + Julia byte-exact check"
+	@echo "  cohort-products         Engineering canonical products + Julia byte-exact checks"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"
 	@echo "  release-gate            Full publication gate (red until pipeline is ready)"
@@ -102,6 +104,9 @@ contract:
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "schema must fix canonical_only" unless s.dig("properties","ambiguity_policy","const")=="canonical_only"; abort "schema must fix window fields" unless s.fetch("required").include?("delta_RC") && s.fetch("additionalProperties")==false'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "schema_version must be 0.2.0" unless s.dig("properties","schema_version","const")=="0.2.0"; abort "kmer policy must be masked" unless s.dig("properties","kmer_ambiguity_policy","const")=="masked"; abort "kmer min effective count must be an integer >= 1" unless s.dig("properties","kmer_min_effective_count","type")=="integer" && s.dig("properties","kmer_min_effective_count","minimum")==1; abort "parameters_sha256 must be a lowercase hex sha256" unless s.dig("properties","parameters_sha256","pattern")=="^[0-9a-f]{64}$$"; abort "required must cover k=1..8 with reasons and 90 fields" unless s.fetch("required").size==90 && s.fetch("required").include?("rc_kmer_imbalance_8") && s.fetch("required").include?("kmer_8_unavailable_reason") && s.fetch("required").include?("parameters_sha256"); abort "additionalProperties must stay false" unless s.fetch("additionalProperties")==false'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/run_receipt.schema.json")); abort "producer must be Sounio" unless s.dig("properties","producer","properties","language","const")=="Sounio"; abort "validator must be Julia" unless s.dig("properties","validator","oneOf",1,"properties","language","const")=="Julia"'
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/cohort_assemblies.schema.json")); abort "cohort schema must forbid extras" unless s.fetch("additionalProperties")==false; %w[assembly_accession_version taxid organism_name refseq_category assembly_level retrieval_utc datasets_version package_md5 included].each { |k| abort "cohort schema missing 11.1 field #{k}" unless s.fetch("required").include?(k) }; abort "cohort schema must fix 16-field order" unless s.fetch("required").size==16'
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/atlas_replicons.schema.json")); abort "replicons schema must forbid extras" unless s.fetch("additionalProperties")==false; %w[sequence_accession_version assembly_accession_version replicon_class declared_topology length_bp canonical_count ambiguous_count gc_fraction input_sha256 included exclusion_reason].each { |k| abort "replicons schema missing 11.2 field #{k}" unless s.fetch("required").include?(k) }; abort "replicons schema must fix 14-field order" unless s.fetch("required").size==14; abort "topology enum drift" unless s.dig("properties","declared_topology","enum")==["circular","linear","unknown"]'
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/excluded_records.schema.json")); abort "exclusions schema must forbid extras" unless s.fetch("additionalProperties")==false; %w[exclusion_level sequence_accession_version assembly_accession_version window_start window_end metric reason_code].each { |k| abort "exclusions schema missing 11.5 field #{k}" unless s.fetch("required").include?(k) }; abort "exclusions schema must fix 10-field order" unless s.fetch("required").size==10; abort "reason code enum drift" unless s.dig("properties","reason_code","enum")==["AMBIGUOUS_WINDOW","K_OUT_OF_CONFIGURED_RANGE","INSUFFICIENT_EFFECTIVE_KMERS"]'
 	@ruby -rjson -e 's=JSON.parse(File.read("toolchains/sounio.lock.json")); abort "wrong official remote" unless s.fetch("repository")=="https://github.com/sounio-lang/sounio.git"; abort "invalid Sounio commit" unless s.fetch("commit").match?(/\A[0-9a-f]{40}\z/)'
 	@! rg -n "Running Julia-only validation instead" julia/scripts/cross_validation.jl
 	@! rg -n "rm -rf julia/[M]anifest.toml" Makefile
@@ -157,6 +162,14 @@ mini-pipeline-differential-fixture:
 cohort-smoke-differential:
 	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
 		bash scripts/run_cohort_smoke_differential.sh
+
+# Engineering canonical products (Fase E): cohort_assemblies + atlas_replicons
+# (all four replicons) + excluded_records (all four) + window products for the
+# two plasmids, each recomputed byte-exact by independent Base-only Julia.
+# Engineering scope; not the pilot dataset and not a release receipt.
+cohort-products:
+	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
+		bash scripts/run_cohort_products.sh
 
 # Development-only FFI comparison. The publication gate will compare persisted
 # Sounio artifacts after the canonical producer exists.

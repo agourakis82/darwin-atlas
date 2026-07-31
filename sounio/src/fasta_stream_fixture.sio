@@ -66,6 +66,9 @@ var G_AT_LINE_START: bool = true
 var G_HEADER_TOKEN_DONE: bool = false
 var G_PIPELINE_MODE: bool = false
 var G_SIMPLE_KERNEL: bool = false
+var G_REPLICON_PROFILE_MODE: bool = false
+var G_EXCLUSIONS_MODE: bool = false
+var G_INPUT_SHA: string = ""
 var G_METADATA_TEXT: string = ""
 var G_META_SEQUENCE: string = ""
 var G_META_ASSEMBLY: string = ""
@@ -508,7 +511,7 @@ fn header_id_equals(text: string) -> bool with Mut, Panic, Div {
 }
 
 fn validate_header_metadata(offset: i64) with Mut, Panic, Div {
-    if !G_PIPELINE_MODE { return }
+    if !G_PIPELINE_MODE && !G_EXCLUSIONS_MODE && !G_REPLICON_PROFILE_MODE { return }
     if G_HEADER_ID_LEN <= 0 {
         set_error(fasta_err_empty_header(), offset, -1)
         return
@@ -848,11 +851,135 @@ fn print_kmer_metric_fields(k: i64) with IO, Mut, Panic, Div {
     print_ratio_6(rc_metric.numerator, rc_metric.denominator)
 }
 
+// ---------------------------------------------------------------------------
+// Product emitters (engineering-scope canonical products, spec 0.1.0 §11).
+//
+// --replicon-profile emits one atlas_replicons JSONL line per record from the
+// same per-record counters the summary mode reports; gc_fraction is the
+// six-decimal (C+G)/canonical ratio, null when the record has no canonical
+// bases. --exclusions replays the window pass and emits one excluded_records
+// JSONL line per excluded window (positional pair) and per unavailable k-mer
+// imbalance field, mirroring the window-line reason codes exactly.
+// ---------------------------------------------------------------------------
+
+fn emit_exclusion_prefix(exclusion_level: string, window_start: i64, window_end: i64) with IO {
+    // String literals are kept short: the native backend rotates literals of
+    // ~110+ bytes (the final byte wraps to the front of the printed string).
+    print("{\"schema_version\":\"0.1.0\",\"specification_version\":\"0.1.0\",")
+    print("\"metric_version\":\"0.1.0\",\"exclusion_level\":\"")
+    print(exclusion_level)
+    print("\",\"sequence_accession_version\":\"")
+    print(G_META_SEQUENCE)
+    print("\",\"assembly_accession_version\":\"")
+    print(G_META_ASSEMBLY)
+    print("\",\"window_start\":")
+    print_int(window_start)
+    print(",\"window_end\":")
+    print_int(window_end)
+    print(",\"metric\":\"")
+}
+
+fn emit_exclusion_positional(reason: string, window_start: i64, window_end: i64) with IO {
+    emit_exclusion_prefix("window", window_start, window_end)
+    print("positional\",\"reason_code\":\"")
+    print(reason)
+    print("\"}\n")
+}
+
+fn emit_exclusion_kmer(k: i64, complement: bool, reason: string, window_start: i64, window_end: i64) with IO {
+    emit_exclusion_prefix("metric", window_start, window_end)
+    if complement { print("rc_kmer_imbalance_") } else { print("reverse_kmer_imbalance_") }
+    print_int(k)
+    print("\",\"reason_code\":\"")
+    print(reason)
+    print("\"}\n")
+}
+
+fn emit_replicon_profile() with IO, Mut, Panic, Div {
+    let gc_count = SYMBOL_COUNTS[1] + SYMBOL_COUNTS[2]
+    // String literals are kept short: the native backend rotates literals of
+    // ~110+ bytes (the final byte wraps to the front of the printed string).
+    print("{\"schema_version\":\"0.1.0\",\"specification_version\":\"0.1.0\",")
+    print("\"metric_version\":\"0.1.0\",\"sequence_accession_version\":\"")
+    print(G_META_SEQUENCE)
+    print("\",\"assembly_accession_version\":\"")
+    print(G_META_ASSEMBLY)
+    print("\",\"replicon_class\":\"")
+    print(G_META_CLASS)
+    print("\",\"declared_topology\":\"")
+    print(G_META_TOPOLOGY)
+    print("\",\"length_bp\":")
+    print_int(G_SEQUENCE_LENGTH)
+    print(",\"canonical_count\":")
+    print_int(G_CANONICAL_COUNT)
+    print(",\"ambiguous_count\":")
+    print_int(G_AMBIGUOUS_COUNT)
+    print(",\"gc_fraction\":")
+    if G_CANONICAL_COUNT > 0 { print_ratio_6(gc_count, G_CANONICAL_COUNT) } else { print("null") }
+    print(",\"input_sha256\":\"")
+    print(G_INPUT_SHA)
+    print("\",\"included\":true,\"exclusion_reason\":null}\n")
+}
+
+// Effective masked k-mer count of the current window without the count
+// table: canonical runs of length >= k each contribute one valid k-mer. In
+// the window-line semantics availability is decided by
+// effective_count >= min_kmer_effective_count: with min >= 1, effective >= min
+// implies effective > 0, which forces at least one observed k-mer and hence a
+// positive orbit denominator (available == true); conversely effective < min
+// is exactly the INSUFFICIENT_EFFECTIVE_KMERS early return. The exclusions
+// mode therefore derives availability from this count alone, keeping the
+// per-replicon exclusions pass O(window) per k; the byte-exact Julia
+// differential independently recomputes the same lines.
+fn window_effective_kmer_count(k: i64) -> i64 with Mut, Panic, Div {
+    var run: i64 = 0
+    var effective: i64 = 0
+    var i: i64 = 0
+    while i < G_WINDOW_LEN {
+        let base = WINDOW_BASES[i as usize]
+        if base >= 0 && base <= 3 {
+            run = run + 1
+            if run >= k { effective = effective + 1 }
+        } else {
+            run = 0
+        }
+        i = i + 1
+    }
+    effective
+}
+
 fn emit_pipeline_window() with IO, Mut, Panic, Div {
     let partial = G_WINDOW_LEN < G_WINDOW_SIZE
     let canonical = window_is_canonical()
     let excluded = partial || !canonical
     let window_end = G_WINDOW_START + G_WINDOW_LEN
+
+    if G_EXCLUSIONS_MODE {
+        if partial {
+            emit_exclusion_positional("PARTIAL_WINDOW", G_WINDOW_START, window_end)
+        } else if !canonical {
+            emit_exclusion_positional("AMBIGUOUS_WINDOW", G_WINDOW_START, window_end)
+        }
+        var k: i64 = 1
+        while k <= KMER_ABS_MAX_K {
+            if k > G_K_MAX {
+                emit_exclusion_kmer(k, false, "K_OUT_OF_CONFIGURED_RANGE", G_WINDOW_START, window_end)
+                emit_exclusion_kmer(k, true, "K_OUT_OF_CONFIGURED_RANGE", G_WINDOW_START, window_end)
+            } else {
+                let effective = window_effective_kmer_count(k)
+                if effective < G_KMER_MIN_EFFECTIVE {
+                    emit_exclusion_kmer(k, false, "INSUFFICIENT_EFFECTIVE_KMERS", G_WINDOW_START, window_end)
+                    emit_exclusion_kmer(k, true, "INSUFFICIENT_EFFECTIVE_KMERS", G_WINDOW_START, window_end)
+                }
+            }
+            k = k + 1
+        }
+        G_WINDOW_START = window_end
+        G_WINDOW_LEN = 0
+        G_RECORD_WINDOW_INDEX = G_RECORD_WINDOW_INDEX + 1
+        G_WINDOWS_EMITTED = G_WINDOWS_EMITTED + 1
+        return
+    }
 
     var reverse_mismatches: i64 = 0
     var rc_mismatches: i64 = 0
@@ -982,7 +1109,11 @@ fn finish_record(offset: i64, byte: i64) with IO, Mut, Panic, Div {
         set_error(fasta_err_empty_sequence(), offset, byte)
         return
     }
-    if G_PIPELINE_MODE {
+    if G_REPLICON_PROFILE_MODE {
+        emit_replicon_profile()
+        return
+    }
+    if G_PIPELINE_MODE || G_EXCLUSIONS_MODE {
         if G_WINDOW_LEN > 0 { emit_pipeline_window() }
     } else {
         print_record()
@@ -1059,7 +1190,7 @@ fn process_fasta_byte(ch: i64, offset: i64) with IO, Mut, Panic, Div {
     }
     G_SEQUENCE_HASH = (G_SEQUENCE_HASH * 131 + index + 1) % FASTA_HASH_MODULUS
 
-    if G_PIPELINE_MODE {
+    if G_PIPELINE_MODE || G_EXCLUSIONS_MODE {
         WINDOW_BASES[G_WINDOW_LEN as usize] = index
         G_WINDOW_LEN = G_WINDOW_LEN + 1
         if G_WINDOW_LEN == G_WINDOW_SIZE {
@@ -1112,7 +1243,8 @@ fn parse_fasta_stream(path: string) -> i64 with IO, Mut, Panic, Div {
     }
 
     finish_record(G_BYTES_READ, -1)
-    if G_ERROR_CODE == fasta_ok() && G_PIPELINE_MODE && G_RECORD_INDEX != G_METADATA_COUNT {
+    let products_mode = G_PIPELINE_MODE || G_EXCLUSIONS_MODE || G_REPLICON_PROFILE_MODE
+    if G_ERROR_CODE == fasta_ok() && products_mode && G_RECORD_INDEX != G_METADATA_COUNT {
         set_error(fasta_err_metadata_mismatch(), G_BYTES_READ, -1)
     }
     G_ERROR_CODE
@@ -1134,15 +1266,19 @@ fn main() -> i64 with IO, Mut, Panic, Div {
     let argc = arg_count()
     let summary_mode = argc == 1
     let pipeline_mode = argc == 4 && (str_eq(get_arg(0), "--pipeline") || str_eq(get_arg(0), "--pipeline-reference"))
-    if !summary_mode && !pipeline_mode {
-        print("usage: fasta_stream_fixture <input.fa> | --pipeline <input.fa> <metadata.tsv> <parameters.flat> | --pipeline-reference <input.fa> <metadata.tsv> <parameters.flat>\n")
+    let exclusions_mode = argc == 4 && str_eq(get_arg(0), "--exclusions")
+    let profile_mode = argc == 5 && str_eq(get_arg(0), "--replicon-profile")
+    if !summary_mode && !pipeline_mode && !exclusions_mode && !profile_mode {
+        print("usage: fasta_stream_fixture <input.fa> | --pipeline <input.fa> <metadata.tsv> <parameters.flat> | --pipeline-reference <input.fa> <metadata.tsv> <parameters.flat> | --exclusions <input.fa> <metadata.tsv> <parameters.flat> | --replicon-profile <input.fa> <metadata.tsv> <parameters.flat> input_sha256=<64-hex>\n")
         return 64
     }
 
     reset_record()
     var input_path = get_arg(0)
-    if pipeline_mode {
-        G_PIPELINE_MODE = true
+    if pipeline_mode || exclusions_mode || profile_mode {
+        G_PIPELINE_MODE = pipeline_mode
+        G_EXCLUSIONS_MODE = exclusions_mode
+        G_REPLICON_PROFILE_MODE = profile_mode
         G_SIMPLE_KERNEL = str_eq(get_arg(0), "--pipeline-reference")
         input_path = get_arg(1)
         if !load_parameters(get_arg(3)) {
@@ -1153,6 +1289,16 @@ fn main() -> i64 with IO, Mut, Panic, Div {
             print_error()
             return G_ERROR_CODE
         }
+        if profile_mode {
+            let spec = get_arg(4)
+            let spec_ok = str_len(spec) == 77 && str_eq(str_span(spec, 0, 13), "input_sha256=") && is_hex_sha256(str_span(spec, 13, 77))
+            if !spec_ok {
+                set_error(fasta_err_param_invalid(), 0, -1)
+                print_error()
+                return G_ERROR_CODE
+            }
+            G_INPUT_SHA = str_span(spec, 13, 77)
+        }
     }
 
     let code = parse_fasta_stream(input_path)
@@ -1161,7 +1307,7 @@ fn main() -> i64 with IO, Mut, Panic, Div {
         return code
     }
 
-    if pipeline_mode { return 0 }
+    if pipeline_mode || exclusions_mode || profile_mode { return 0 }
 
     print("DOSA_SOUNIO_FASTA_STREAM_OK records=")
     print_int(G_RECORD_INDEX)

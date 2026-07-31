@@ -2,8 +2,8 @@
 
 **Observed:** 2026-07-31
 
-**Base commit:** the complete-replicon smoke commit updating this file on
-branch `codex/sounio-primary-wip` (previous published baseline: `d0853c1`);
+**Base commit:** the canonical-products commit updating this file on branch
+`codex/sounio-primary-wip` (previous published baseline: `792be9d`);
 the evidence below was produced from that exact tree.
 
 **Specification:** 0.1.0 normative draft
@@ -37,6 +37,8 @@ from older pins or older source hashes is stale and was regenerated.
 | Window JSONL schema 0.2.0 validation | PASS | All 96 persisted lines validate against `schemas/window_operator_profile.schema.json` with exact 90-field order; both parameter fixtures validate against `schemas/pipeline_parameters.schema.json`; all eight invalid parameter fixtures are rejected |
 | Frozen miniature complete-replicon cohort | PASS | Two complete RefSeq assemblies (four circular replicons) acquired with the official NCBI Datasets CLI 18.34.0 and frozen under `data/cohort/mini/`; official NCBI per-file MD5 closure holds for every committed package-derived file; FASTA record lengths match the official sequence reports for all four replicons; `sha256sum -c data/cohort/mini/SHA256SUMS` passes inside `make contract` |
 | Complete-replicon engineering smoke | PASS | Optimized kernel ran end to end on plasmid `NC_002127.1` (3,306 bp, circular, pure ACGT) from the frozen cohort: 207 JSONL lines (206 full + one 10 bp partial window) in 4 s wall on the Lima guest, two runs byte-identical (sha256 `b92eac46e3ebd220ddfb99d71676b7c60ccbef57f8e8bb9d3530388435b701cf`), independent Julia recomputation byte-exact (207/207 windows, tolerance 0); engineering smoke, not the pilot and not a release receipt |
+| Canonical product schemas | PASS | `cohort_assemblies`, `atlas_replicons`, and `excluded_records` schemas 0.1.0 parse and fix field order/reason-code enums; contract assertions in `make contract` |
+| Engineering canonical products (Fase E) | PASS | All four replicons: Sounio `--replicon-profile` and `--exclusions` products emitted and recomputed byte-exact in Julia (4 profiles, 38 exclusions, tolerance 0); plasmid window products (207 + 5,796 lines) byte-identical across two runs and byte-exact vs the independent Julia recomputation (6,003/6,003 windows); cohort product rebuilt independently from the frozen manifest; chromosome window products deferred to the Fase I benchmark; engineering scope, not the pilot dataset |
 | Corrupted-artifact detector check | PASS | Julia rejects a one-digit perturbation of the persisted JSONL (positional and k-mer fields) |
 | Canonical pipeline with missing Sounio producer | BLOCKED as designed, exit 2 | `make pipeline` |
 | Mini-pipeline with missing `SOUNIO_REPO` | BLOCKED as designed, exit 2 | `scripts/run_sounio_mini_pipeline.sh` |
@@ -78,12 +80,12 @@ FASTA fixture evidence identifiers:
 
 Mini-pipeline evidence identifiers:
 
-- pipeline source SHA256: `1eaa5dbb969d18eb19f91bce3b4e4400c637089a0e2583bda044d7407d7a8dc5`
+- pipeline source SHA256: `44e5db4a5b000a8175f3b8bbd732d394c997f8d78f04164d56046552d8798ea7`
   (the mini-pipeline is the `--pipeline`/`--pipeline-reference` mode of the
   same `sounio/src/fasta_stream_fixture.sio`; source and ELF changed relative
-  to the previous snapshot because the optimized kernel now evaluates orbits
-  over observed codes only; the reference kernel is unchanged);
-- compiled mini-pipeline ELF SHA256: `3d9ab90be9b567da3c7f4fdb2931bf5307e3e934be0593236c7fdfbc12bed68f`;
+  to the previous snapshot because the file gained the `--replicon-profile`
+  and `--exclusions` product modes; the pipeline kernels are unchanged);
+- compiled mini-pipeline ELF SHA256: `443db0831e6c29dd4711fcf34894430f39ed240dba3c52cfcbe9133173a0b156`;
 - frozen inputs (also in `data/fixtures/mini_pipeline/SHA256SUMS`):
   - `pipeline_fixture.fa` SHA256: `52837bc09d6394badf8373952142df05d478869d1ebca1046565c5e24f9ab35e` (unchanged);
   - `pipeline_k8_fixture.fa` SHA256: `4c8af28b13c85cc14394312dbd106b32aefa3d3e056550ee2ef484fea0517c75`;
@@ -145,10 +147,40 @@ Complete-replicon smoke evidence identifiers (`data/fixtures/cohort_smoke/`):
 - persisted smoke JSONL artifact SHA-256
   `b92eac46e3ebd220ddfb99d71676b7c60ccbef57f8e8bb9d3530388435b701cf`
   (207 lines, 90 fields per line; two optimized runs byte-identical);
-- smoke ELF SHA-256 `3d9ab90be9b567da3c7f4fdb2931bf5307e3e934be0593236c7fdfbc12bed68f`
+- smoke ELF SHA-256 `443db0831e6c29dd4711fcf34894430f39ed240dba3c52cfcbe9133173a0b156`
   (identical to the mini-pipeline ELF above — same source, same pin);
 - optimized-kernel wall time: 4 s for 207 windows on the Lima `souc-linux`
   x86-64 guest (`DOSA_PIPELINE_TIMING` in the smoke runner log).
+
+Engineering canonical products evidence identifiers (Fase E,
+`scripts/run_cohort_products.sh`):
+
+- product schemas: `schemas/cohort_assemblies.schema.json`,
+  `schemas/atlas_replicons.schema.json`, `schemas/excluded_records.schema.json`
+  (all 0.1.0, fixed field order, `additionalProperties: false`);
+- `cohort_assemblies.jsonl` SHA-256
+  `dda64346e767bc65bc4d74f4590363768755b56b3b58ac6241b2cca79c5f81a5`
+  (2 lines; mechanical fixed-order transform of the frozen manifest, no
+  scientific observations);
+- `atlas_replicons.jsonl` SHA-256
+  `5037581e2e339c2cab5fd2d910252c5cb3ca327e20318889fd33cfb7cdeace8e`
+  (4 lines, one per replicon, Sounio `--replicon-profile`);
+- `excluded_records.jsonl` SHA-256
+  `675e77982e03bd1a0c95c6a856fdeda399a14fcd24d59c058d0c48a6f36d19d0`
+  (38 lines: 4 partial-window positional exclusions plus k-mer
+  below-threshold exclusions on the partial windows; Sounio `--exclusions`);
+- plasmid window products: pOSAK1 207 lines SHA-256
+  `b92eac46e3ebd220ddfb99d71676b7c60ccbef57f8e8bb9d3530388435b701cf`
+  (byte-identical to the smoke artifact — same input, same parameters) and
+  pO157 5,796 lines SHA-256
+  `ead81fbcf81877711303d57ef20f41108faeaacffd718d100a30e3b68fb0e40d`;
+- independent Julia recomputation: both plasmid window products byte-exact
+  (6,003/6,003 windows) and all three non-window products byte-exact
+  (4 replicon profiles, 38 exclusions, cohort product rebuilt from the
+  frozen manifest), tolerance 0;
+- timings on the Lima guest: chromosome exclusions passes 22-27 s each
+  (O(n) availability rule), pO157 window product 125 s for 5,796 windows;
+- chromosome-scale window products remain deferred to the Fase I benchmark.
 
 ## Pinned upstream compatibility findings
 
@@ -159,6 +191,16 @@ argument, and `str_from_bytes` resolves only local array handles, not globals
 bounded spans by copying bytes into a local buffer before `str_from_bytes`,
 and compares header tokens byte by byte. Any future upstream bump must re-run
 all fixture gates.
+
+Two further constraints were observed while adding the product emitters.
+First, `level` is a reserved word: a function parameter named `level` makes
+the parser fail with an unlocated "Parse failed for module 0: 1 errors"
+diagnostic. Second, string literals of ~110 or more bytes are rotated by the
+native backend — the final byte wraps to the front of the printed string
+(observed with a 110-byte JSON prefix, which printed as `"` + first 109
+bytes). All emitted literals are therefore kept short and JSON lines are
+assembled from multiple `print` calls; the byte-exact Julia differential
+would catch any regression here.
 
 A third constraint was observed in this snapshot: local arrays declared
 inside hot functions allocate from a compiler arena that is never reclaimed
@@ -185,20 +227,21 @@ labeled as SHA-256, 256-character analysis cap).
 | Gate | State | Missing evidence |
 |---|---|---|
 | G0 source/compiler binding | PARTIAL | official compiler/source/executable hashes recorded; atlas tree is not a clean released commit |
-| G1 Sounio executable fixtures | PARTIAL | positional, streaming FASTA, and parameterized mini-pipeline fixtures (positional + masked k-mer k=1..8 with dual kernels and strict parameter validation) execute; a complete-replicon engineering smoke (NC_002127.1, 207 windows) executes with Julia byte-exact agreement; the full frozen cohort has not yet run |
-| G2 miniature NCBI end-to-end fixture | PASS (fixture scope + single-replicon smoke) | frozen NCBI-prefix + synthetic fixtures run end to end through Sounio to deterministic JSONL at the full predeclared k=1..8 pilot range; one complete cohort replicon (NC_002127.1) now also runs end to end with byte-exact Julia agreement as an engineering smoke; the remaining three replicons and the canonical products are pending |
-| G3 independent Julia differential validation | PARTIAL | operator, six FASTA cases, both mini-pipeline JSONL artifacts (96/96 windows), and the complete-replicon smoke (207/207 windows on NC_002127.1) reproduced byte-exact at tolerance 0, including independently derived parameter-error offsets; deterministic atlas sample absent |
-| G4 schema/provenance/checksum closure | PARTIAL | receipt, window JSONL 0.2.0, and pipeline parameter schemas exist; mini-pipeline input checksum closure verified (including parameter fixtures); frozen cohort checksum closure verified against official NCBI MD5s; no real receipt or canonical artifacts |
+| G1 Sounio executable fixtures | PARTIAL | positional, streaming FASTA, and parameterized mini-pipeline fixtures (positional + masked k-mer k=1..8 with dual kernels and strict parameter validation) execute; complete-replicon smoke and product modes (`--replicon-profile`, `--exclusions`) execute on the frozen cohort; the metamorphic suite of spec §12.1 remains absent |
+| G2 miniature NCBI end-to-end fixture | PASS (fixture scope + engineering products) | frozen NCBI-prefix + synthetic fixtures run end to end through Sounio to deterministic JSONL at the full predeclared k=1..8 pilot range; the frozen cohort additionally yields byte-validated engineering products: replicon profiles and exclusions for all four replicons and window products for both plasmids; chromosome-scale window products and the canonical pilot run are pending |
+| G3 independent Julia differential validation | PARTIAL | operator, six FASTA cases, both mini-pipeline JSONL artifacts (96/96 windows), the complete-replicon smoke (207/207 windows), both plasmid window products (6,003/6,003 windows), and the three non-window products (4 profiles, 38 exclusions, cohort rebuild) reproduced byte-exact at tolerance 0; deterministic stratified atlas sample per spec §12.2 absent |
+| G4 schema/provenance/checksum closure | PARTIAL | receipt, window JSONL 0.2.0, pipeline parameter, and the three product schemas exist; mini-pipeline input checksum closure verified (including parameter fixtures); frozen cohort checksum closure verified against official NCBI MD5s; no real receipt or release-scope canonical artifacts |
 | G5 scale benchmark | RED | no pilot executable; the only scale data points are fixture-level timings (k8 fixture 57.2 s -> 1.8 s after the orbit-set optimization; NC_002127.1 smoke 207 windows in 4 s wall) |
 | G6 DOI-ready immutable bundle | RED | upstream gates incomplete |
 
 ## Next implementation slice
 
-1. Emit the canonical products (cohort/replicons/windows/exclusions) with a
-   two-stage Sounio run receipt bound to a clean released commit, starting
-   with the frozen miniature cohort in `data/cohort/mini/`.
-2. Add the deterministic Julia atlas sample and null-model fixtures; set the
-   pilot `min_kmer_effective_count` per proposed ADR-0002.
+1. Emit the two-stage Sounio run receipt bound to a clean released commit
+   over the engineering products (Fase H), then extend the product set with
+   chromosome-scale window artifacts under the Fase I benchmark.
+2. Add the deterministic stratified Julia atlas sample (spec §12.2) and the
+   null-model fixtures (additive window schema 0.3.0); set the pilot
+   `min_kmer_effective_count` per proposed ADR-0002.
 3. Repair or replace the local Julia 1.12.2 project environment so the
    validator-development test suite can run.
 4. Run the G5 scale benchmark and assemble the G6 release bundle.

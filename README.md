@@ -10,10 +10,11 @@ bacterial RefSeq replicons.
 > predeclared pilot range k=1..8, under two byte-equivalent kernels) now pass
 > independent Julia checks. A frozen miniature cohort of four complete
 > circular RefSeq replicons (two assemblies, official NCBI checksum closure)
-> is pinned in [`data/cohort/mini/`](data/cohort/mini/README.md); the smallest
-> replicon (plasmid NC_002127.1, 207 windows) already runs end to end as an
-> engineering smoke with byte-exact Julia agreement. Julia remains a
-> validator, never the canonical producer.
+> is pinned in [`data/cohort/mini/`](data/cohort/mini/README.md); engineering
+> canonical products (cohort/replicons/exclusions for all four replicons,
+> window products for both plasmids) are emitted by Sounio and reproduced
+> byte-exact by independent Julia. Julia remains a validator, never the
+> canonical producer.
 
 ## Scientific scope
 
@@ -133,6 +134,13 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 # release receipt)
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make cohort-smoke-differential
+
+# Engineering canonical products (Fase E): cohort_assemblies (all assemblies),
+# atlas_replicons + excluded_records (all four replicons), and window products
+# for both plasmids, each recomputed byte-exact in independent Base-only
+# Julia (engineering scope; chromosome windows deferred to the benchmark)
+SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
+  make cohort-products
 
 # Must fail unless both implementations are actually available
 make cross-validate

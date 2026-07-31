@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/excluded_records.schema.json",
+  "title": "DOSA excluded_records product line",
+  "description": "One excluded_records JSONL line per excluded window or metric (specification 0.1.0 section 11.5), with stable reason codes and enough coordinates to reproduce the decision. Window-level exclusions use metric=\"positional\" (the delta_R/delta_RC pair is unavailable together under the canonical_only policy); metric-level exclusions name the exact k-mer imbalance field. An empty excluded_records.jsonl (zero lines) is a valid product asserting that no exclusion occurred. Field order is fixed as listed in required and is enforced byte-exact by the differential validator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "specification_version",
+    "metric_version",
+    "exclusion_level",
+    "sequence_accession_version",
+    "assembly_accession_version",
+    "window_start",
+    "window_end",
+    "metric",
+    "reason_code"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "specification_version": {
+      "const": "0.1.0"
+    },
+    "metric_version": {
+      "const": "0.1.0"
+    },
+    "exclusion_level": {
+      "enum": ["window", "metric"]
+    },
+    "sequence_accession_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assembly_accession_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "window_start": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "window_end": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metric": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason_code": {
+      "enum": [
+        "AMBIGUOUS_WINDOW",
+        "K_OUT_OF_CONFIGURED_RANGE",
+        "INSUFFICIENT_EFFECTIVE_KMERS"
+      ]
+    }
+  }
+}

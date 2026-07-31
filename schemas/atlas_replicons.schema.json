@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/atlas_replicons.schema.json",
+  "title": "DOSA atlas_replicons product line",
+  "description": "One atlas_replicons JSONL line per replicon record (specification 0.1.0 section 11.2). Length, canonical/ambiguous base counts, and GC fraction are scientific observations produced only by the Sounio executable from the FASTA bytes; Julia independently recomputes them byte-exact. gc_fraction is (count G + count C) / canonical_count rendered with exactly six decimals, null when canonical_count is zero. input_sha256 is the orchestrator-computed SHA-256 of the exact FASTA file bytes the executable read, echoed by the executable into the line. Field order is fixed as listed in required and is enforced byte-exact by the differential validator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "specification_version",
+    "metric_version",
+    "sequence_accession_version",
+    "assembly_accession_version",
+    "replicon_class",
+    "declared_topology",
+    "length_bp",
+    "canonical_count",
+    "ambiguous_count",
+    "gc_fraction",
+    "input_sha256",
+    "included",
+    "exclusion_reason"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "specification_version": {
+      "const": "0.1.0"
+    },
+    "metric_version": {
+      "const": "0.1.0"
+    },
+    "sequence_accession_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assembly_accession_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "replicon_class": {
+      "type": "string",
+      "minLength": 1
+    },
+    "declared_topology": {
+      "enum": ["circular", "linear", "unknown"]
+    },
+    "length_bp": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "canonical_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ambiguous_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "gc_fraction": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "included": {
+      "type": "boolean"
+    },
+    "exclusion_reason": {
+      "type": ["string", "null"]
+    }
+  }
+}

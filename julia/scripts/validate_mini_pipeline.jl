@@ -65,6 +65,11 @@ const CASE_SPECS = if CASE_SET == "fixture"
 ]
 elseif CASE_SET == "cohort_smoke"
     [(name="smoke_pOSAK1", fasta="nc_002127_1.fa", metadata="nc_002127_1_metadata.tsv", params="smoke_pOSAK1", rc=0)]
+elseif CASE_SET == "cohort_plasmids"
+    [
+    (name="windows_pOSAK1", fasta="pOSAK1/record.fa", metadata="pOSAK1/metadata.tsv", params="windows_pOSAK1", rc=0),
+    (name="windows_pO157", fasta="pO157/record.fa", metadata="pO157/metadata.tsv", params="windows_pO157", rc=0),
+]
 else
     error("unknown case set: $CASE_SET")
 end
