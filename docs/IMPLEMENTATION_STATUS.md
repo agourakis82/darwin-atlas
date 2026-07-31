@@ -2,8 +2,8 @@
 
 **Observed:** 2026-07-31
 
-**Base commit:** the miniature-cohort freeze commit updating this file on
-branch `codex/sounio-primary-wip` (previous published baseline: `cd4ef31`);
+**Base commit:** the k-mer orbit-set optimization commit updating this file
+on branch `codex/sounio-primary-wip` (previous published baseline: `40568f9`);
 the evidence below was produced from that exact tree.
 
 **Specification:** 0.1.0 normative draft
@@ -29,7 +29,8 @@ from older pins or older source hashes is stale and was regenerated.
 | Base-only Julia FASTA differential fixture | PASS | Six valid/error cases, two records, counts/hash/offsets exact at tolerance 0 |
 | Frozen mini-pipeline through Sounio | PASS | Parameterized FASTA streaming + metadata TSV association + strict flat parameter validation + non-overlapping windows + `delta_R`/`delta_RC` + masked k-mer composition k=1..8 + explicit exclusions + deterministic JSONL schema 0.2.0; 12 lines (4/4) and 84 lines (16/16) |
 | Masked k-mer composition (fixture scope, k=1..8) | PASS | Orbit-paired `reverse_kmer_imbalance_<k>`/`rc_kmer_imbalance_<k>` for k=1..8; explicit `K_OUT_OF_CONFIGURED_RANGE` and `INSUFFICIENT_EFFECTIVE_KMERS` reasons; unavailable combinations null, never zero-filled; k-mer fields independent of positional `status` |
-| Dual k-mer kernel equivalence | PASS | Scale-oriented rolling-table kernel (`--pipeline`, one fixed 512 KiB 4^8 table) and simple reference kernel (`--pipeline-reference`) required byte-identical on every valid fixture; two optimized runs + one reference run agree on 12/12 (k4) and 84/84 (k8) lines |
+| Dual k-mer kernel equivalence | PASS | Scale-oriented rolling-table kernel (`--pipeline`, one fixed 512 KiB 4^8 table, orbits evaluated over observed codes only — including zero-representative orbits) and simple reference kernel (`--pipeline-reference`) required byte-identical on every valid fixture; two optimized runs + one reference run agree on 12/12 (k4) and 84/84 (k8) lines |
+| Optimized kernel wall time (k8 fixture) | PASS | Observed-orbit iteration reduced the optimized `--pipeline` k8 fixture run (16 windows, k=1..8, both transforms) from 57.2 s to 1.8 s wall (~3.6 s to ~0.11 s per window) on the Lima `souc-linux` x86-64 guest, with byte-identical JSONL; the full 4^k scan would project to ~290 h for one 4.6 Mbp chromosome at 16/16 windows, the observed-orbit scan to ~9 h |
 | Parameter artifact validation | PASS | Canonical JSON hashed and rendered to strict 13-line flat form by the runner; executable revalidates keys/order/domains; eight frozen negative parameter fixtures fail with `PARAM_INVALID` (exit 11) at exact byte offsets |
 | Negative metadata fixtures | PASS | `METADATA_INVALID` (exit 9) and two `METADATA_MISMATCH` (exit 10) cases with exact record/offset/byte tuples |
 | Base-only Julia mini-pipeline differential | PASS | Independent recomputation matches both persisted JSONL artifacts byte for byte (96/96 windows, tolerance 0) and every negative error tuple exactly (3 metadata + 8 parameter, offsets re-derived from the flat bytes); invariants asserted: denominator == effective_count, `reverse_kmer_imbalance_1_numerator == 0`, ratios in [0,1], transforms are involutions, masked k-mers never cross ambiguity, unavailable implies below-threshold count |
@@ -76,12 +77,12 @@ FASTA fixture evidence identifiers:
 
 Mini-pipeline evidence identifiers:
 
-- pipeline source SHA256: `7c2ceb790c7b62dd770f343a79f1dae9ef4b4c75beef8d128b2f0b3bbc99803f`
+- pipeline source SHA256: `1eaa5dbb969d18eb19f91bce3b4e4400c637089a0e2583bda044d7407d7a8dc5`
   (the mini-pipeline is the `--pipeline`/`--pipeline-reference` mode of the
   same `sounio/src/fasta_stream_fixture.sio`; source and ELF changed relative
-  to the previous snapshot because the pipeline was parameterized and extended
-  to k=1..8 with dual kernels);
-- compiled mini-pipeline ELF SHA256: `9bb6824a61c09d9f49122a8d630d5992979ccf863d868bb8bb5906c8010a06a5`;
+  to the previous snapshot because the optimized kernel now evaluates orbits
+  over observed codes only; the reference kernel is unchanged);
+- compiled mini-pipeline ELF SHA256: `3d9ab90be9b567da3c7f4fdb2931bf5307e3e934be0593236c7fdfbc12bed68f`;
 - frozen inputs (also in `data/fixtures/mini_pipeline/SHA256SUMS`):
   - `pipeline_fixture.fa` SHA256: `52837bc09d6394badf8373952142df05d478869d1ebca1046565c5e24f9ab35e` (unchanged);
   - `pipeline_k8_fixture.fa` SHA256: `4c8af28b13c85cc14394312dbd106b32aefa3d3e056550ee2ef484fea0517c75`;

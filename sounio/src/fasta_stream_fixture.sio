@@ -36,6 +36,7 @@ var SYMBOL_COUNTS: [i64; 15] = [0; 15]
 var HEADER_ID_BUF: [i8; 256] = [0; 256]
 var WINDOW_BASES: [i64; 16] = [0; 16]
 var KMER_COUNTS: [i64; 65536] = [0; 65536]
+var OBSERVED_CODES: [i64; 64] = [0; 64]
 
 var G_ERROR_CODE: i64 = 0
 var G_ERROR_OFFSET: i64 = 0
@@ -58,6 +59,7 @@ var G_WINDOW_SIZE: i64 = 0
 var G_STRIDE: i64 = 0
 var G_K_MAX: i64 = 0
 var G_KMER_MIN_EFFECTIVE: i64 = 0
+var G_OBSERVED_COUNT: i64 = 0
 var G_HAVE_HEADER: bool = false
 var G_IN_HEADER: bool = false
 var G_AT_LINE_START: bool = true
@@ -647,9 +649,14 @@ fn compute_kmer_metric(k: i64, complement: bool) -> KmerMetric with Mut, Panic, 
 // One fixed 4^8 i64 table (512 KiB), independent of replicon size, zeroed
 // deterministically per window and k. Counting is a single rolling pass over
 // the window: ambiguity resets the rolling code, so masked k-mers never span
-// an ambiguous symbol. Orbits are evaluated after counting; each unordered
-// orbit {u,T(u)} is processed exactly once at min(code, partner), including
-// orbits whose representative has count zero. The reference kernel above
+// an ambiguous symbol. The counting pass also records each code at its first
+// observation (at most WINDOW_LEN distinct codes per window, so a 64-slot
+// global list cannot overflow at the current 16 bp maximum window). Orbits
+// are evaluated over the observed codes only, never over the full 4^k space:
+// each unordered orbit {u,T(u)} contributes exactly once — at the observed
+// smaller member, at a self-transformed member, or at an observed larger
+// member whose transform was never observed (the zero-representative case a
+// naive observed-only scan would miss). The reference kernel above
 // (compute_kmer_metric) must produce identical results on every fixture.
 // ---------------------------------------------------------------------------
 
@@ -674,6 +681,10 @@ fn count_kmers_rolling(k: i64) -> i64 with Mut, Panic, Div {
             code = (code * 4 + base) % limit
             run = run + 1
             if run >= k {
+                if KMER_COUNTS[code as usize] == 0 {
+                    OBSERVED_CODES[G_OBSERVED_COUNT as usize] = code
+                    G_OBSERVED_COUNT = G_OBSERVED_COUNT + 1
+                }
                 KMER_COUNTS[code as usize] = KMER_COUNTS[code as usize] + 1
                 effective = effective + 1
             }
@@ -688,6 +699,7 @@ fn count_kmers_rolling(k: i64) -> i64 with Mut, Panic, Div {
 
 fn compute_kmer_metric_optimized(k: i64, complement: bool) -> KmerMetric with Mut, Panic, Div {
     zero_kmer_table(k)
+    G_OBSERVED_COUNT = 0
     let effective_count = count_kmers_rolling(k)
     if effective_count < G_KMER_MIN_EFFECTIVE {
         return KmerMetric {
@@ -698,26 +710,37 @@ fn compute_kmer_metric_optimized(k: i64, complement: bool) -> KmerMetric with Mu
         }
     }
 
+    // Iterate the observed codes only. For each observed u with v = T(u):
+    //   u < v  -> process the pair here (the full scan would process it at u);
+    //   u == v -> self-transformed: denominator takes the count once;
+    //   u > v  -> the orbit representative is v: skip when v was also observed
+    //             (the pair is processed at v), but when v was never observed
+    //             the full scan would still process the orbit at v with a zero
+    //             representative, contributing |0 - count(u)| = count(u) to
+    //             both numerator and denominator. Handle that case here.
     var numerator: i64 = 0
     var denominator: i64 = 0
-    var code: i64 = 0
-    let limit = pow4(k)
-    while code < limit {
+    var obs: i64 = 0
+    while obs < G_OBSERVED_COUNT {
+        let code = OBSERVED_CODES[obs as usize]
         let partner = kmer_transform(code, k, complement)
-        if code <= partner {
-            let left = KMER_COUNTS[code as usize]
+        let left = KMER_COUNTS[code as usize]
+        if code < partner {
+            let right = KMER_COUNTS[partner as usize]
+            let difference = if left >= right { left - right } else { right - left }
+            numerator = numerator + difference
+            denominator = denominator + left + right
+        } else {
             if code == partner {
                 denominator = denominator + left
             } else {
-                let right = KMER_COUNTS[partner as usize]
-                if left > 0 || right > 0 {
-                    let difference = if left >= right { left - right } else { right - left }
-                    numerator = numerator + difference
-                    denominator = denominator + left + right
+                if KMER_COUNTS[partner as usize] == 0 {
+                    numerator = numerator + left
+                    denominator = denominator + left
                 }
             }
         }
-        code = code + 1
+        obs = obs + 1
     }
 
     KmerMetric {
