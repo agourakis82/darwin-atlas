@@ -2,6 +2,7 @@
 	sounio sounio-fixture operator-differential-fixture compile-sounio-fixture \
 	sounio-fasta-fixture fasta-differential-fixture \
 	sounio-mini-pipeline mini-pipeline-differential-fixture \
+	cohort-smoke-differential \
 	cross-validate pipeline release-gate \
 	legacy-julia-pipeline legacy-export-knowledge legacy-verify-knowledge clean
 
@@ -29,6 +30,7 @@ help:
 	@echo "  fasta-differential-fixture  Sounio FASTA artifact + independent Base-only Julia check"
 	@echo "  sounio-mini-pipeline    Run frozen FASTA+metadata mini-pipeline in pinned Sounio"
 	@echo "  mini-pipeline-differential-fixture  Sounio JSONL + independent Base-only Julia check"
+	@echo "  cohort-smoke-differential  Complete-replicon engineering smoke + Julia byte-exact check"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"
 	@echo "  release-gate            Full publication gate (red until pipeline is ready)"
@@ -87,6 +89,13 @@ contract:
 	@ruby -e 'rows=File.readlines("data/cohort/mini/replicons.tsv",chomp:true); abort "replicons.tsv must have header + 4 rows" unless rows.size==5; abort "all mini replicons must be declared circular" unless rows.drop(1).all?{|l| l.split("\t")[4]=="circular"}; abort "replicon scope must be ncbi_complete_replicon" unless rows.drop(1).all?{|l| l.split("\t")[5]=="ncbi_complete_replicon"}'
 	@cd data/cohort/mini && ruby -rdigest -e 'md5s=File.readlines("ncbi_md5sum.txt",chomp:true).map{|l| l.split}; md5s.each{|md5,rel| p=rel.sub(%r{\Ancbi_dataset/data/},""); parts=p.split("/"); target = if parts[0].start_with?("GCF_") then (parts[1].end_with?(".fna") ? "assemblies/#{parts[0]}/#{parts[1]}" : "sequence_report.#{parts[0]}.jsonl") else parts[-1] end; actual=Digest::MD5.file(target).hexdigest; abort "NCBI md5 mismatch: #{target}" unless actual==md5 }'
 	@cd data/fixtures/mini_pipeline && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
+	@test -s data/fixtures/cohort_smoke/nc_002127_1.fa
+	@test -s data/fixtures/cohort_smoke/nc_002127_1_metadata.tsv
+	@test -s data/fixtures/cohort_smoke/parameters_k8.json
+	@cd data/fixtures/cohort_smoke && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
+	@ruby -rjson -e 'p=JSON.parse(File.read("data/fixtures/cohort_smoke/parameters_k8.json")); abort "cohort smoke parameters drifted" unless p["window_size"]==16 && p["stride"]==16 && p["k_min"]==1 && p["k_max"]==8 && p["min_kmer_effective_count"]==1'
+	@ruby -e 'rows=File.readlines("data/fixtures/cohort_smoke/nc_002127_1_metadata.tsv",chomp:true); abort "smoke metadata must have header + 1 row" unless rows.size==2; f=rows[1].split("\t"); abort "smoke metadata drifted" unless f==["1","NC_002127.1","GCF_000008865.2","plasmid","circular","ncbi_complete_replicon"]'
+	@ruby -e 'fa=File.readlines("data/fixtures/cohort_smoke/nc_002127_1.fa",chomp:true); abort "smoke FASTA header drifted" unless fa[0].start_with?(">NC_002127.1 "); seq=fa.drop(1).join; abort "smoke FASTA length drifted" unless seq.length==3306; abort "smoke FASTA alphabet drifted" unless seq.match?(/\A[ACGT]+\z/)'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/pipeline_parameters.schema.json")); abort "parameters schema must forbid extras" unless s.fetch("additionalProperties")==false; %w[schema_version specification_version window_size stride k_min k_max min_kmer_effective_count positional_ambiguity_policy kmer_ambiguity_policy coordinate_system window_wraparound output_order].each { |k| abort "parameters schema missing required #{k}" unless s.fetch("required").include?(k) }'
 	@ruby -rjson -e 'p=JSON.parse(File.read("data/fixtures/mini_pipeline/parameters_k4.json")); abort "k4 fixture drifted" unless p["window_size"]==4 && p["stride"]==4 && p["k_min"]==1 && p["k_max"]==4 && p["min_kmer_effective_count"]==1'
 	@ruby -rjson -e 'p=JSON.parse(File.read("data/fixtures/mini_pipeline/parameters_k8.json")); abort "k8 fixture drifted" unless p["window_size"]==16 && p["stride"]==16 && p["k_min"]==1 && p["k_max"]==8 && p["min_kmer_effective_count"]==1'
@@ -141,6 +150,13 @@ sounio-mini-pipeline:
 mini-pipeline-differential-fixture:
 	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
 		bash scripts/run_mini_pipeline_differential.sh
+
+# Complete-replicon engineering smoke (NC_002127.1, 207 windows): optimized
+# kernel twice for determinism + independent Julia byte-exact recomputation.
+# Engineering smoke only; not the pilot and not a release receipt.
+cohort-smoke-differential:
+	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
+		bash scripts/run_cohort_smoke_differential.sh
 
 # Development-only FFI comparison. The publication gate will compare persisted
 # Sounio artifacts after the canonical producer exists.

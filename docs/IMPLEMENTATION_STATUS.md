@@ -2,8 +2,8 @@
 
 **Observed:** 2026-07-31
 
-**Base commit:** the k-mer orbit-set optimization commit updating this file
-on branch `codex/sounio-primary-wip` (previous published baseline: `40568f9`);
+**Base commit:** the complete-replicon smoke commit updating this file on
+branch `codex/sounio-primary-wip` (previous published baseline: `d0853c1`);
 the evidence below was produced from that exact tree.
 
 **Specification:** 0.1.0 normative draft
@@ -36,6 +36,7 @@ from older pins or older source hashes is stale and was regenerated.
 | Base-only Julia mini-pipeline differential | PASS | Independent recomputation matches both persisted JSONL artifacts byte for byte (96/96 windows, tolerance 0) and every negative error tuple exactly (3 metadata + 8 parameter, offsets re-derived from the flat bytes); invariants asserted: denominator == effective_count, `reverse_kmer_imbalance_1_numerator == 0`, ratios in [0,1], transforms are involutions, masked k-mers never cross ambiguity, unavailable implies below-threshold count |
 | Window JSONL schema 0.2.0 validation | PASS | All 96 persisted lines validate against `schemas/window_operator_profile.schema.json` with exact 90-field order; both parameter fixtures validate against `schemas/pipeline_parameters.schema.json`; all eight invalid parameter fixtures are rejected |
 | Frozen miniature complete-replicon cohort | PASS | Two complete RefSeq assemblies (four circular replicons) acquired with the official NCBI Datasets CLI 18.34.0 and frozen under `data/cohort/mini/`; official NCBI per-file MD5 closure holds for every committed package-derived file; FASTA record lengths match the official sequence reports for all four replicons; `sha256sum -c data/cohort/mini/SHA256SUMS` passes inside `make contract` |
+| Complete-replicon engineering smoke | PASS | Optimized kernel ran end to end on plasmid `NC_002127.1` (3,306 bp, circular, pure ACGT) from the frozen cohort: 207 JSONL lines (206 full + one 10 bp partial window) in 4 s wall on the Lima guest, two runs byte-identical (sha256 `b92eac46e3ebd220ddfb99d71676b7c60ccbef57f8e8bb9d3530388435b701cf`), independent Julia recomputation byte-exact (207/207 windows, tolerance 0); engineering smoke, not the pilot and not a release receipt |
 | Corrupted-artifact detector check | PASS | Julia rejects a one-digit perturbation of the persisted JSONL (positional and k-mer fields) |
 | Canonical pipeline with missing Sounio producer | BLOCKED as designed, exit 2 | `make pipeline` |
 | Mini-pipeline with missing `SOUNIO_REPO` | BLOCKED as designed, exit 2 | `scripts/run_sounio_mini_pipeline.sh` |
@@ -137,6 +138,18 @@ Mini cohort evidence identifiers (`data/cohort/mini/`):
   extensions; `replicons.tsv` fixes the replicon-level record order; every
   frozen byte is pinned in `SHA256SUMS` and verified by `make contract`.
 
+Complete-replicon smoke evidence identifiers (`data/fixtures/cohort_smoke/`):
+
+- input FASTA SHA-256 `972cf4a97b844492784c669d45300ff126dc89176a92c243a79ae9a307ed9562`
+  (NC_002127.1 record extracted byte-exact from the frozen cohort assembly);
+- persisted smoke JSONL artifact SHA-256
+  `b92eac46e3ebd220ddfb99d71676b7c60ccbef57f8e8bb9d3530388435b701cf`
+  (207 lines, 90 fields per line; two optimized runs byte-identical);
+- smoke ELF SHA-256 `3d9ab90be9b567da3c7f4fdb2931bf5307e3e934be0593236c7fdfbc12bed68f`
+  (identical to the mini-pipeline ELF above — same source, same pin);
+- optimized-kernel wall time: 4 s for 207 windows on the Lima `souc-linux`
+  x86-64 guest (`DOSA_PIPELINE_TIMING` in the smoke runner log).
+
 ## Pinned upstream compatibility findings
 
 At the current pin, the native x86-64 backend implements
@@ -172,11 +185,11 @@ labeled as SHA-256, 256-character analysis cap).
 | Gate | State | Missing evidence |
 |---|---|---|
 | G0 source/compiler binding | PARTIAL | official compiler/source/executable hashes recorded; atlas tree is not a clean released commit |
-| G1 Sounio executable fixtures | PARTIAL | positional, streaming FASTA, and parameterized mini-pipeline fixtures (positional + masked k-mer k=1..8 with dual kernels and strict parameter validation) execute; real-cohort fixtures absent |
-| G2 miniature NCBI end-to-end fixture | PASS (fixture scope) | frozen NCBI-prefix + synthetic fixtures run end to end through Sounio to deterministic JSONL at the full predeclared k=1..8 pilot range; scope is 16 bp prefixes plus synthetic sequences, not complete replicons; the complete-replicon miniature cohort is now frozen on disk but has not yet run through the pipeline |
-| G3 independent Julia differential validation | PARTIAL | operator, six FASTA cases, and both mini-pipeline JSONL artifacts (96/96 windows) reproduced byte-exact at tolerance 0, including independently derived parameter-error offsets; deterministic atlas sample absent |
+| G1 Sounio executable fixtures | PARTIAL | positional, streaming FASTA, and parameterized mini-pipeline fixtures (positional + masked k-mer k=1..8 with dual kernels and strict parameter validation) execute; a complete-replicon engineering smoke (NC_002127.1, 207 windows) executes with Julia byte-exact agreement; the full frozen cohort has not yet run |
+| G2 miniature NCBI end-to-end fixture | PASS (fixture scope + single-replicon smoke) | frozen NCBI-prefix + synthetic fixtures run end to end through Sounio to deterministic JSONL at the full predeclared k=1..8 pilot range; one complete cohort replicon (NC_002127.1) now also runs end to end with byte-exact Julia agreement as an engineering smoke; the remaining three replicons and the canonical products are pending |
+| G3 independent Julia differential validation | PARTIAL | operator, six FASTA cases, both mini-pipeline JSONL artifacts (96/96 windows), and the complete-replicon smoke (207/207 windows on NC_002127.1) reproduced byte-exact at tolerance 0, including independently derived parameter-error offsets; deterministic atlas sample absent |
 | G4 schema/provenance/checksum closure | PARTIAL | receipt, window JSONL 0.2.0, and pipeline parameter schemas exist; mini-pipeline input checksum closure verified (including parameter fixtures); frozen cohort checksum closure verified against official NCBI MD5s; no real receipt or canonical artifacts |
-| G5 scale benchmark | RED | no pilot executable |
+| G5 scale benchmark | RED | no pilot executable; the only scale data points are fixture-level timings (k8 fixture 57.2 s -> 1.8 s after the orbit-set optimization; NC_002127.1 smoke 207 windows in 4 s wall) |
 | G6 DOI-ready immutable bundle | RED | upstream gates incomplete |
 
 ## Next implementation slice

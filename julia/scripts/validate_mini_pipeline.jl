@@ -18,13 +18,16 @@ It loads no packages (Base only), does not execute Sounio, and never falls
 back to producing the artifact itself.
 """
 
-if length(ARGS) != 2
-    println(stderr, "usage: validate_mini_pipeline.jl <sounio-run.log> <fixture-directory>")
+if length(ARGS) < 2 || length(ARGS) > 3
+    println(stderr, "usage: validate_mini_pipeline.jl <sounio-run.log> <fixture-directory> [case-set]")
     exit(2)
 end
 
 const LOG_PATH = only(ARGS[1:1])
 const FIXTURE_DIRECTORY = only(ARGS[2:2])
+# Case sets: "fixture" is the frozen mini-pipeline battery (13 cases);
+# "cohort_smoke" is the complete-replicon engineering smoke (1 case).
+const CASE_SET = length(ARGS) == 3 ? ARGS[3] : "fixture"
 const SCHEMA_VERSION = "0.2.0"
 const METRIC_VERSION = "0.1.0"
 const HEADER_ID_BYTES = 256
@@ -44,7 +47,8 @@ const COMPLEMENT = [3, 2, 1, 0]
 # parameter file (path announced by the runner log). Parameter-negative
 # cases never reach FASTA processing: the executable validates parameters
 # first and must exit 11 (PARAM_INVALID).
-const CASE_SPECS = [
+const CASE_SPECS = if CASE_SET == "fixture"
+    [
     (name="main", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="main", rc=0),
     (name="k8", fasta="pipeline_k8_fixture.fa", metadata="pipeline_k8_metadata.tsv", params="k8", rc=0),
     (name="metadata_invalid", fasta="pipeline_fixture.fa", metadata="metadata_invalid.tsv", params="main", rc=9),
@@ -59,6 +63,11 @@ const CASE_SPECS = [
     (name="param_unknown_policy", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="param_unknown_policy", rc=11),
     (name="param_extra_field", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="param_extra_field", rc=11),
 ]
+elseif CASE_SET == "cohort_smoke"
+    [(name="smoke_pOSAK1", fasta="nc_002127_1.fa", metadata="nc_002127_1_metadata.tsv", params="smoke_pOSAK1", rc=0)]
+else
+    error("unknown case set: $CASE_SET")
+end
 
 const DNA_BASES = "ACGT"
 const DNA_COMPLEMENT = Dict('A' => 'T', 'C' => 'G', 'G' => 'C', 'T' => 'A')
