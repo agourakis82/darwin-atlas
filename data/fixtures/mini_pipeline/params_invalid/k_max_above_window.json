@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "specification_version": "0.1.0",
+  "window_size": 4,
+  "stride": 4,
+  "k_min": 1,
+  "k_max": 8,
+  "min_kmer_effective_count": 1,
+  "positional_ambiguity_policy": "canonical_only",
+  "kmer_ambiguity_policy": "masked",
+  "coordinate_system": "zero_based_half_open",
+  "window_wraparound": false,
+  "output_order": "manifest_record_then_window_start"
+}

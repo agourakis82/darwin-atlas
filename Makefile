@@ -52,6 +52,7 @@ status:
 contract:
 	@test -s docs/SCIENTIFIC_SPEC.md
 	@test -s docs/ADR-0001-sounio-primary-julia-validator.md
+	@test -s docs/ADR-0002-pilot-parameter-decisions.md
 	@test -s schemas/run_receipt.schema.json
 	@test -s toolchains/sounio.lock.json
 	@test -s sounio/src/operator_fixture.sio
@@ -67,11 +68,19 @@ contract:
 	@for f in valid_multi_record invalid_symbol sequence_before_header empty_header empty_sequence no_records; do test -s "data/fixtures/fasta/$$f.fa"; done
 	@test "$$(wc -c < data/fixtures/fasta/valid_multi_record.fa)" -gt 17
 	@test -s data/fixtures/mini_pipeline/pipeline_fixture.fa
+	@test -s data/fixtures/mini_pipeline/pipeline_k8_fixture.fa
 	@test -s data/fixtures/mini_pipeline/SHA256SUMS
-	@for f in pipeline_metadata metadata_invalid metadata_mismatch metadata_short; do test -s "data/fixtures/mini_pipeline/$$f.tsv"; done
+	@for f in pipeline_metadata pipeline_k8_metadata metadata_invalid metadata_mismatch metadata_short; do test -s "data/fixtures/mini_pipeline/$$f.tsv"; done
+	@test -s data/fixtures/mini_pipeline/parameters_k4.json
+	@test -s data/fixtures/mini_pipeline/parameters_k8.json
+	@for f in window_size_zero stride_zero stride_mismatch k_min_two k_max_nine k_max_above_window unknown_policy extra_field; do test -s "data/fixtures/mini_pipeline/params_invalid/$$f.json"; done
+	@test -s schemas/pipeline_parameters.schema.json
 	@cd data/fixtures/mini_pipeline && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/pipeline_parameters.schema.json")); abort "parameters schema must forbid extras" unless s.fetch("additionalProperties")==false; %w[schema_version specification_version window_size stride k_min k_max min_kmer_effective_count positional_ambiguity_policy kmer_ambiguity_policy coordinate_system window_wraparound output_order].each { |k| abort "parameters schema missing required #{k}" unless s.fetch("required").include?(k) }'
+	@ruby -rjson -e 'p=JSON.parse(File.read("data/fixtures/mini_pipeline/parameters_k4.json")); abort "k4 fixture drifted" unless p["window_size"]==4 && p["stride"]==4 && p["k_min"]==1 && p["k_max"]==4 && p["min_kmer_effective_count"]==1'
+	@ruby -rjson -e 'p=JSON.parse(File.read("data/fixtures/mini_pipeline/parameters_k8.json")); abort "k8 fixture drifted" unless p["window_size"]==16 && p["stride"]==16 && p["k_min"]==1 && p["k_max"]==8 && p["min_kmer_effective_count"]==1'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "schema must fix canonical_only" unless s.dig("properties","ambiguity_policy","const")=="canonical_only"; abort "schema must fix window fields" unless s.fetch("required").include?("delta_RC") && s.fetch("additionalProperties")==false'
-	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "kmer policy must be masked" unless s.dig("properties","kmer_ambiguity_policy","const")=="masked"; abort "kmer min effective count must be 1" unless s.dig("properties","kmer_min_effective_count","const")==1; abort "required must include rc_kmer_imbalance_4" unless s.fetch("required").include?("rc_kmer_imbalance_4"); abort "additionalProperties must stay false" unless s.fetch("additionalProperties")==false'
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "schema_version must be 0.2.0" unless s.dig("properties","schema_version","const")=="0.2.0"; abort "kmer policy must be masked" unless s.dig("properties","kmer_ambiguity_policy","const")=="masked"; abort "kmer min effective count must be an integer >= 1" unless s.dig("properties","kmer_min_effective_count","type")=="integer" && s.dig("properties","kmer_min_effective_count","minimum")==1; abort "parameters_sha256 must be a lowercase hex sha256" unless s.dig("properties","parameters_sha256","pattern")=="^[0-9a-f]{64}$$"; abort "required must cover k=1..8 with reasons and 90 fields" unless s.fetch("required").size==90 && s.fetch("required").include?("rc_kmer_imbalance_8") && s.fetch("required").include?("kmer_8_unavailable_reason") && s.fetch("required").include?("parameters_sha256"); abort "additionalProperties must stay false" unless s.fetch("additionalProperties")==false'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/run_receipt.schema.json")); abort "producer must be Sounio" unless s.dig("properties","producer","properties","language","const")=="Sounio"; abort "validator must be Julia" unless s.dig("properties","validator","oneOf",1,"properties","language","const")=="Julia"'
 	@ruby -rjson -e 's=JSON.parse(File.read("toolchains/sounio.lock.json")); abort "wrong official remote" unless s.fetch("repository")=="https://github.com/sounio-lang/sounio.git"; abort "invalid Sounio commit" unless s.fetch("commit").match?(/\A[0-9a-f]{40}\z/)'
 	@! rg -n "Running Julia-only validation instead" julia/scripts/cross_validation.jl

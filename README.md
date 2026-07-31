@@ -5,8 +5,9 @@ bacterial RefSeq replicons.
 
 > **Current state:** specification and implementation migration. This checkout
 > does not yet produce a publication-ready atlas. Sounio kernels are partial;
-> executable operator, streaming FASTA, and frozen mini-pipeline fixtures
-> (positional metrics plus masked k-mer composition for k=1..4) now pass
+> executable operator, streaming FASTA, and parameterized frozen mini-pipeline
+> fixtures (positional metrics plus masked k-mer composition for the
+> predeclared pilot range k=1..8, under two byte-equivalent kernels) now pass
 > independent Julia checks. Julia remains a validator, never the canonical
 > producer.
 
@@ -27,7 +28,9 @@ artifacts.
 The normative definitions, hypotheses, schemas, and release gates are in
 [`docs/SCIENTIFIC_SPEC.md`](docs/SCIENTIFIC_SPEC.md). Architecture decision
 [`ADR-0001`](docs/ADR-0001-sounio-primary-julia-validator.md) defines the
-implementation roles. The latest evidence-bounded local snapshot is
+implementation roles; [`ADR-0002`](docs/ADR-0002-pilot-parameter-decisions.md)
+(proposed) records the pilot parameter decisions ahead of cohort acquisition.
+The latest evidence-bounded local snapshot is
 [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
 
 ## Architecture
@@ -112,9 +115,11 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make fasta-differential-fixture
 
-# Run the frozen mini-pipeline (FASTA + metadata -> windows -> delta_R/delta_RC
-# -> masked k-mer imbalance k=1..4 -> exclusions -> deterministic JSONL) and
-# recompute it byte-exact in Julia
+# Run the frozen mini-pipeline (versioned parameter JSON -> strict flat
+# validation -> FASTA + metadata -> windows -> delta_R/delta_RC -> masked
+# k-mer imbalance k=1..8 -> exclusions -> deterministic JSONL 0.2.0), with
+# byte-equivalent optimized and reference kernels, and recompute it
+# byte-exact in Julia
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make mini-pipeline-differential-fixture
 

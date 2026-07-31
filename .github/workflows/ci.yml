@@ -96,7 +96,7 @@ jobs:
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make fasta-differential-fixture
 
-      - name: Run frozen mini-pipeline and independently validate positional + masked k-mer JSONL
+      - name: Run frozen mini-pipeline (k = 1..8, dual kernel) and independently validate positional + masked k-mer JSONL
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make mini-pipeline-differential-fixture
 

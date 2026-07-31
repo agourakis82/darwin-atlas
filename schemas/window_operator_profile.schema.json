@@ -2,12 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/agourakis82/darwin-atlas/schemas/window_operator_profile.schema.json",
   "title": "DOSA window operator profile (mini-pipeline JSONL line)",
-  "description": "One line of the deterministic JSONL emitted by the Sounio mini-pipeline (sounio/src/fasta_stream_fixture.sio --pipeline). Serialization constraints that JSON Schema cannot express are normative text: object members MUST appear in the order listed in 'required', numbers delta_R/delta_RC MUST serialize with exactly six fractional digits, integers without padding, strings are restricted to [A-Za-z0-9._-] so no JSON escaping ever occurs, and each line is terminated by a single LF. Excluded windows (status=excluded) MUST carry null for every POSITIONAL metric field and effective_count 0; the positional status never forces k-mer fields to null. K-mer fields use the masked policy: when kmer_<k>_effective_count is 0 the six reverse/rc imbalance fields for that k MUST be null; when it is >= kmer_min_effective_count they MUST be integers/numbers with denominator == effective_count.",
+  "description": "One line of the deterministic JSONL emitted by the Sounio mini-pipeline (sounio/src/fasta_stream_fixture.sio --pipeline). Serialization constraints that JSON Schema cannot express are normative text: object members MUST appear in the order listed in 'required', numbers delta_R/delta_RC and the k-mer imbalance ratios MUST serialize with exactly six fractional digits, integers without padding, strings are restricted to [A-Za-z0-9._-] so no JSON escaping ever occurs, and each line is terminated by a single LF. Excluded windows (status=excluded) MUST carry null for every POSITIONAL metric field and effective_count 0; the positional status never forces k-mer fields to null. K-mer fields use the masked policy: for each k in 1..8 the triple (kmer_<k>_effective_count, kmer_<k>_unavailable_reason, six reverse/rc imbalance fields) is either fully null (k above the configured k_max), reason INSUFFICIENT_EFFECTIVE_KMERS with an integer count and six nulls (count below kmer_min_effective_count), or reason null with integer numerator/denominator fields where denominator == kmer_<k>_effective_count. When status=ok, effective_count and denominator equal window_length. Schema 0.2.0 supersedes 0.1.0 by adding parameters_sha256, the unavailable-reason fields, and k=5..8; 0.1.0 field interpretations are unchanged.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schema_version",
     "metric_version",
+    "parameters_sha256",
     "assembly_accession_version",
     "sequence_accession_version",
     "replicon_class",
@@ -32,6 +33,7 @@
     "kmer_ambiguity_policy",
     "kmer_min_effective_count",
     "kmer_1_effective_count",
+    "kmer_1_unavailable_reason",
     "reverse_kmer_imbalance_1_numerator",
     "reverse_kmer_imbalance_1_denominator",
     "reverse_kmer_imbalance_1",
@@ -39,6 +41,7 @@
     "rc_kmer_imbalance_1_denominator",
     "rc_kmer_imbalance_1",
     "kmer_2_effective_count",
+    "kmer_2_unavailable_reason",
     "reverse_kmer_imbalance_2_numerator",
     "reverse_kmer_imbalance_2_denominator",
     "reverse_kmer_imbalance_2",
@@ -46,6 +49,7 @@
     "rc_kmer_imbalance_2_denominator",
     "rc_kmer_imbalance_2",
     "kmer_3_effective_count",
+    "kmer_3_unavailable_reason",
     "reverse_kmer_imbalance_3_numerator",
     "reverse_kmer_imbalance_3_denominator",
     "reverse_kmer_imbalance_3",
@@ -53,19 +57,58 @@
     "rc_kmer_imbalance_3_denominator",
     "rc_kmer_imbalance_3",
     "kmer_4_effective_count",
+    "kmer_4_unavailable_reason",
     "reverse_kmer_imbalance_4_numerator",
     "reverse_kmer_imbalance_4_denominator",
     "reverse_kmer_imbalance_4",
     "rc_kmer_imbalance_4_numerator",
     "rc_kmer_imbalance_4_denominator",
-    "rc_kmer_imbalance_4"
+    "rc_kmer_imbalance_4",
+    "kmer_5_effective_count",
+    "kmer_5_unavailable_reason",
+    "reverse_kmer_imbalance_5_numerator",
+    "reverse_kmer_imbalance_5_denominator",
+    "reverse_kmer_imbalance_5",
+    "rc_kmer_imbalance_5_numerator",
+    "rc_kmer_imbalance_5_denominator",
+    "rc_kmer_imbalance_5",
+    "kmer_6_effective_count",
+    "kmer_6_unavailable_reason",
+    "reverse_kmer_imbalance_6_numerator",
+    "reverse_kmer_imbalance_6_denominator",
+    "reverse_kmer_imbalance_6",
+    "rc_kmer_imbalance_6_numerator",
+    "rc_kmer_imbalance_6_denominator",
+    "rc_kmer_imbalance_6",
+    "kmer_7_effective_count",
+    "kmer_7_unavailable_reason",
+    "reverse_kmer_imbalance_7_numerator",
+    "reverse_kmer_imbalance_7_denominator",
+    "reverse_kmer_imbalance_7",
+    "rc_kmer_imbalance_7_numerator",
+    "rc_kmer_imbalance_7_denominator",
+    "rc_kmer_imbalance_7",
+    "kmer_8_effective_count",
+    "kmer_8_unavailable_reason",
+    "reverse_kmer_imbalance_8_numerator",
+    "reverse_kmer_imbalance_8_denominator",
+    "reverse_kmer_imbalance_8",
+    "rc_kmer_imbalance_8_numerator",
+    "rc_kmer_imbalance_8_denominator",
+    "rc_kmer_imbalance_8"
   ],
   "properties": {
     "schema_version": {
-      "const": "0.1.0"
+      "const": "0.2.0",
+      "description": "0.2.0 supersedes 0.1.0: it adds parameters_sha256, the per-k kmer_<k>_unavailable_reason fields, and the k=5..8 blocks. The interpretation of every field that existed in 0.1.0 is unchanged; the frozen 4/4 fixture (parameters_k4.json) is the migration regression."
     },
     "metric_version": {
       "const": "0.1.0"
+    },
+    "parameters_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the canonical pipeline parameter JSON artifact, repeated on every line; binds the output to an exact parameter instance."
     },
     "assembly_accession_version": {
       "type": "string",
@@ -77,11 +120,11 @@
     },
     "replicon_class": {
       "type": "string",
-      "pattern": "^[A-Za-z0-9._-]+$",
-      "description": "Observed values in the frozen fixture: chromosome, plasmid, synthetic."
+      "pattern": "^[A-Za-z0-9._-]+$"
     },
     "declared_topology": {
       "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$",
       "enum": [
         "circular",
         "linear",
@@ -90,12 +133,11 @@
     },
     "source_scope": {
       "type": "string",
-      "pattern": "^[A-Za-z0-9._-]+$",
-      "description": "ncbi_prefix_1_16 for NCBI prefix records (not complete replicons); synthetic_control for synthetic controls."
+      "pattern": "^[A-Za-z0-9._-]+$"
     },
     "record_index": {
       "type": "integer",
-      "minimum": 1
+      "minimum": 0
     },
     "window_index": {
       "type": "integer",
@@ -103,24 +145,20 @@
     },
     "window_start": {
       "type": "integer",
-      "minimum": 0,
-      "description": "Zero-based start of the half-open window [window_start, window_end) in the submitted orientation; no wraparound."
+      "minimum": 0
     },
     "window_end": {
       "type": "integer",
-      "minimum": 1
+      "minimum": 0
     },
     "window_length": {
       "type": "integer",
-      "minimum": 1,
-      "maximum": 4,
-      "description": "Full windows have length 4 (window size = stride = 4); only a trailing partial window may be shorter, and it is always excluded."
+      "minimum": 0
     },
     "ambiguity_policy": {
       "const": "canonical_only"
     },
     "status": {
-      "type": "string",
       "enum": [
         "ok",
         "excluded"
@@ -132,10 +170,9 @@
           "type": "null"
         },
         {
-          "type": "string",
           "enum": [
-            "AMBIGUOUS_WINDOW",
-            "PARTIAL_WINDOW"
+            "PARTIAL_WINDOW",
+            "AMBIGUOUS_WINDOW"
           ]
         }
       ]
@@ -143,7 +180,7 @@
     "effective_count": {
       "type": "integer",
       "minimum": 0,
-      "description": "Canonical base count contributing to metrics; 0 for excluded windows."
+      "description": "Equals window_length when status=ok, 0 when excluded."
     },
     "delta_R_mismatches": {
       "anyOf": [
@@ -174,7 +211,7 @@
         },
         {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0
         }
       ]
     },
@@ -228,13 +265,35 @@
       "const": "masked"
     },
     "kmer_min_effective_count": {
-      "const": 1,
-      "description": "Executable-fixture parameter, not the final pilot threshold."
+      "type": "integer",
+      "minimum": 1,
+      "description": "Executable-fixture parameter (from the canonical parameter JSON), not the final pilot threshold."
     },
     "kmer_1_effective_count": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "Canonical 1-mer count after the masked ambiguity policy; independent of the positional status."
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "description": "Canonical 1-mer count after the masked ambiguity policy; independent of the positional status. Null iff kmer_1_unavailable_reason is K_OUT_OF_CONFIGURED_RANGE."
+    },
+    "kmer_1_unavailable_reason": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "K_OUT_OF_CONFIGURED_RANGE",
+            "INSUFFICIENT_EFFECTIVE_KMERS"
+          ]
+        }
+      ],
+      "description": "null when the imbalance fields are populated; K_OUT_OF_CONFIGURED_RANGE when k exceeds the configured k_max; INSUFFICIENT_EFFECTIVE_KMERS when the effective count is below kmer_min_effective_count."
     },
     "reverse_kmer_imbalance_1_numerator": {
       "anyOf": [
@@ -305,9 +364,30 @@
       ]
     },
     "kmer_2_effective_count": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "Canonical 2-mer count after the masked ambiguity policy; independent of the positional status."
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "description": "Canonical 2-mer count after the masked ambiguity policy; independent of the positional status. Null iff kmer_2_unavailable_reason is K_OUT_OF_CONFIGURED_RANGE."
+    },
+    "kmer_2_unavailable_reason": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "K_OUT_OF_CONFIGURED_RANGE",
+            "INSUFFICIENT_EFFECTIVE_KMERS"
+          ]
+        }
+      ],
+      "description": "null when the imbalance fields are populated; K_OUT_OF_CONFIGURED_RANGE when k exceeds the configured k_max; INSUFFICIENT_EFFECTIVE_KMERS when the effective count is below kmer_min_effective_count."
     },
     "reverse_kmer_imbalance_2_numerator": {
       "anyOf": [
@@ -378,9 +458,30 @@
       ]
     },
     "kmer_3_effective_count": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "Canonical 3-mer count after the masked ambiguity policy; independent of the positional status."
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "description": "Canonical 3-mer count after the masked ambiguity policy; independent of the positional status. Null iff kmer_3_unavailable_reason is K_OUT_OF_CONFIGURED_RANGE."
+    },
+    "kmer_3_unavailable_reason": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "K_OUT_OF_CONFIGURED_RANGE",
+            "INSUFFICIENT_EFFECTIVE_KMERS"
+          ]
+        }
+      ],
+      "description": "null when the imbalance fields are populated; K_OUT_OF_CONFIGURED_RANGE when k exceeds the configured k_max; INSUFFICIENT_EFFECTIVE_KMERS when the effective count is below kmer_min_effective_count."
     },
     "reverse_kmer_imbalance_3_numerator": {
       "anyOf": [
@@ -451,9 +552,30 @@
       ]
     },
     "kmer_4_effective_count": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "Canonical 4-mer count after the masked ambiguity policy; independent of the positional status."
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "description": "Canonical 4-mer count after the masked ambiguity policy; independent of the positional status. Null iff kmer_4_unavailable_reason is K_OUT_OF_CONFIGURED_RANGE."
+    },
+    "kmer_4_unavailable_reason": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "K_OUT_OF_CONFIGURED_RANGE",
+            "INSUFFICIENT_EFFECTIVE_KMERS"
+          ]
+        }
+      ],
+      "description": "null when the imbalance fields are populated; K_OUT_OF_CONFIGURED_RANGE when k exceeds the configured k_max; INSUFFICIENT_EFFECTIVE_KMERS when the effective count is below kmer_min_effective_count."
     },
     "reverse_kmer_imbalance_4_numerator": {
       "anyOf": [
@@ -522,6 +644,382 @@
           "maximum": 1
         }
       ]
+    },
+    "kmer_5_effective_count": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "description": "Canonical 5-mer count after the masked ambiguity policy; independent of the positional status. Null iff kmer_5_unavailable_reason is K_OUT_OF_CONFIGURED_RANGE."
+    },
+    "kmer_5_unavailable_reason": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "K_OUT_OF_CONFIGURED_RANGE",
+            "INSUFFICIENT_EFFECTIVE_KMERS"
+          ]
+        }
+      ],
+      "description": "null when the imbalance fields are populated; K_OUT_OF_CONFIGURED_RANGE when k exceeds the configured k_max; INSUFFICIENT_EFFECTIVE_KMERS when the effective count is below kmer_min_effective_count."
+    },
+    "reverse_kmer_imbalance_5_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_5_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_5": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "rc_kmer_imbalance_5_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_5_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_5": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "kmer_6_effective_count": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "description": "Canonical 6-mer count after the masked ambiguity policy; independent of the positional status. Null iff kmer_6_unavailable_reason is K_OUT_OF_CONFIGURED_RANGE."
+    },
+    "kmer_6_unavailable_reason": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "K_OUT_OF_CONFIGURED_RANGE",
+            "INSUFFICIENT_EFFECTIVE_KMERS"
+          ]
+        }
+      ],
+      "description": "null when the imbalance fields are populated; K_OUT_OF_CONFIGURED_RANGE when k exceeds the configured k_max; INSUFFICIENT_EFFECTIVE_KMERS when the effective count is below kmer_min_effective_count."
+    },
+    "reverse_kmer_imbalance_6_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_6_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_6": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "rc_kmer_imbalance_6_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_6_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_6": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "kmer_7_effective_count": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "description": "Canonical 7-mer count after the masked ambiguity policy; independent of the positional status. Null iff kmer_7_unavailable_reason is K_OUT_OF_CONFIGURED_RANGE."
+    },
+    "kmer_7_unavailable_reason": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "K_OUT_OF_CONFIGURED_RANGE",
+            "INSUFFICIENT_EFFECTIVE_KMERS"
+          ]
+        }
+      ],
+      "description": "null when the imbalance fields are populated; K_OUT_OF_CONFIGURED_RANGE when k exceeds the configured k_max; INSUFFICIENT_EFFECTIVE_KMERS when the effective count is below kmer_min_effective_count."
+    },
+    "reverse_kmer_imbalance_7_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_7_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_7": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "rc_kmer_imbalance_7_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_7_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_7": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "kmer_8_effective_count": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "description": "Canonical 8-mer count after the masked ambiguity policy; independent of the positional status. Null iff kmer_8_unavailable_reason is K_OUT_OF_CONFIGURED_RANGE."
+    },
+    "kmer_8_unavailable_reason": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "K_OUT_OF_CONFIGURED_RANGE",
+            "INSUFFICIENT_EFFECTIVE_KMERS"
+          ]
+        }
+      ],
+      "description": "null when the imbalance fields are populated; K_OUT_OF_CONFIGURED_RANGE when k exceeds the configured k_max; INSUFFICIENT_EFFECTIVE_KMERS when the effective count is below kmer_min_effective_count."
+    },
+    "reverse_kmer_imbalance_8_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_8_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "reverse_kmer_imbalance_8": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
+    },
+    "rc_kmer_imbalance_8_numerator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_8_denominator": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "rc_kmer_imbalance_8": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
     }
   },
   "allOf": [
@@ -539,7 +1037,8 @@
             "type": "null"
           },
           "effective_count": {
-            "const": 4
+            "type": "integer",
+            "minimum": 1
           },
           "delta_R_mismatches": {
             "type": "integer"
@@ -548,7 +1047,8 @@
             "type": "integer"
           },
           "denominator": {
-            "const": 4
+            "type": "integer",
+            "minimum": 1
           },
           "delta_R": {
             "type": "number"
@@ -608,29 +1108,32 @@
     {
       "if": {
         "properties": {
-          "kmer_1_effective_count": {
-            "const": 0
+          "kmer_1_unavailable_reason": {
+            "const": "K_OUT_OF_CONFIGURED_RANGE"
           }
         },
         "required": [
-          "kmer_1_effective_count"
+          "kmer_1_unavailable_reason"
         ]
       },
       "then": {
         "properties": {
+          "kmer_1_effective_count": {
+            "type": "null"
+          },
           "reverse_kmer_imbalance_1_numerator": {
             "type": "null"
           },
           "reverse_kmer_imbalance_1_denominator": {
             "type": "null"
           },
+          "reverse_kmer_imbalance_1": {
+            "type": "null"
+          },
           "rc_kmer_imbalance_1_numerator": {
             "type": "null"
           },
           "rc_kmer_imbalance_1_denominator": {
-            "type": "null"
-          },
-          "reverse_kmer_imbalance_1": {
             "type": "null"
           },
           "rc_kmer_imbalance_1": {
@@ -642,23 +1145,70 @@
     {
       "if": {
         "properties": {
-          "kmer_1_effective_count": {
-            "minimum": 1
+          "kmer_1_unavailable_reason": {
+            "const": "INSUFFICIENT_EFFECTIVE_KMERS"
           }
         },
         "required": [
-          "kmer_1_effective_count"
+          "kmer_1_unavailable_reason"
         ]
       },
       "then": {
         "properties": {
+          "kmer_1_effective_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_1_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_1_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_1": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_1_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_1_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_1": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_1_unavailable_reason": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "kmer_1_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_1_effective_count": {
+            "type": "integer",
+            "minimum": 1
+          },
           "reverse_kmer_imbalance_1_numerator": {
             "type": "integer",
             "minimum": 0
           },
           "reverse_kmer_imbalance_1_denominator": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_1": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
           },
           "rc_kmer_imbalance_1_numerator": {
             "type": "integer",
@@ -666,12 +1216,7 @@
           },
           "rc_kmer_imbalance_1_denominator": {
             "type": "integer",
-            "minimum": 0
-          },
-          "reverse_kmer_imbalance_1": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
+            "minimum": 1
           },
           "rc_kmer_imbalance_1": {
             "type": "number",
@@ -684,29 +1229,32 @@
     {
       "if": {
         "properties": {
-          "kmer_2_effective_count": {
-            "const": 0
+          "kmer_2_unavailable_reason": {
+            "const": "K_OUT_OF_CONFIGURED_RANGE"
           }
         },
         "required": [
-          "kmer_2_effective_count"
+          "kmer_2_unavailable_reason"
         ]
       },
       "then": {
         "properties": {
+          "kmer_2_effective_count": {
+            "type": "null"
+          },
           "reverse_kmer_imbalance_2_numerator": {
             "type": "null"
           },
           "reverse_kmer_imbalance_2_denominator": {
             "type": "null"
           },
+          "reverse_kmer_imbalance_2": {
+            "type": "null"
+          },
           "rc_kmer_imbalance_2_numerator": {
             "type": "null"
           },
           "rc_kmer_imbalance_2_denominator": {
-            "type": "null"
-          },
-          "reverse_kmer_imbalance_2": {
             "type": "null"
           },
           "rc_kmer_imbalance_2": {
@@ -718,23 +1266,70 @@
     {
       "if": {
         "properties": {
-          "kmer_2_effective_count": {
-            "minimum": 1
+          "kmer_2_unavailable_reason": {
+            "const": "INSUFFICIENT_EFFECTIVE_KMERS"
           }
         },
         "required": [
-          "kmer_2_effective_count"
+          "kmer_2_unavailable_reason"
         ]
       },
       "then": {
         "properties": {
+          "kmer_2_effective_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_2_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_2_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_2": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_2_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_2_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_2": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_2_unavailable_reason": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "kmer_2_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_2_effective_count": {
+            "type": "integer",
+            "minimum": 1
+          },
           "reverse_kmer_imbalance_2_numerator": {
             "type": "integer",
             "minimum": 0
           },
           "reverse_kmer_imbalance_2_denominator": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_2": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
           },
           "rc_kmer_imbalance_2_numerator": {
             "type": "integer",
@@ -742,12 +1337,7 @@
           },
           "rc_kmer_imbalance_2_denominator": {
             "type": "integer",
-            "minimum": 0
-          },
-          "reverse_kmer_imbalance_2": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
+            "minimum": 1
           },
           "rc_kmer_imbalance_2": {
             "type": "number",
@@ -760,29 +1350,32 @@
     {
       "if": {
         "properties": {
-          "kmer_3_effective_count": {
-            "const": 0
+          "kmer_3_unavailable_reason": {
+            "const": "K_OUT_OF_CONFIGURED_RANGE"
           }
         },
         "required": [
-          "kmer_3_effective_count"
+          "kmer_3_unavailable_reason"
         ]
       },
       "then": {
         "properties": {
+          "kmer_3_effective_count": {
+            "type": "null"
+          },
           "reverse_kmer_imbalance_3_numerator": {
             "type": "null"
           },
           "reverse_kmer_imbalance_3_denominator": {
             "type": "null"
           },
+          "reverse_kmer_imbalance_3": {
+            "type": "null"
+          },
           "rc_kmer_imbalance_3_numerator": {
             "type": "null"
           },
           "rc_kmer_imbalance_3_denominator": {
-            "type": "null"
-          },
-          "reverse_kmer_imbalance_3": {
             "type": "null"
           },
           "rc_kmer_imbalance_3": {
@@ -794,23 +1387,70 @@
     {
       "if": {
         "properties": {
-          "kmer_3_effective_count": {
-            "minimum": 1
+          "kmer_3_unavailable_reason": {
+            "const": "INSUFFICIENT_EFFECTIVE_KMERS"
           }
         },
         "required": [
-          "kmer_3_effective_count"
+          "kmer_3_unavailable_reason"
         ]
       },
       "then": {
         "properties": {
+          "kmer_3_effective_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_3_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_3_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_3": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_3_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_3_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_3": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_3_unavailable_reason": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "kmer_3_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_3_effective_count": {
+            "type": "integer",
+            "minimum": 1
+          },
           "reverse_kmer_imbalance_3_numerator": {
             "type": "integer",
             "minimum": 0
           },
           "reverse_kmer_imbalance_3_denominator": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_3": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
           },
           "rc_kmer_imbalance_3_numerator": {
             "type": "integer",
@@ -818,12 +1458,7 @@
           },
           "rc_kmer_imbalance_3_denominator": {
             "type": "integer",
-            "minimum": 0
-          },
-          "reverse_kmer_imbalance_3": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
+            "minimum": 1
           },
           "rc_kmer_imbalance_3": {
             "type": "number",
@@ -836,29 +1471,32 @@
     {
       "if": {
         "properties": {
-          "kmer_4_effective_count": {
-            "const": 0
+          "kmer_4_unavailable_reason": {
+            "const": "K_OUT_OF_CONFIGURED_RANGE"
           }
         },
         "required": [
-          "kmer_4_effective_count"
+          "kmer_4_unavailable_reason"
         ]
       },
       "then": {
         "properties": {
+          "kmer_4_effective_count": {
+            "type": "null"
+          },
           "reverse_kmer_imbalance_4_numerator": {
             "type": "null"
           },
           "reverse_kmer_imbalance_4_denominator": {
             "type": "null"
           },
+          "reverse_kmer_imbalance_4": {
+            "type": "null"
+          },
           "rc_kmer_imbalance_4_numerator": {
             "type": "null"
           },
           "rc_kmer_imbalance_4_denominator": {
-            "type": "null"
-          },
-          "reverse_kmer_imbalance_4": {
             "type": "null"
           },
           "rc_kmer_imbalance_4": {
@@ -870,23 +1508,70 @@
     {
       "if": {
         "properties": {
-          "kmer_4_effective_count": {
-            "minimum": 1
+          "kmer_4_unavailable_reason": {
+            "const": "INSUFFICIENT_EFFECTIVE_KMERS"
           }
         },
         "required": [
-          "kmer_4_effective_count"
+          "kmer_4_unavailable_reason"
         ]
       },
       "then": {
         "properties": {
+          "kmer_4_effective_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_4_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_4_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_4": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_4_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_4_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_4": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_4_unavailable_reason": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "kmer_4_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_4_effective_count": {
+            "type": "integer",
+            "minimum": 1
+          },
           "reverse_kmer_imbalance_4_numerator": {
             "type": "integer",
             "minimum": 0
           },
           "reverse_kmer_imbalance_4_denominator": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_4": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
           },
           "rc_kmer_imbalance_4_numerator": {
             "type": "integer",
@@ -894,14 +1579,493 @@
           },
           "rc_kmer_imbalance_4_denominator": {
             "type": "integer",
+            "minimum": 1
+          },
+          "rc_kmer_imbalance_4": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_5_unavailable_reason": {
+            "const": "K_OUT_OF_CONFIGURED_RANGE"
+          }
+        },
+        "required": [
+          "kmer_5_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_5_effective_count": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_5_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_5_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_5": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_5_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_5_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_5": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_5_unavailable_reason": {
+            "const": "INSUFFICIENT_EFFECTIVE_KMERS"
+          }
+        },
+        "required": [
+          "kmer_5_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_5_effective_count": {
+            "type": "integer",
             "minimum": 0
           },
-          "reverse_kmer_imbalance_4": {
+          "reverse_kmer_imbalance_5_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_5_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_5": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_5_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_5_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_5": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_5_unavailable_reason": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "kmer_5_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_5_effective_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_5_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_5_denominator": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_5": {
             "type": "number",
             "minimum": 0,
             "maximum": 1
           },
-          "rc_kmer_imbalance_4": {
+          "rc_kmer_imbalance_5_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_5_denominator": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rc_kmer_imbalance_5": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_6_unavailable_reason": {
+            "const": "K_OUT_OF_CONFIGURED_RANGE"
+          }
+        },
+        "required": [
+          "kmer_6_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_6_effective_count": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_6_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_6_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_6": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_6_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_6_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_6": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_6_unavailable_reason": {
+            "const": "INSUFFICIENT_EFFECTIVE_KMERS"
+          }
+        },
+        "required": [
+          "kmer_6_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_6_effective_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_6_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_6_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_6": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_6_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_6_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_6": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_6_unavailable_reason": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "kmer_6_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_6_effective_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_6_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_6_denominator": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_6": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "rc_kmer_imbalance_6_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_6_denominator": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rc_kmer_imbalance_6": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_7_unavailable_reason": {
+            "const": "K_OUT_OF_CONFIGURED_RANGE"
+          }
+        },
+        "required": [
+          "kmer_7_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_7_effective_count": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_7_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_7_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_7": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_7_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_7_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_7": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_7_unavailable_reason": {
+            "const": "INSUFFICIENT_EFFECTIVE_KMERS"
+          }
+        },
+        "required": [
+          "kmer_7_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_7_effective_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_7_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_7_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_7": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_7_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_7_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_7": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_7_unavailable_reason": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "kmer_7_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_7_effective_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_7_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_7_denominator": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_7": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "rc_kmer_imbalance_7_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_7_denominator": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rc_kmer_imbalance_7": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_8_unavailable_reason": {
+            "const": "K_OUT_OF_CONFIGURED_RANGE"
+          }
+        },
+        "required": [
+          "kmer_8_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_8_effective_count": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_8_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_8_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_8": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_8_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_8_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_8": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_8_unavailable_reason": {
+            "const": "INSUFFICIENT_EFFECTIVE_KMERS"
+          }
+        },
+        "required": [
+          "kmer_8_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_8_effective_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_8_numerator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_8_denominator": {
+            "type": "null"
+          },
+          "reverse_kmer_imbalance_8": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_8_numerator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_8_denominator": {
+            "type": "null"
+          },
+          "rc_kmer_imbalance_8": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kmer_8_unavailable_reason": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "kmer_8_unavailable_reason"
+        ]
+      },
+      "then": {
+        "properties": {
+          "kmer_8_effective_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_8_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reverse_kmer_imbalance_8_denominator": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reverse_kmer_imbalance_8": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "rc_kmer_imbalance_8_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rc_kmer_imbalance_8_denominator": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rc_kmer_imbalance_8": {
             "type": "number",
             "minimum": 0,
             "maximum": 1

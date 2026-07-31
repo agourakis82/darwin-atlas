@@ -1,0 +1,421 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/pipeline_parameters.schema.json",
+  "title": "DOSA mini-pipeline parameters",
+  "description": "Versioned parameter contract for the Sounio mini-pipeline. The canonical artifact is this JSON; the runner validates it (including cross-field constraints), hashes it with SHA-256, and renders a strict fixed-order key=value file for the executable. Cross-field rules for this phase: stride == window_size and k_max <= window_size. min_kmer_effective_count=1 is an executable-fixture parameter, not a pilot decision.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "specification_version",
+    "window_size",
+    "stride",
+    "k_min",
+    "k_max",
+    "min_kmer_effective_count",
+    "positional_ambiguity_policy",
+    "kmer_ambiguity_policy",
+    "coordinate_system",
+    "window_wraparound",
+    "output_order"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "specification_version": {
+      "const": "0.1.0"
+    },
+    "window_size": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "stride": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "k_min": {
+      "const": 1
+    },
+    "k_max": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8
+    },
+    "min_kmer_effective_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "positional_ambiguity_policy": {
+      "const": "canonical_only"
+    },
+    "kmer_ambiguity_policy": {
+      "const": "masked"
+    },
+    "coordinate_system": {
+      "const": "zero_based_half_open"
+    },
+    "window_wraparound": {
+      "const": false
+    },
+    "output_order": {
+      "const": "manifest_record_then_window_start"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 1
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 1
+          },
+          "k_max": {
+            "maximum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 2
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 2
+          },
+          "k_max": {
+            "maximum": 2
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 3
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 3
+          },
+          "k_max": {
+            "maximum": 3
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 4
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 4
+          },
+          "k_max": {
+            "maximum": 4
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 5
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 5
+          },
+          "k_max": {
+            "maximum": 5
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 6
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 6
+          },
+          "k_max": {
+            "maximum": 6
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 7
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 7
+          },
+          "k_max": {
+            "maximum": 7
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 8
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 8
+          },
+          "k_max": {
+            "maximum": 8
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 9
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 9
+          },
+          "k_max": {
+            "maximum": 9
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 10
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 10
+          },
+          "k_max": {
+            "maximum": 10
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 11
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 11
+          },
+          "k_max": {
+            "maximum": 11
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 12
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 12
+          },
+          "k_max": {
+            "maximum": 12
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 13
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 13
+          },
+          "k_max": {
+            "maximum": 13
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 14
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 14
+          },
+          "k_max": {
+            "maximum": 14
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 15
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 15
+          },
+          "k_max": {
+            "maximum": 15
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "window_size": {
+            "const": 16
+          }
+        },
+        "required": [
+          "window_size"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stride": {
+            "const": 16
+          },
+          "k_max": {
+            "maximum": 16
+          }
+        }
+      }
+    }
+  ]
+}

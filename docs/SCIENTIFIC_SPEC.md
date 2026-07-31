@@ -309,16 +309,22 @@ partial Sounio kernels. It does not yet contain a scientifically validated atlas
 run. One positional fixture now reaches `EXECUTES` and exact Base-only Julia
 differential agreement. A chunked, multi-record IUPAC FASTA fixture also reaches
 `EXECUTES` and exact Julia differential agreement across valid and invalid
-inputs. A frozen mini-pipeline fixture — two 16 bp NCBI prefixes plus two
-synthetic controls, associated with a metadata TSV, windowed without overlap,
-scored with `delta_R`/`delta_RC`, with explicit `AMBIGUOUS_WINDOW` and
-`PARTIAL_WINDOW` exclusions, and with masked k-mer composition
-(`reverse_kmer_imbalance_k`/`rc_kmer_imbalance_k` as defined in §7.2) for
-`k=1..4` — reaches `EXECUTES` with deterministic JSONL and byte-exact Base-only
-Julia agreement, including negative metadata fixtures. The k=1..4 range and
-`KMER_MIN_EFFECTIVE_COUNT=1` are executable-fixture parameters; the predeclared
-pilot range k=1..8, its minimum expected count, and all null models remain
-unimplemented. These executable specifications do not elevate the absent full
+inputs. A parameterized frozen mini-pipeline fixture — versioned, checksummed
+parameter artifacts (`parameters_k4.json` 4/4, `parameters_k8.json` 16/16)
+rendered to a strict flat form and revalidated by the executable; two 16 bp
+NCBI prefixes plus synthetic controls, associated with a metadata TSV,
+windowed without overlap, scored with `delta_R`/`delta_RC`, with explicit
+`AMBIGUOUS_WINDOW` and `PARTIAL_WINDOW` exclusions, and with masked k-mer
+composition (`reverse_kmer_imbalance_k`/`rc_kmer_imbalance_k` as defined in
+§7.2) for the full predeclared pilot range `k=1..8` with explicit per-k
+unavailable reasons — reaches `EXECUTES` with deterministic JSONL (schema
+0.2.0) and byte-exact Base-only Julia agreement, including negative metadata
+and negative parameter fixtures, under two independently written k-mer kernels
+(simple reference and scale-oriented rolling table) required to agree byte for
+byte. `min_kmer_effective_count=1` remains an executable-fixture parameter,
+not the pilot threshold; the pilot minimum expected count, all null models,
+and the definitive cohort manifest remain unimplemented (see proposed
+ADR-0002). These executable specifications do not elevate the absent full
 cohort pipeline to `SCIENTIFICALLY_VALIDATED`. Successful parsing/code
 generation by itself remains evidence only for `COMPILES`.
 

@@ -12,9 +12,9 @@
 
 const FASTA_CHUNK_BYTES: i64 = 17
 const FASTA_HASH_MODULUS: i64 = 1000000007
-const PIPELINE_WINDOW_BYTES: i64 = 4
-const KMER_MAX_K: i64 = 4
-const KMER_MIN_EFFECTIVE_COUNT: i64 = 1
+const WINDOW_MAX_BYTES: i64 = 16
+const KMER_ABS_MAX_K: i64 = 8
+const KMER_TABLE_SIZE: i64 = 65536
 const HEADER_ID_BYTES: i64 = 256
 const METADATA_SPAN_MAX: i64 = 8192
 
@@ -29,11 +29,13 @@ fn fasta_err_no_records() -> i64 { 7 }
 fn fasta_err_header_token_too_long() -> i64 { 8 }
 fn fasta_err_metadata_invalid() -> i64 { 9 }
 fn fasta_err_metadata_mismatch() -> i64 { 10 }
+fn fasta_err_param_invalid() -> i64 { 11 }
 
 var FASTA_BUF: [i8; 17] = [0; 17]
 var SYMBOL_COUNTS: [i64; 15] = [0; 15]
 var HEADER_ID_BUF: [i8; 256] = [0; 256]
-var WINDOW_BASES: [i64; 4] = [0; 4]
+var WINDOW_BASES: [i64; 16] = [0; 16]
+var KMER_COUNTS: [i64; 65536] = [0; 65536]
 
 var G_ERROR_CODE: i64 = 0
 var G_ERROR_OFFSET: i64 = 0
@@ -52,17 +54,23 @@ var G_WINDOW_START: i64 = 0
 var G_RECORD_WINDOW_INDEX: i64 = 0
 var G_WINDOWS_EMITTED: i64 = 0
 var G_METADATA_COUNT: i64 = 0
+var G_WINDOW_SIZE: i64 = 0
+var G_STRIDE: i64 = 0
+var G_K_MAX: i64 = 0
+var G_KMER_MIN_EFFECTIVE: i64 = 0
 var G_HAVE_HEADER: bool = false
 var G_IN_HEADER: bool = false
 var G_AT_LINE_START: bool = true
 var G_HEADER_TOKEN_DONE: bool = false
 var G_PIPELINE_MODE: bool = false
+var G_SIMPLE_KERNEL: bool = false
 var G_METADATA_TEXT: string = ""
 var G_META_SEQUENCE: string = ""
 var G_META_ASSEMBLY: string = ""
 var G_META_CLASS: string = ""
 var G_META_TOPOLOGY: string = ""
 var G_META_SOURCE_SCOPE: string = ""
+var G_PARAMETERS_SHA: string = ""
 
 struct MetadataRow {
     found: bool,
@@ -110,6 +118,7 @@ fn fasta_error_name(code: i64) -> string {
     if code == fasta_err_header_token_too_long() { return "HEADER_TOKEN_TOO_LONG" }
     if code == fasta_err_metadata_invalid() { return "METADATA_INVALID" }
     if code == fasta_err_metadata_mismatch() { return "METADATA_MISMATCH" }
+    if code == fasta_err_param_invalid() { return "PARAM_INVALID" }
     "OK"
 }
 
@@ -368,6 +377,124 @@ fn metadata_row_at(target_index: i64) -> MetadataRow with Mut, Panic, Div {
     empty_metadata_row()
 }
 
+// ---------------------------------------------------------------------------
+// Pipeline parameters (strict flat rendering of the canonical JSON artifact)
+//
+// The canonical parameter artifact is JSON validated and hashed by the runner.
+// A full JSON parser inside the executable would be an unnecessarily wide and
+// permissive surface, so the runner renders a fixed-order key=value file and
+// this parser accepts exactly that rendering: 13 lines, exact keys in exact
+// order, fixed value vocabularies, no extras. Any deviation is PARAM_INVALID
+// with the zero-based byte offset of the offending line.
+// ---------------------------------------------------------------------------
+
+fn flat_param_value(text: string, start: i64, end: i64, expected_key: string) -> string with Mut, Panic, Div {
+    let key_len = str_len(expected_key)
+    if end - start <= key_len { return "" }
+    var i: i64 = 0
+    while i < key_len {
+        if str_char_at(text, start + i) != str_char_at(expected_key, i) { return "" }
+        i = i + 1
+    }
+    if str_char_at(text, start + key_len) != 61 { return "" } // '='
+    str_span(text, start + key_len + 1, end)
+}
+
+fn is_hex_sha256(value: string) -> bool with Mut, Panic, Div {
+    if str_len(value) != 64 { return false }
+    var i: i64 = 0
+    while i < 64 {
+        let ch = str_char_at(value, i)
+        let digit = ch >= 48 && ch <= 57
+        let lower = ch >= 97 && ch <= 102
+        if !digit && !lower { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn validate_param_line(text: string, start: i64, end: i64, line_index: i64) -> bool with Mut, Panic, Div {
+    if line_index == 0 { return str_eq(flat_param_value(text, start, end, "schema_version"), "1.0.0") }
+    if line_index == 1 { return str_eq(flat_param_value(text, start, end, "specification_version"), "0.1.0") }
+    if line_index == 2 {
+        let value = parse_nonnegative_i64(flat_param_value(text, start, end, "window_size"))
+        if value < 1 || value > WINDOW_MAX_BYTES { return false }
+        G_WINDOW_SIZE = value
+        return true
+    }
+    if line_index == 3 {
+        let value = parse_nonnegative_i64(flat_param_value(text, start, end, "stride"))
+        if value <= 0 || value != G_WINDOW_SIZE { return false }
+        G_STRIDE = value
+        return true
+    }
+    if line_index == 4 { return parse_nonnegative_i64(flat_param_value(text, start, end, "k_min")) == 1 }
+    if line_index == 5 {
+        let value = parse_nonnegative_i64(flat_param_value(text, start, end, "k_max"))
+        if value < 1 || value > KMER_ABS_MAX_K || value > G_WINDOW_SIZE { return false }
+        G_K_MAX = value
+        return true
+    }
+    if line_index == 6 {
+        let value = parse_nonnegative_i64(flat_param_value(text, start, end, "min_kmer_effective_count"))
+        if value < 1 { return false }
+        G_KMER_MIN_EFFECTIVE = value
+        return true
+    }
+    if line_index == 7 { return str_eq(flat_param_value(text, start, end, "positional_ambiguity_policy"), "canonical_only") }
+    if line_index == 8 { return str_eq(flat_param_value(text, start, end, "kmer_ambiguity_policy"), "masked") }
+    if line_index == 9 { return str_eq(flat_param_value(text, start, end, "coordinate_system"), "zero_based_half_open") }
+    if line_index == 10 { return str_eq(flat_param_value(text, start, end, "window_wraparound"), "false") }
+    if line_index == 11 { return str_eq(flat_param_value(text, start, end, "output_order"), "manifest_record_then_window_start") }
+    if line_index == 12 {
+        let value = flat_param_value(text, start, end, "parameters_sha256")
+        if !is_hex_sha256(value) { return false }
+        G_PARAMETERS_SHA = value
+        return true
+    }
+    false
+}
+
+fn load_parameters(path: string) -> bool with IO, Mut, Panic, Div {
+    let text = read_file(path)
+    let n = str_len(text)
+    if n <= 0 {
+        set_error(fasta_err_param_invalid(), 0, -1)
+        return false
+    }
+
+    var start: i64 = 0
+    var line_index: i64 = 0
+    while start <= n {
+        var end = start
+        while end < n && str_char_at(text, end) != 10 {
+            end = end + 1
+        }
+
+        var line_end = end
+        if line_end > start && str_char_at(text, line_end - 1) == 13 {
+            line_end = line_end - 1
+        }
+
+        if line_end > start {
+            if line_index >= 13 || !validate_param_line(text, start, line_end, line_index) {
+                set_error(fasta_err_param_invalid(), start, -1)
+                return false
+            }
+            line_index = line_index + 1
+        }
+
+        if end >= n { break }
+        start = end + 1
+    }
+
+    if line_index != 13 {
+        set_error(fasta_err_param_invalid(), n, -1)
+        return false
+    }
+    true
+}
+
 fn header_id_equals(text: string) -> bool with Mut, Panic, Div {
     if str_len(text) != G_HEADER_ID_LEN { return false }
     var i: i64 = 0
@@ -439,24 +566,19 @@ fn kmer_code_at(start: i64, k: i64) -> i64 with Mut, Panic, Div {
 }
 
 fn kmer_transform(code: i64, k: i64, complement: bool) -> i64 with Mut, Panic, Div {
-    var digits: [i64; 4] = [0; 4]
+    // Arithmetic digit reversal: consuming digits LSB-first and appending to
+    // `out` yields the reversed (optionally complemented) k-mer with no local
+    // array. A local [i64; k] buffer here would allocate from a compiler arena
+    // that is never reclaimed inside loops, exhausting it after ~1M calls.
     var value = code
-    var i = k - 1
-    while i >= 0 {
-        digits[i as usize] = value % 4
-        value = value / 4
-        if i == 0 { break }
-        i = i - 1
-    }
-
     var out: i64 = 0
-    i = k - 1
-    while i >= 0 {
-        let base = digits[i as usize]
+    var i: i64 = 0
+    while i < k {
+        let base = value % 4
+        value = value / 4
         let transformed = if complement { base_complement(base) } else { base }
         out = out * 4 + transformed
-        if i == 0 { break }
-        i = i - 1
+        i = i + 1
     }
     out
 }
@@ -482,7 +604,7 @@ fn compute_kmer_metric(k: i64, complement: bool) -> KmerMetric with Mut, Panic, 
         start = start + 1
     }
 
-    if effective_count < KMER_MIN_EFFECTIVE_COUNT {
+    if effective_count < G_KMER_MIN_EFFECTIVE {
         return KmerMetric {
             effective_count: effective_count,
             numerator: 0,
@@ -506,6 +628,93 @@ fn compute_kmer_metric(k: i64, complement: bool) -> KmerMetric with Mut, Panic, 
                 let difference = if left >= right { left - right } else { right - left }
                 numerator = numerator + difference
                 denominator = denominator + left + right
+            }
+        }
+        code = code + 1
+    }
+
+    KmerMetric {
+        effective_count: effective_count,
+        numerator: numerator,
+        denominator: denominator,
+        available: denominator > 0,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Scale-oriented k-mer kernel.
+//
+// One fixed 4^8 i64 table (512 KiB), independent of replicon size, zeroed
+// deterministically per window and k. Counting is a single rolling pass over
+// the window: ambiguity resets the rolling code, so masked k-mers never span
+// an ambiguous symbol. Orbits are evaluated after counting; each unordered
+// orbit {u,T(u)} is processed exactly once at min(code, partner), including
+// orbits whose representative has count zero. The reference kernel above
+// (compute_kmer_metric) must produce identical results on every fixture.
+// ---------------------------------------------------------------------------
+
+fn zero_kmer_table(k: i64) with Mut, Panic, Div {
+    let limit = pow4(k)
+    var i: i64 = 0
+    while i < limit {
+        KMER_COUNTS[i as usize] = 0
+        i = i + 1
+    }
+}
+
+fn count_kmers_rolling(k: i64) -> i64 with Mut, Panic, Div {
+    var code: i64 = 0
+    var run: i64 = 0
+    var effective: i64 = 0
+    let limit = pow4(k)
+    var i: i64 = 0
+    while i < G_WINDOW_LEN {
+        let base = WINDOW_BASES[i as usize]
+        if base >= 0 && base <= 3 {
+            code = (code * 4 + base) % limit
+            run = run + 1
+            if run >= k {
+                KMER_COUNTS[code as usize] = KMER_COUNTS[code as usize] + 1
+                effective = effective + 1
+            }
+        } else {
+            code = 0
+            run = 0
+        }
+        i = i + 1
+    }
+    effective
+}
+
+fn compute_kmer_metric_optimized(k: i64, complement: bool) -> KmerMetric with Mut, Panic, Div {
+    zero_kmer_table(k)
+    let effective_count = count_kmers_rolling(k)
+    if effective_count < G_KMER_MIN_EFFECTIVE {
+        return KmerMetric {
+            effective_count: effective_count,
+            numerator: 0,
+            denominator: 0,
+            available: false,
+        }
+    }
+
+    var numerator: i64 = 0
+    var denominator: i64 = 0
+    var code: i64 = 0
+    let limit = pow4(k)
+    while code < limit {
+        let partner = kmer_transform(code, k, complement)
+        if code <= partner {
+            let left = KMER_COUNTS[code as usize]
+            if code == partner {
+                denominator = denominator + left
+            } else {
+                let right = KMER_COUNTS[partner as usize]
+                if left > 0 || right > 0 {
+                    let difference = if left >= right { left - right } else { right - left }
+                    numerator = numerator + difference
+                    denominator = denominator + left + right
+                }
             }
         }
         code = code + 1
@@ -544,52 +753,80 @@ fn print_json_bool(value: bool) with IO {
     if value { print("true") } else { print("false") }
 }
 
-fn print_kmer_metric_fields(k: i64) with IO, Mut, Panic, Div {
-    let reverse_metric = compute_kmer_metric(k, false)
-    let rc_metric = compute_kmer_metric(k, true)
+fn print_kmer_null_triplets(k: i64) with IO {
+    print(",\"reverse_kmer_imbalance_")
+    print_int(k)
+    print("_numerator\":null,\"reverse_kmer_imbalance_")
+    print_int(k)
+    print("_denominator\":null,\"reverse_kmer_imbalance_")
+    print_int(k)
+    print("\":null,\"rc_kmer_imbalance_")
+    print_int(k)
+    print("_numerator\":null,\"rc_kmer_imbalance_")
+    print_int(k)
+    print("_denominator\":null,\"rc_kmer_imbalance_")
+    print_int(k)
+    print("\":null")
+}
 
+fn print_kmer_metric_fields(k: i64) with IO, Mut, Panic, Div {
     print(",\"kmer_")
     print_int(k)
     print("_effective_count\":")
+    if k > G_K_MAX {
+        // Outside the configured range: nothing was computed, null everywhere,
+        // never zero-filled.
+        print("null")
+        print(",\"kmer_")
+        print_int(k)
+        print("_unavailable_reason\":\"K_OUT_OF_CONFIGURED_RANGE\"")
+        print_kmer_null_triplets(k)
+        return
+    }
+
+    let reverse_metric = if G_SIMPLE_KERNEL { compute_kmer_metric(k, false) } else { compute_kmer_metric_optimized(k, false) }
+    let rc_metric = if G_SIMPLE_KERNEL { compute_kmer_metric(k, true) } else { compute_kmer_metric_optimized(k, true) }
+
     print_int(reverse_metric.effective_count)
+    print(",\"kmer_")
+    print_int(k)
+    print("_unavailable_reason\":")
+    if !reverse_metric.available {
+        print("\"INSUFFICIENT_EFFECTIVE_KMERS\"")
+        print_kmer_null_triplets(k)
+        return
+    }
+    print("null")
 
     print(",\"reverse_kmer_imbalance_")
     print_int(k)
     print("_numerator\":")
-    if reverse_metric.available { print_int(reverse_metric.numerator) } else { print("null") }
+    print_int(reverse_metric.numerator)
     print(",\"reverse_kmer_imbalance_")
     print_int(k)
     print("_denominator\":")
-    if reverse_metric.available { print_int(reverse_metric.denominator) } else { print("null") }
+    print_int(reverse_metric.denominator)
     print(",\"reverse_kmer_imbalance_")
     print_int(k)
     print("\":")
-    if reverse_metric.available {
-        print_ratio_6(reverse_metric.numerator, reverse_metric.denominator)
-    } else {
-        print("null")
-    }
+    print_ratio_6(reverse_metric.numerator, reverse_metric.denominator)
 
     print(",\"rc_kmer_imbalance_")
     print_int(k)
     print("_numerator\":")
-    if rc_metric.available { print_int(rc_metric.numerator) } else { print("null") }
+    print_int(rc_metric.numerator)
     print(",\"rc_kmer_imbalance_")
     print_int(k)
     print("_denominator\":")
-    if rc_metric.available { print_int(rc_metric.denominator) } else { print("null") }
+    print_int(rc_metric.denominator)
     print(",\"rc_kmer_imbalance_")
     print_int(k)
     print("\":")
-    if rc_metric.available {
-        print_ratio_6(rc_metric.numerator, rc_metric.denominator)
-    } else {
-        print("null")
-    }
+    print_ratio_6(rc_metric.numerator, rc_metric.denominator)
 }
 
 fn emit_pipeline_window() with IO, Mut, Panic, Div {
-    let partial = G_WINDOW_LEN < PIPELINE_WINDOW_BYTES
+    let partial = G_WINDOW_LEN < G_WINDOW_SIZE
     let canonical = window_is_canonical()
     let excluded = partial || !canonical
     let window_end = G_WINDOW_START + G_WINDOW_LEN
@@ -610,7 +847,9 @@ fn emit_pipeline_window() with IO, Mut, Panic, Div {
         }
     }
 
-    print("{\"schema_version\":\"0.1.0\",\"metric_version\":\"0.1.0\",\"assembly_accession_version\":\"")
+    print("{\"schema_version\":\"0.2.0\",\"metric_version\":\"0.1.0\",\"parameters_sha256\":\"")
+    print(G_PARAMETERS_SHA)
+    print("\",\"assembly_accession_version\":\"")
     print(G_META_ASSEMBLY)
     print("\",\"sequence_accession_version\":\"")
     print(G_META_SEQUENCE)
@@ -657,9 +896,9 @@ fn emit_pipeline_window() with IO, Mut, Panic, Div {
     print(",\"fixed_RC\":")
     if excluded { print("null") } else { print_json_bool(rc_mismatches == 0) }
     print(",\"kmer_ambiguity_policy\":\"masked\",\"kmer_min_effective_count\":")
-    print_int(KMER_MIN_EFFECTIVE_COUNT)
+    print_int(G_KMER_MIN_EFFECTIVE)
     var k: i64 = 1
-    while k <= KMER_MAX_K {
+    while k <= KMER_ABS_MAX_K {
         print_kmer_metric_fields(k)
         k = k + 1
     }
@@ -800,7 +1039,7 @@ fn process_fasta_byte(ch: i64, offset: i64) with IO, Mut, Panic, Div {
     if G_PIPELINE_MODE {
         WINDOW_BASES[G_WINDOW_LEN as usize] = index
         G_WINDOW_LEN = G_WINDOW_LEN + 1
-        if G_WINDOW_LEN == PIPELINE_WINDOW_BYTES {
+        if G_WINDOW_LEN == G_WINDOW_SIZE {
             emit_pipeline_window()
         }
     }
@@ -871,9 +1110,9 @@ fn print_error() with IO {
 fn main() -> i64 with IO, Mut, Panic, Div {
     let argc = arg_count()
     let summary_mode = argc == 1
-    let pipeline_mode = argc == 3 && str_eq(get_arg(0), "--pipeline")
+    let pipeline_mode = argc == 4 && (str_eq(get_arg(0), "--pipeline") || str_eq(get_arg(0), "--pipeline-reference"))
     if !summary_mode && !pipeline_mode {
-        print("usage: fasta_stream_fixture <input.fa> | --pipeline <input.fa> <metadata.tsv>\n")
+        print("usage: fasta_stream_fixture <input.fa> | --pipeline <input.fa> <metadata.tsv> <parameters.flat> | --pipeline-reference <input.fa> <metadata.tsv> <parameters.flat>\n")
         return 64
     }
 
@@ -881,7 +1120,12 @@ fn main() -> i64 with IO, Mut, Panic, Div {
     var input_path = get_arg(0)
     if pipeline_mode {
         G_PIPELINE_MODE = true
+        G_SIMPLE_KERNEL = str_eq(get_arg(0), "--pipeline-reference")
         input_path = get_arg(1)
+        if !load_parameters(get_arg(3)) {
+            print_error()
+            return G_ERROR_CODE
+        }
         if !load_metadata(get_arg(2)) {
             print_error()
             return G_ERROR_CODE

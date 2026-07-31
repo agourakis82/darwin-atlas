@@ -1,0 +1,4 @@
+record_index	sequence_accession_version	assembly_accession_version	replicon_class	declared_topology	source_scope
+1	synthetic_k8_controls	synthetic	synthetic	linear	synthetic_control
+2	synthetic_debruijn_b44	synthetic	synthetic	linear	synthetic_control
+3	synthetic_lcg_1024	synthetic	synthetic	linear	synthetic_control
