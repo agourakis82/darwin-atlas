@@ -1,0 +1,4 @@
+LOCUS       NC_000913            4641652 bp    DNA     circular CON 09-DEC-2025
+LOCUS       NC_002695            5498578 bp    DNA     circular CON 12-FEB-2021
+LOCUS       NC_002127               3306 bp    DNA     circular CON 03-AUG-2016
+LOCUS       NC_002128              92721 bp    DNA     circular CON 28-AUG-2016

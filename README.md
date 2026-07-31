@@ -8,7 +8,10 @@ bacterial RefSeq replicons.
 > executable operator, streaming FASTA, and parameterized frozen mini-pipeline
 > fixtures (positional metrics plus masked k-mer composition for the
 > predeclared pilot range k=1..8, under two byte-equivalent kernels) now pass
-> independent Julia checks. Julia remains a validator, never the canonical
+> independent Julia checks. A frozen miniature cohort of four complete
+> circular RefSeq replicons (two assemblies, official NCBI checksum closure)
+> is pinned in [`data/cohort/mini/`](data/cohort/mini/README.md) but has not
+> yet run through the pipeline. Julia remains a validator, never the canonical
 > producer.
 
 ## Scientific scope

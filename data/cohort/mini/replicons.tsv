@@ -1,0 +1,5 @@
+record_index	sequence_accession_version	assembly_accession_version	replicon_class	declared_topology	source_scope	length_bp
+1	NC_000913.3	GCF_000005845.2	chromosome	circular	ncbi_complete_replicon	4641652
+2	NC_002695.2	GCF_000008865.2	chromosome	circular	ncbi_complete_replicon	5498578
+3	NC_002127.1	GCF_000008865.2	plasmid	circular	ncbi_complete_replicon	3306
+4	NC_002128.1	GCF_000008865.2	plasmid	circular	ncbi_complete_replicon	92721

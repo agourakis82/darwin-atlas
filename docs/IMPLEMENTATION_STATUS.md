@@ -2,8 +2,8 @@
 
 **Observed:** 2026-07-31
 
-**Base commit:** the k=1..8 parameterization commit updating this file on
-branch `codex/sounio-primary-wip` (published baseline: `bb2926d`);
+**Base commit:** the miniature-cohort freeze commit updating this file on
+branch `codex/sounio-primary-wip` (previous published baseline: `cd4ef31`);
 the evidence below was produced from that exact tree.
 
 **Specification:** 0.1.0 normative draft
@@ -34,6 +34,7 @@ from older pins or older source hashes is stale and was regenerated.
 | Negative metadata fixtures | PASS | `METADATA_INVALID` (exit 9) and two `METADATA_MISMATCH` (exit 10) cases with exact record/offset/byte tuples |
 | Base-only Julia mini-pipeline differential | PASS | Independent recomputation matches both persisted JSONL artifacts byte for byte (96/96 windows, tolerance 0) and every negative error tuple exactly (3 metadata + 8 parameter, offsets re-derived from the flat bytes); invariants asserted: denominator == effective_count, `reverse_kmer_imbalance_1_numerator == 0`, ratios in [0,1], transforms are involutions, masked k-mers never cross ambiguity, unavailable implies below-threshold count |
 | Window JSONL schema 0.2.0 validation | PASS | All 96 persisted lines validate against `schemas/window_operator_profile.schema.json` with exact 90-field order; both parameter fixtures validate against `schemas/pipeline_parameters.schema.json`; all eight invalid parameter fixtures are rejected |
+| Frozen miniature complete-replicon cohort | PASS | Two complete RefSeq assemblies (four circular replicons) acquired with the official NCBI Datasets CLI 18.34.0 and frozen under `data/cohort/mini/`; official NCBI per-file MD5 closure holds for every committed package-derived file; FASTA record lengths match the official sequence reports for all four replicons; `sha256sum -c data/cohort/mini/SHA256SUMS` passes inside `make contract` |
 | Corrupted-artifact detector check | PASS | Julia rejects a one-digit perturbation of the persisted JSONL (positional and k-mer fields) |
 | Canonical pipeline with missing Sounio producer | BLOCKED as designed, exit 2 | `make pipeline` |
 | Mini-pipeline with missing `SOUNIO_REPO` | BLOCKED as designed, exit 2 | `scripts/run_sounio_mini_pipeline.sh` |
@@ -49,7 +50,7 @@ loaded. It is not evidence that project tests pass or fail.
 | Tool | Observed state |
 |---|---|
 | Sounio `souc` | official pinned checkout works through Lima `souc-linux`; the host is arm64 and cannot execute the Linux x86-64 Madaros natively |
-| NCBI Datasets CLI `datasets` | missing from `PATH` |
+| NCBI Datasets CLI `datasets` | pinned at `~/.local/dosa-tools/ncbi-datasets-v2/datasets` 18.34.0, binary SHA-256 `f1133f8278edc594b9c36082e08140c4cde0acfd2591118e4faf4e5055b3592c` (`dataformat` SHA-256 `625fc7d5760825ae0790280343a1c895069479124982e1648b8241fa47c1f134`) |
 | Julia | 1.12.2 present; Base-only validators work; local project `Pkg` dependency broken |
 
 All executable evidence below was produced from the official repository at the
@@ -113,6 +114,28 @@ prefixes of `NC_000913.3` and `NC_002128.1` (re-verified against Entrez
 `efetch` on 2026-07-31), not complete replicons; the other two records are
 synthetic controls. See `data/fixtures/mini_pipeline/README.md`.
 
+Mini cohort evidence identifiers (`data/cohort/mini/`):
+
+- cohort scope: engineering-scale complete-replicon cohort for gates G2/G3;
+  NOT the pilot `core` cohort of specification §8 (that manifest remains
+  pending under proposed ADR-0002);
+- assemblies: `GCF_000005845.2` (*E. coli* K-12 MG1655; chromosome
+  `NC_000913.3`, 4,641,652 bp) and `GCF_000008865.2` (*E. coli* O157:H7
+  Sakai; chromosome `NC_002695.2`, 5,498,578 bp; plasmids `NC_002127.1`
+  3,306 bp and `NC_002128.1` 92,721 bp); all four replicons declared
+  `circular` by the official GenBank LOCUS lines (`topology_locus.txt`);
+- retrieval: 2026-07-31T18:04:35Z, NCBI Datasets CLI 18.34.0; download
+  package SHA-256 `f1e34c49e83f9889eb265c8bd71f841ef4bac15ef3196ba59e7d60a907d6c6ad`;
+  GBFF (topology) package SHA-256 `e1539824ef649046f5222f7babe7fde2eda7c39b04724e502ccf2b96cd38e106`;
+- per-assembly genomic FASTA SHA-256:
+  `53bb6a51b6e92139ced1e38f74b7938781027c52200922ff03718c2237d23bb4`
+  (GCF_000005845.2) and
+  `71c2e5c364293c9ba36fc2c7acbcaa75cd6884295fe06260ba198826a8b1ddd3`
+  (GCF_000008865.2); official NCBI per-file MD5 manifest in `ncbi_md5sum.txt`;
+- `cohort_manifest.jsonl` carries specification §11.1 fields plus provenance
+  extensions; `replicons.tsv` fixes the replicon-level record order; every
+  frozen byte is pinned in `SHA256SUMS` and verified by `make contract`.
+
 ## Pinned upstream compatibility findings
 
 At the current pin, the native x86-64 backend implements
@@ -149,21 +172,19 @@ labeled as SHA-256, 256-character analysis cap).
 |---|---|---|
 | G0 source/compiler binding | PARTIAL | official compiler/source/executable hashes recorded; atlas tree is not a clean released commit |
 | G1 Sounio executable fixtures | PARTIAL | positional, streaming FASTA, and parameterized mini-pipeline fixtures (positional + masked k-mer k=1..8 with dual kernels and strict parameter validation) execute; real-cohort fixtures absent |
-| G2 miniature NCBI end-to-end fixture | PASS (fixture scope) | frozen NCBI-prefix + synthetic fixtures run end to end through Sounio to deterministic JSONL at the full predeclared k=1..8 pilot range; scope is 16 bp prefixes plus synthetic sequences, not complete replicons |
+| G2 miniature NCBI end-to-end fixture | PASS (fixture scope) | frozen NCBI-prefix + synthetic fixtures run end to end through Sounio to deterministic JSONL at the full predeclared k=1..8 pilot range; scope is 16 bp prefixes plus synthetic sequences, not complete replicons; the complete-replicon miniature cohort is now frozen on disk but has not yet run through the pipeline |
 | G3 independent Julia differential validation | PARTIAL | operator, six FASTA cases, and both mini-pipeline JSONL artifacts (96/96 windows) reproduced byte-exact at tolerance 0, including independently derived parameter-error offsets; deterministic atlas sample absent |
-| G4 schema/provenance/checksum closure | PARTIAL | receipt, window JSONL 0.2.0, and pipeline parameter schemas exist; mini-pipeline input checksum closure verified (including parameter fixtures); no real receipt or canonical artifacts |
+| G4 schema/provenance/checksum closure | PARTIAL | receipt, window JSONL 0.2.0, and pipeline parameter schemas exist; mini-pipeline input checksum closure verified (including parameter fixtures); frozen cohort checksum closure verified against official NCBI MD5s; no real receipt or canonical artifacts |
 | G5 scale benchmark | RED | no pilot executable |
 | G6 DOI-ready immutable bundle | RED | upstream gates incomplete |
 
 ## Next implementation slice
 
-1. Acquire a frozen miniature cohort of complete replicons with the NCBI
-   Datasets CLI and recorded package checksums (Fase D; CLI currently absent
-   from `PATH` — do not install without an explicit decision).
-2. Emit the canonical products (cohort/replicons/windows/exclusions) with a
-   two-stage Sounio run receipt bound to a clean released commit.
-3. Add the deterministic Julia atlas sample and null-model fixtures; set the
+1. Emit the canonical products (cohort/replicons/windows/exclusions) with a
+   two-stage Sounio run receipt bound to a clean released commit, starting
+   with the frozen miniature cohort in `data/cohort/mini/`.
+2. Add the deterministic Julia atlas sample and null-model fixtures; set the
    pilot `min_kmer_effective_count` per proposed ADR-0002.
-4. Repair or replace the local Julia 1.12.2 project environment so the
+3. Repair or replace the local Julia 1.12.2 project environment so the
    validator-development test suite can run.
-5. Run the G5 scale benchmark and assemble the G6 release bundle.
+4. Run the G5 scale benchmark and assemble the G6 release bundle.

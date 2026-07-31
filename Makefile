@@ -75,6 +75,17 @@ contract:
 	@test -s data/fixtures/mini_pipeline/parameters_k8.json
 	@for f in window_size_zero stride_zero stride_mismatch k_min_two k_max_nine k_max_above_window unknown_policy extra_field; do test -s "data/fixtures/mini_pipeline/params_invalid/$$f.json"; done
 	@test -s schemas/pipeline_parameters.schema.json
+	@test -s data/cohort/mini/cohort_manifest.jsonl
+	@test -s data/cohort/mini/replicons.tsv
+	@test -s data/cohort/mini/SHA256SUMS
+	@test -s data/cohort/mini/ncbi_md5sum.txt
+	@test -s data/cohort/mini/topology_locus.txt
+	@test -s data/cohort/mini/assemblies/GCF_000005845.2/GCF_000005845.2_ASM584v2_genomic.fna
+	@test -s data/cohort/mini/assemblies/GCF_000008865.2/GCF_000008865.2_ASM886v2_genomic.fna
+	@cd data/cohort/mini && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
+	@ruby -rjson -e 'rows=File.readlines("data/cohort/mini/cohort_manifest.jsonl",chomp:true).map{|l|JSON.parse(l)}; abort "cohort must have exactly 2 assemblies" unless rows.size==2; rows.each{|r| %w[assembly_accession_version taxid organism_name refseq_category assembly_level retrieval_utc datasets_version package_md5 included].each{|k| abort "cohort manifest missing #{k}" unless r.key?(k)}; abort "cohort assembly not included" unless r["included"]==true; abort "datasets version drift" unless r["datasets_version"]=="18.34.0"}'
+	@ruby -e 'rows=File.readlines("data/cohort/mini/replicons.tsv",chomp:true); abort "replicons.tsv must have header + 4 rows" unless rows.size==5; abort "all mini replicons must be declared circular" unless rows.drop(1).all?{|l| l.split("\t")[4]=="circular"}; abort "replicon scope must be ncbi_complete_replicon" unless rows.drop(1).all?{|l| l.split("\t")[5]=="ncbi_complete_replicon"}'
+	@cd data/cohort/mini && ruby -rdigest -e 'md5s=File.readlines("ncbi_md5sum.txt",chomp:true).map{|l| l.split}; md5s.each{|md5,rel| p=rel.sub(%r{\Ancbi_dataset/data/},""); parts=p.split("/"); target = if parts[0].start_with?("GCF_") then (parts[1].end_with?(".fna") ? "assemblies/#{parts[0]}/#{parts[1]}" : "sequence_report.#{parts[0]}.jsonl") else parts[-1] end; actual=Digest::MD5.file(target).hexdigest; abort "NCBI md5 mismatch: #{target}" unless actual==md5 }'
 	@cd data/fixtures/mini_pipeline && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/pipeline_parameters.schema.json")); abort "parameters schema must forbid extras" unless s.fetch("additionalProperties")==false; %w[schema_version specification_version window_size stride k_min k_max min_kmer_effective_count positional_ambiguity_policy kmer_ambiguity_policy coordinate_system window_wraparound output_order].each { |k| abort "parameters schema missing required #{k}" unless s.fetch("required").include?(k) }'
 	@ruby -rjson -e 'p=JSON.parse(File.read("data/fixtures/mini_pipeline/parameters_k4.json")); abort "k4 fixture drifted" unless p["window_size"]==4 && p["stride"]==4 && p["k_min"]==1 && p["k_max"]==4 && p["min_kmer_effective_count"]==1'
