@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/window_operator_profile.schema.json",
+  "title": "DOSA window operator profile (mini-pipeline JSONL line)",
+  "description": "One line of the deterministic JSONL emitted by the Sounio mini-pipeline (sounio/src/fasta_stream_fixture.sio --pipeline). Serialization constraints that JSON Schema cannot express are normative text: object members MUST appear in the order listed in 'required', numbers delta_R/delta_RC MUST serialize with exactly six fractional digits, integers without padding, strings are restricted to [A-Za-z0-9._-] so no JSON escaping ever occurs, and each line is terminated by a single LF. Excluded windows (status=excluded) MUST carry null for every metric field and effective_count 0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "metric_version",
+    "assembly_accession_version",
+    "sequence_accession_version",
+    "replicon_class",
+    "declared_topology",
+    "source_scope",
+    "record_index",
+    "window_index",
+    "window_start",
+    "window_end",
+    "window_length",
+    "ambiguity_policy",
+    "status",
+    "reason_code",
+    "effective_count",
+    "delta_R_mismatches",
+    "delta_RC_mismatches",
+    "denominator",
+    "delta_R",
+    "delta_RC",
+    "fixed_R",
+    "fixed_RC"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "metric_version": { "const": "0.1.0" },
+    "assembly_accession_version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "sequence_accession_version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "replicon_class": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "description": "Observed values in the frozen fixture: chromosome, plasmid, synthetic."
+    },
+    "declared_topology": {
+      "type": "string",
+      "enum": ["circular", "linear", "unknown"]
+    },
+    "source_scope": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "description": "ncbi_prefix_1_16 for NCBI prefix records (not complete replicons); synthetic_control for synthetic controls."
+    },
+    "record_index": { "type": "integer", "minimum": 1 },
+    "window_index": { "type": "integer", "minimum": 0 },
+    "window_start": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Zero-based start of the half-open window [window_start, window_end) in the submitted orientation; no wraparound."
+    },
+    "window_end": { "type": "integer", "minimum": 1 },
+    "window_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4,
+      "description": "Full windows have length 4 (window size = stride = 4); only a trailing partial window may be shorter, and it is always excluded."
+    },
+    "ambiguity_policy": { "const": "canonical_only" },
+    "status": { "type": "string", "enum": ["ok", "excluded"] },
+    "reason_code": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "enum": ["AMBIGUOUS_WINDOW", "PARTIAL_WINDOW"] }
+      ]
+    },
+    "effective_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Canonical base count contributing to metrics; 0 for excluded windows."
+    },
+    "delta_R_mismatches": {
+      "anyOf": [{ "type": "null" }, { "type": "integer", "minimum": 0 }]
+    },
+    "delta_RC_mismatches": {
+      "anyOf": [{ "type": "null" }, { "type": "integer", "minimum": 0 }]
+    },
+    "denominator": {
+      "anyOf": [{ "type": "null" }, { "type": "integer", "minimum": 1 }]
+    },
+    "delta_R": {
+      "anyOf": [{ "type": "null" }, { "type": "number", "minimum": 0, "maximum": 1 }],
+      "description": "delta_R_mismatches/denominator, serialized with exactly six fractional digits."
+    },
+    "delta_RC": {
+      "anyOf": [{ "type": "null" }, { "type": "number", "minimum": 0, "maximum": 1 }],
+      "description": "delta_RC_mismatches/denominator, serialized with exactly six fractional digits."
+    },
+    "fixed_R": { "anyOf": [{ "type": "null" }, { "type": "boolean" }] },
+    "fixed_RC": { "anyOf": [{ "type": "null" }, { "type": "boolean" }] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "ok" } } },
+      "then": {
+        "properties": {
+          "reason_code": { "type": "null" },
+          "effective_count": { "const": 4 },
+          "delta_R_mismatches": { "type": "integer" },
+          "delta_RC_mismatches": { "type": "integer" },
+          "denominator": { "const": 4 },
+          "delta_R": { "type": "number" },
+          "delta_RC": { "type": "number" },
+          "fixed_R": { "type": "boolean" },
+          "fixed_RC": { "type": "boolean" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "excluded" } } },
+      "then": {
+        "properties": {
+          "reason_code": { "type": "string" },
+          "effective_count": { "const": 0 },
+          "delta_R_mismatches": { "type": "null" },
+          "delta_RC_mismatches": { "type": "null" },
+          "denominator": { "type": "null" },
+          "delta_R": { "type": "null" },
+          "delta_RC": { "type": "null" },
+          "fixed_R": { "type": "null" },
+          "fixed_RC": { "type": "null" }
+        }
+      }
+    }
+  ]
+}

@@ -67,11 +67,16 @@ jobs:
         with:
           path: atlas
 
+      - name: Resolve pinned official Sounio commit
+        id: pin
+        working-directory: atlas
+        run: echo "commit=$(ruby -rjson -e 'print JSON.parse(File.read("toolchains/sounio.lock.json")).fetch("commit")')" >> "$GITHUB_OUTPUT"
+
       - name: Checkout pinned official Sounio
         uses: actions/checkout@v4
         with:
           repository: sounio-lang/sounio
-          ref: 41fc4261d60fe2654da0bdd11056495016371e36
+          ref: ${{ steps.pin.outputs.commit }}
           path: sounio-upstream
           sparse-checkout: |
             bin
@@ -90,6 +95,10 @@ jobs:
       - name: Stream FASTA fixtures and independently validate IUPAC and errors
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make fasta-differential-fixture
+
+      - name: Run frozen mini-pipeline and independently validate JSONL, exclusions, and errors
+        working-directory: atlas
+        run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make mini-pipeline-differential-fixture
 
   cross-validation-boundary:
     name: Missing Sounio is blocked, never a pass

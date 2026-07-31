@@ -1,6 +1,7 @@
 .PHONY: all help status contract setup-julia julia test test-julia \
 	sounio sounio-fixture operator-differential-fixture compile-sounio-fixture \
 	sounio-fasta-fixture fasta-differential-fixture \
+	sounio-mini-pipeline mini-pipeline-differential-fixture \
 	cross-validate pipeline release-gate \
 	legacy-julia-pipeline legacy-export-knowledge legacy-verify-knowledge clean
 
@@ -26,6 +27,8 @@ help:
 	@echo "  operator-differential-fixture  Sounio artifact + independent Base-only Julia check"
 	@echo "  sounio-fasta-fixture    Execute streaming/IUPAC FASTA fixtures in pinned Sounio"
 	@echo "  fasta-differential-fixture  Sounio FASTA artifact + independent Base-only Julia check"
+	@echo "  sounio-mini-pipeline    Run frozen FASTA+metadata mini-pipeline in pinned Sounio"
+	@echo "  mini-pipeline-differential-fixture  Sounio JSONL + independent Base-only Julia check"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"
 	@echo "  release-gate            Full publication gate (red until pipeline is ready)"
@@ -44,7 +47,7 @@ status:
 	fi
 	@if command -v julia >/dev/null 2>&1; then julia --version; else echo "Julia: MISSING"; fi
 	@if command -v datasets >/dev/null 2>&1; then datasets --version; else echo "NCBI Datasets CLI: MISSING"; fi
-	@echo "Canonical pipeline: BLOCKED (FASTA fixture exists; operator/writer integration absent)"
+	@echo "Canonical pipeline: BLOCKED (mini-pipeline fixture exists; full cohort/receipt integration absent)"
 
 contract:
 	@test -s docs/SCIENTIFIC_SPEC.md
@@ -55,10 +58,19 @@ contract:
 	@test -s sounio/src/fasta_stream_fixture.sio
 	@test -s julia/scripts/validate_operator_fixture.jl
 	@test -s julia/scripts/validate_fasta_fixture.jl
+	@test -s julia/scripts/validate_mini_pipeline.jl
+	@test -s schemas/window_operator_profile.schema.json
 	@test -x scripts/run_sounio_fasta_fixture.sh
 	@test -x scripts/run_fasta_differential_fixture.sh
+	@test -x scripts/run_sounio_mini_pipeline.sh
+	@test -x scripts/run_mini_pipeline_differential.sh
 	@for f in valid_multi_record invalid_symbol sequence_before_header empty_header empty_sequence no_records; do test -s "data/fixtures/fasta/$$f.fa"; done
 	@test "$$(wc -c < data/fixtures/fasta/valid_multi_record.fa)" -gt 17
+	@test -s data/fixtures/mini_pipeline/pipeline_fixture.fa
+	@test -s data/fixtures/mini_pipeline/SHA256SUMS
+	@for f in pipeline_metadata metadata_invalid metadata_mismatch metadata_short; do test -s "data/fixtures/mini_pipeline/$$f.tsv"; done
+	@cd data/fixtures/mini_pipeline && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "schema must fix canonical_only" unless s.dig("properties","ambiguity_policy","const")=="canonical_only"; abort "schema must fix window fields" unless s.fetch("required").include?("delta_RC") && s.fetch("additionalProperties")==false'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/run_receipt.schema.json")); abort "producer must be Sounio" unless s.dig("properties","producer","properties","language","const")=="Sounio"; abort "validator must be Julia" unless s.dig("properties","validator","oneOf",1,"properties","language","const")=="Julia"'
 	@ruby -rjson -e 's=JSON.parse(File.read("toolchains/sounio.lock.json")); abort "wrong official remote" unless s.fetch("repository")=="https://github.com/sounio-lang/sounio.git"; abort "invalid Sounio commit" unless s.fetch("commit").match?(/\A[0-9a-f]{40}\z/)'
 	@! rg -n "Running Julia-only validation instead" julia/scripts/cross_validation.jl
@@ -98,6 +110,17 @@ fasta-differential-fixture:
 	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
 		bash scripts/run_fasta_differential_fixture.sh
 
+# Frozen FASTA + metadata -> positional windows -> delta_R/delta_RC -> explicit
+# exclusions -> deterministic JSONL, produced by pinned official Sounio.
+sounio-mini-pipeline:
+	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
+		bash scripts/run_sounio_mini_pipeline.sh
+
+# Sounio JSONL artifact + independent Base-only Julia byte-exact recomputation.
+mini-pipeline-differential-fixture:
+	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
+		bash scripts/run_mini_pipeline_differential.sh
+
 # Development-only FFI comparison. The publication gate will compare persisted
 # Sounio artifacts after the canonical producer exists.
 cross-validate: julia
@@ -105,7 +128,7 @@ cross-validate: julia
 	$(JULIA) julia/scripts/cross_validation.jl
 
 pipeline:
-	@echo "BLOCKED: the streaming FASTA fixture is not yet integrated with operators and a deterministic artifact writer."
+	@echo "BLOCKED: the mini-pipeline fixture is an executable specification only; the canonical cohort pipeline (run receipts, k-mer/null-model metrics, release artifacts) is not implemented."
 	@echo "See docs/SCIENTIFIC_SPEC.md sections 3, 11, and 13."
 	@exit 2
 

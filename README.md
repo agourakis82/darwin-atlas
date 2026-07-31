@@ -5,8 +5,9 @@ bacterial RefSeq replicons.
 
 > **Current state:** specification and implementation migration. This checkout
 > does not yet produce a publication-ready atlas. Sounio kernels are partial;
-> executable operator and streaming FASTA fixtures now pass independent Julia
-> checks. Julia remains a validator, never the canonical producer.
+> executable operator, streaming FASTA, and frozen mini-pipeline fixtures now
+> pass independent Julia checks. Julia remains a validator, never the canonical
+> producer.
 
 ## Scientific scope
 
@@ -110,14 +111,20 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make fasta-differential-fixture
 
+# Run the frozen mini-pipeline (FASTA + metadata -> windows -> delta_R/delta_RC
+# -> exclusions -> deterministic JSONL) and recompute it byte-exact in Julia
+SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
+  make mini-pipeline-differential-fixture
+
 # Must fail unless both implementations are actually available
 make cross-validate
 ```
 
-`make pipeline` is intentionally fail-closed until the verified streaming reader
-is connected to the operator kernels and a deterministic artifact writer. The
-historical Julia-only pipeline is available only through the explicitly named
-`make legacy-julia-pipeline` diagnostic target; its output is not release
+`make pipeline` is intentionally fail-closed until the canonical cohort
+pipeline (run receipts, k-mer/null-model metrics, release artifacts) exists;
+the mini-pipeline fixture is an executable specification, not that pipeline.
+The historical Julia-only pipeline is available only through the explicitly
+named `make legacy-julia-pipeline` diagnostic target; its output is not release
 eligible.
 
 Because the official Sounio repository moves rapidly, fixture runners accept

@@ -1,0 +1,5 @@
+record_index	sequence_accession_version	assembly_accession_version	replicon_class	declared_topology	source_scope
+1	NC_000913.3	GCF_000005845.2	chromosome	circular-ish	ncbi_prefix_1_16
+2	NC_002128.1	GCF_000008865.2	plasmid	circular	ncbi_prefix_1_16
+3	synthetic_ambiguity_control	synthetic	synthetic	linear	synthetic_control
+4	synthetic_partial_control	synthetic	synthetic	linear	synthetic_control

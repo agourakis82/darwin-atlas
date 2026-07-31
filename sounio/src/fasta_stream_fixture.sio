@@ -14,6 +14,7 @@ const FASTA_CHUNK_BYTES: i64 = 17
 const FASTA_HASH_MODULUS: i64 = 1000000007
 const PIPELINE_WINDOW_BYTES: i64 = 4
 const HEADER_ID_BYTES: i64 = 256
+const METADATA_SPAN_MAX: i64 = 8192
 
 fn fasta_ok() -> i64 { 0 }
 fn fasta_err_open_failed() -> i64 { 1 }
@@ -138,6 +139,28 @@ fn parse_decimal_digit(ch: i64) -> i64 {
     if ch >= 48 && ch <= 57 { ch - 48 } else { -1 }
 }
 
+// The native x86-64 backend implements str_slice(s, start, end) as a suffix
+// operation that ignores its third argument (upstream codegen_x86_linux.sio:
+// "str_slice(s: *u8, start: i64) -> *u8"), and str_from_bytes only resolves
+// local array handles, not globals. Bounded spans are therefore built by
+// copying bytes into a local scratch buffer and re-materializing them with
+// str_from_bytes. An out-of-contract span returns the empty string, which the
+// metadata validators reject as METADATA_INVALID; nothing is silently
+// truncated.
+fn str_span(text: string, start: i64, end: i64) -> string with Mut, Panic, Div {
+    if start < 0 || end < start { return "" }
+    let n = end - start
+    if n <= 0 { return "" }
+    if n > METADATA_SPAN_MAX { return "" }
+    var buf: [i8; 8192] = [0; 8192]
+    var i: i64 = 0
+    while i < n {
+        buf[i as usize] = str_char_at(text, start + i) as i8
+        i = i + 1
+    }
+    str_from_bytes(buf, n)
+}
+
 fn parse_nonnegative_i64(raw: string) -> i64 with Mut, Panic, Div {
     let n = str_len(raw)
     if n <= 0 { return -1 }
@@ -173,13 +196,13 @@ fn tsv_get_field(line: string, target: i64) -> string with Mut, Panic, Div {
     var i: i64 = 0
     while i < n {
         if str_char_at(line, i) == 9 {
-            if field == target { return str_slice(line, start, i) }
+            if field == target { return str_span(line, start, i) }
             field = field + 1
             start = i + 1
         }
         i = i + 1
     }
-    if field == target { str_slice(line, start, n) } else { "" }
+    if field == target { str_span(line, start, n) } else { "" }
 }
 
 fn metadata_value_is_json_safe(value: string) -> bool with Mut, Panic, Div {
@@ -248,10 +271,11 @@ fn load_metadata(path: string) -> bool with IO, Mut, Panic, Div {
             end = end + 1
         }
 
-        var line = str_slice(text, start, end)
-        if str_len(line) > 0 && str_char_at(line, str_len(line) - 1) == 13 {
-            line = str_slice(line, 0, str_len(line) - 1)
+        var line_end = end
+        if line_end > start && str_char_at(text, line_end - 1) == 13 {
+            line_end = line_end - 1
         }
+        let line = str_span(text, start, line_end)
 
         if str_len(line) > 0 {
             if logical_line == 0 {
@@ -306,10 +330,11 @@ fn metadata_row_at(target_index: i64) -> MetadataRow with Mut, Panic, Div {
             end = end + 1
         }
 
-        var line = str_slice(G_METADATA_TEXT, start, end)
-        if str_len(line) > 0 && str_char_at(line, str_len(line) - 1) == 13 {
-            line = str_slice(line, 0, str_len(line) - 1)
+        var line_end = end
+        if line_end > start && str_char_at(G_METADATA_TEXT, line_end - 1) == 13 {
+            line_end = line_end - 1
         }
+        let line = str_span(G_METADATA_TEXT, start, line_end)
 
         if str_len(line) > 0 {
             if logical_line > 0 {
@@ -334,6 +359,16 @@ fn metadata_row_at(target_index: i64) -> MetadataRow with Mut, Panic, Div {
     empty_metadata_row()
 }
 
+fn header_id_equals(text: string) -> bool with Mut, Panic, Div {
+    if str_len(text) != G_HEADER_ID_LEN { return false }
+    var i: i64 = 0
+    while i < G_HEADER_ID_LEN {
+        if str_char_at(text, i) != HEADER_ID_BUF[i as usize] as i64 { return false }
+        i = i + 1
+    }
+    true
+}
+
 fn validate_header_metadata(offset: i64) with Mut, Panic, Div {
     if !G_PIPELINE_MODE { return }
     if G_HEADER_ID_LEN <= 0 {
@@ -347,8 +382,9 @@ fn validate_header_metadata(offset: i64) with Mut, Panic, Div {
         return
     }
 
-    let header_id = str_from_bytes(HEADER_ID_BUF, G_HEADER_ID_LEN)
-    if !str_eq(header_id, row.sequence_accession_version) {
+    // str_from_bytes does not resolve global array handles in the native
+    // backend, so the captured header token is compared byte by byte.
+    if !header_id_equals(row.sequence_accession_version) {
         set_error(fasta_err_metadata_mismatch(), offset, -1)
         return
     }
@@ -513,7 +549,7 @@ fn print_record() with IO, Mut, Panic {
     print("\n")
 }
 
-fn finish_record(offset: i64, byte: i64) with IO, Mut, Panic {
+fn finish_record(offset: i64, byte: i64) with IO, Mut, Panic, Div {
     if G_SEQUENCE_LENGTH <= 0 {
         set_error(fasta_err_empty_sequence(), offset, byte)
         return

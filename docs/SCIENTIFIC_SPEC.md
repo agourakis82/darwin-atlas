@@ -309,9 +309,14 @@ partial Sounio kernels. It does not yet contain a scientifically validated atlas
 run. One positional fixture now reaches `EXECUTES` and exact Base-only Julia
 differential agreement. A chunked, multi-record IUPAC FASTA fixture also reaches
 `EXECUTES` and exact Julia differential agreement across valid and invalid
-inputs. These executable specifications do not elevate the absent integrated
-FASTA-to-artifact pipeline to `SCIENTIFICALLY_VALIDATED`. Successful
-parsing/code generation by itself remains evidence only for `COMPILES`.
+inputs. A frozen mini-pipeline fixture — two 16 bp NCBI prefixes plus two
+synthetic controls, associated with a metadata TSV, windowed without overlap,
+scored with `delta_R`/`delta_RC`, with explicit `AMBIGUOUS_WINDOW` and
+`PARTIAL_WINDOW` exclusions — reaches `EXECUTES` with deterministic JSONL and
+byte-exact Base-only Julia agreement, including negative metadata fixtures.
+These executable specifications do not elevate the absent full cohort pipeline
+to `SCIENTIFICALLY_VALIDATED`. Successful parsing/code generation by itself
+remains evidence only for `COMPILES`.
 
 ## 15. Change control
 

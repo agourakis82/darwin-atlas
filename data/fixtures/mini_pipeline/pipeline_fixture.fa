@@ -1,0 +1,8 @@
+>NC_000913.3 NCBI prefix positions 1-16 (not a complete replicon)
+AGCTTTTCATTCTGAC
+>NC_002128.1 NCBI prefix positions 1-16 (not a complete replicon)
+AGCCAGATTTTACCCG
+>synthetic_ambiguity_control synthetic control with IUPAC ambiguity
+ACGTNRYA
+>synthetic_partial_control synthetic control with trailing partial window
+ACGTA
