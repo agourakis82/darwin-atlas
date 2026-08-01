@@ -148,6 +148,14 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make cohort-products
 
+# Two-stage engineering run receipt (Fase H): rerun the products pipeline from
+# a clean tree, emit a stage-1 receipt (generated_unvalidated, no validator),
+# run the full Julia validation suite, and close a stage-2 validated receipt
+# under receipts/<run_id>/ (fails closed with exit 2 on a dirty tree; the two
+# large window products stay hash-bound in the receipt, not committed)
+SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
+  scripts/emit_products_receipt.sh
+
 # Must fail unless both implementations are actually available
 make cross-validate
 ```

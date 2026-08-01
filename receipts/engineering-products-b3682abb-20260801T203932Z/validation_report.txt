@@ -1,0 +1,18 @@
+DOSA_RECEIPT_VALIDATION label=validate_cohort_plasmids rc=0
+argv=julia --startup-file=no /Users/demetriosagourakis/Documents/Codex/Darwin-atlas/julia/scripts/validate_mini_pipeline.jl /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39/windows-runner.log /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39 cohort_plasmids
+DOSA_JULIA_MINI_PIPELINE_DIFFERENTIAL_OK
+validated_cases=2 validated_windows=6003 tolerance=0
+DOSA_RECEIPT_VALIDATION label=validate_cohort_products rc=0
+argv=julia --startup-file=no /Users/demetriosagourakis/Documents/Codex/Darwin-atlas/julia/scripts/validate_cohort_products.jl /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39/products.log /Users/demetriosagourakis/Documents/Codex/Darwin-atlas/data/cohort/mini /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39
+DOSA_JULIA_COHORT_PRODUCTS_OK
+validated_products=3 validated_replicons=4 validated_exclusions=38 tolerance=0
+DOSA_RECEIPT_VALIDATION label=validate_window_sample_pOSAK1 rc=0
+argv=julia --startup-file=no /Users/demetriosagourakis/Documents/Codex/Darwin-atlas/julia/scripts/validate_window_sample.jl /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39/windows_pOSAK1.jsonl /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39/pOSAK1/record.fa /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39/pOSAK1/metadata.tsv /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39/params/products.flat /Users/demetriosagourakis/Documents/Codex/Darwin-atlas/receipts/engineering-products-b3682abb-20260801T203932Z/sample_check_pOSAK1.txt
+DOSA_SAMPLE_DEFINITION version=0.1.0 strata=excluded_all,record_boundaries,fmix64_mod64 seed_source=parameters_sha256 seed=fdb6a170e38b7401
+DOSA_SAMPLE_REPORT total_windows=207 sampled=5 validated=5 tolerance=0
+DOSA_SAMPLE_OK
+DOSA_RECEIPT_VALIDATION label=validate_window_sample_pO157 rc=0
+argv=julia --startup-file=no /Users/demetriosagourakis/Documents/Codex/Darwin-atlas/julia/scripts/validate_window_sample.jl /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39/windows_pO157.jsonl /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39/pO157/record.fa /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39/pO157/metadata.tsv /var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.8joM39/params/products.flat /Users/demetriosagourakis/Documents/Codex/Darwin-atlas/receipts/engineering-products-b3682abb-20260801T203932Z/sample_check_pO157.txt
+DOSA_SAMPLE_DEFINITION version=0.1.0 strata=excluded_all,record_boundaries,fmix64_mod64 seed_source=parameters_sha256 seed=fdb6a170e38b7401
+DOSA_SAMPLE_REPORT total_windows=5796 sampled=90 validated=90 tolerance=0
+DOSA_SAMPLE_OK
