@@ -21,6 +21,8 @@ fixture_dir="$atlas_root/data/fixtures/mini_pipeline"
 valid_cases=(
   "main pipeline_fixture.fa pipeline_metadata.tsv parameters_k4.json 12"
   "k8 pipeline_k8_fixture.fa pipeline_k8_metadata.tsv parameters_k8.json 84"
+  "null_k4 pipeline_fixture.fa pipeline_metadata.tsv parameters_null_k4.json 12"
+  "null_k8 pipeline_k8_fixture.fa pipeline_k8_metadata.tsv parameters_null_k8.json 84"
 )
 # Negative cases: name metadata params_json expected_rc expected_error
 # (all run against pipeline_fixture.fa; parameters are validated first)
@@ -36,6 +38,8 @@ negative_cases=(
   "param_k_max_above_window pipeline_metadata.tsv params_invalid/k_max_above_window.json 11 PARAM_INVALID"
   "param_unknown_policy pipeline_metadata.tsv params_invalid/unknown_policy.json 11 PARAM_INVALID"
   "param_extra_field pipeline_metadata.tsv params_invalid/extra_field.json 11 PARAM_INVALID"
+  "param_null_model_unknown pipeline_metadata.tsv params_invalid/null_model_unknown.json 11 PARAM_INVALID"
+  "param_null_replicates_mismatch pipeline_metadata.tsv params_invalid/null_replicates_mismatch.json 11 PARAM_INVALID"
 )
 
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/dosa-sounio-mini-pipeline.XXXXXX")"
@@ -118,7 +122,8 @@ echo "sounio_pipeline_source_sha256=$source_sha256"
 for input in pipeline_fixture.fa pipeline_k8_fixture.fa \
     pipeline_metadata.tsv pipeline_k8_metadata.tsv \
     metadata_invalid.tsv metadata_mismatch.tsv metadata_short.tsv \
-    parameters_k4.json parameters_k8.json; do
+    parameters_k4.json parameters_k8.json \
+    parameters_null_k4.json parameters_null_k8.json; do
   echo "sounio_pipeline_input name=$input sha256=$(sha256_file "$fixture_dir/$input")"
 done
 for invalid in "$fixture_dir"/params_invalid/*.json; do
@@ -173,7 +178,7 @@ check_artifact() {
         abort "JSONL line #{index + 1} is not valid JSON: #{e.message}"
       end
       abort "JSONL line #{index + 1} is not a JSON object" unless object.is_a?(Hash)
-      abort "JSONL line #{index + 1} has #{object.size} fields, expected 90" unless object.size == 90
+      abort "JSONL line #{index + 1} has #{object.size} fields, expected 183" unless object.size == 183
     end
   ' "$path"
 }
@@ -206,6 +211,8 @@ output="/tmp/dosa-mini-pipeline-${commit_short}-${source_short}-${run_id}.elf"
 valid_cases=(
   "main pipeline_fixture.fa pipeline_metadata.tsv main 12"
   "k8 pipeline_k8_fixture.fa pipeline_k8_metadata.tsv k8 84"
+  "null_k4 pipeline_fixture.fa pipeline_metadata.tsv null_k4 12"
+  "null_k8 pipeline_k8_fixture.fa pipeline_k8_metadata.tsv null_k8 84"
 )
 negative_cases=(
   "metadata_invalid metadata_invalid.tsv main 9 METADATA_INVALID"
@@ -219,6 +226,8 @@ negative_cases=(
   "param_k_max_above_window pipeline_metadata.tsv param_k_max_above_window 11 PARAM_INVALID"
   "param_unknown_policy pipeline_metadata.tsv param_unknown_policy 11 PARAM_INVALID"
   "param_extra_field pipeline_metadata.tsv param_extra_field 11 PARAM_INVALID"
+  "param_null_model_unknown pipeline_metadata.tsv param_null_model_unknown 11 PARAM_INVALID"
+  "param_null_replicates_mismatch pipeline_metadata.tsv param_null_replicates_mismatch 11 PARAM_INVALID"
 )
 
 cd "$repo"
@@ -360,3 +369,9 @@ echo "sounio_pipeline_jsonl_sha256=$(sha256_file "$work_dir/main.jsonl")"
 echo "sounio_pipeline_jsonl_artifact_k8=$work_dir/k8.jsonl"
 echo "sounio_pipeline_jsonl_lines_k8=$(wc -l < "$work_dir/k8.jsonl" | tr -d ' ')"
 echo "sounio_pipeline_jsonl_sha256_k8=$(sha256_file "$work_dir/k8.jsonl")"
+echo "sounio_pipeline_jsonl_artifact_null_k4=$work_dir/null_k4.jsonl"
+echo "sounio_pipeline_jsonl_lines_null_k4=$(wc -l < "$work_dir/null_k4.jsonl" | tr -d ' ')"
+echo "sounio_pipeline_jsonl_sha256_null_k4=$(sha256_file "$work_dir/null_k4.jsonl")"
+echo "sounio_pipeline_jsonl_artifact_null_k8=$work_dir/null_k8.jsonl"
+echo "sounio_pipeline_jsonl_lines_null_k8=$(wc -l < "$work_dir/null_k8.jsonl" | tr -d ' ')"
+echo "sounio_pipeline_jsonl_sha256_null_k8=$(sha256_file "$work_dir/null_k8.jsonl")"

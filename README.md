@@ -122,8 +122,10 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 
 # Run the frozen mini-pipeline (versioned parameter JSON -> strict flat
 # validation -> FASTA + metadata -> windows -> delta_R/delta_RC -> masked
-# k-mer imbalance k=1..8 -> exclusions -> deterministic JSONL 0.2.0), with
-# byte-equivalent optimized and reference kernels, and recompute it
+# k-mer imbalance k=1..8 -> exclusions -> deterministic JSONL 0.3.0), with
+# byte-equivalent optimized and reference kernels, the fixture null-model
+# cases (mononucleotide-preserving shuffle null summaries, an executable
+# specification; the ADR-0002 pilot null remains proposed), and recompute it
 # byte-exact in Julia
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make mini-pipeline-differential-fixture

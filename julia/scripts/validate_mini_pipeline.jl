@@ -5,13 +5,14 @@ Independent Base-only validator for the Sounio mini-pipeline fixture.
 
 The validator re-reads the frozen FASTA, metadata, and rendered flat
 parameter bytes, independently re-validates the parameter grammar (strict
-13-line fixed-order form, exact domains, exact error offsets), re-derives the
-metadata association, the parameterized non-overlapping positional windows,
-the delta_R / delta_RC metrics, the masked k-mer imbalance fields for
-k = 1..8 with explicit unavailable reasons, and every exclusion, then
-rebuilds the expected JSONL byte for byte and requires exact equality with
-the persisted Sounio artifact. For the negative metadata and parameter
-fixtures it independently derives the expected error tuple
+13/15-line fixed-order form, exact domains, exact error offsets), re-derives
+the metadata association, the parameterized non-overlapping positional
+windows, the delta_R / delta_RC metrics, the masked k-mer imbalance fields
+for k = 1..8 with explicit unavailable reasons, the fixture null-model
+summaries (schema 0.3.0), and every exclusion, then rebuilds the expected
+JSONL byte for byte and requires exact equality with the persisted Sounio
+artifact. For the negative metadata and parameter fixtures it independently
+derives the expected error tuple
 (code, record, offset, byte) and requires exact equality.
 
 It loads no packages (Base only), does not execute Sounio, and never falls
@@ -25,7 +26,7 @@ end
 
 const LOG_PATH = only(ARGS[1:1])
 const FIXTURE_DIRECTORY = only(ARGS[2:2])
-# Case sets: "fixture" is the frozen mini-pipeline battery (13 cases);
+# Case sets: "fixture" is the frozen mini-pipeline battery (17 cases);
 # "cohort_smoke" is the complete-replicon engineering smoke (1 case).
 const CASE_SET = length(ARGS) == 3 ? ARGS[3] : "fixture"
 include(joinpath(@__DIR__, "window_pipeline_core.jl"))
@@ -34,6 +35,8 @@ const CASE_SPECS = if CASE_SET == "fixture"
     [
     (name="main", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="main", rc=0),
     (name="k8", fasta="pipeline_k8_fixture.fa", metadata="pipeline_k8_metadata.tsv", params="k8", rc=0),
+    (name="null_k4", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="null_k4", rc=0),
+    (name="null_k8", fasta="pipeline_k8_fixture.fa", metadata="pipeline_k8_metadata.tsv", params="null_k8", rc=0),
     (name="metadata_invalid", fasta="pipeline_fixture.fa", metadata="metadata_invalid.tsv", params="main", rc=9),
     (name="metadata_mismatch", fasta="pipeline_fixture.fa", metadata="metadata_mismatch.tsv", params="main", rc=10),
     (name="metadata_short", fasta="pipeline_fixture.fa", metadata="metadata_short.tsv", params="main", rc=10),
@@ -45,6 +48,8 @@ const CASE_SPECS = if CASE_SET == "fixture"
     (name="param_k_max_above_window", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="param_k_max_above_window", rc=11),
     (name="param_unknown_policy", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="param_unknown_policy", rc=11),
     (name="param_extra_field", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="param_extra_field", rc=11),
+    (name="param_null_model_unknown", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="param_null_model_unknown", rc=11),
+    (name="param_null_replicates_mismatch", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="param_null_replicates_mismatch", rc=11),
 ]
 elseif CASE_SET == "cohort_smoke"
     [(name="smoke_pOSAK1", fasta="nc_002127_1.fa", metadata="nc_002127_1_metadata.tsv", params="smoke_pOSAK1", rc=0)]

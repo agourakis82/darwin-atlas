@@ -17,6 +17,18 @@ const KMER_ABS_MAX_K: i64 = 8
 const KMER_TABLE_SIZE: i64 = 65536
 const HEADER_ID_BYTES: i64 = 256
 const METADATA_SPAN_MAX: i64 = 8192
+// Fixture null-model engine (schema 0.3.0, spec 0.1.0 section 9 sensitivity
+// null). All arithmetic is exact non-negative i64 below 2^62, so the
+// independent Base-only Julia validator reproduces every draw bit for bit.
+// The pilot primary null, replicate count, and seed derivation remain
+// proposed under ADR-0002; this engine is an executable specification only.
+const NULL_LCG_MODULUS: i64 = 2147483648
+const NULL_LCG_MULTIPLIER: i64 = 1103515245
+const NULL_LCG_INCREMENT: i64 = 12345
+const NULL_MAX_REPLICATES: i64 = 64
+const NULL_METRIC_COUNT: i64 = 18
+const NULL_MODEL_NONE: i64 = 0
+const NULL_MODEL_MONONUCLEOTIDE_SHUFFLE: i64 = 1
 
 fn fasta_ok() -> i64 { 0 }
 fn fasta_err_open_failed() -> i64 { 1 }
@@ -37,6 +49,9 @@ var HEADER_ID_BUF: [i8; 256] = [0; 256]
 var WINDOW_BASES: [i64; 16] = [0; 16]
 var KMER_COUNTS: [i64; 65536] = [0; 65536]
 var OBSERVED_CODES: [i64; 64] = [0; 64]
+var SAVED_BASES: [i64; 16] = [0; 16]
+var NULL_VALS: [i64; 1152] = [0; 1152]
+var NULL_AVAILABLE: [i64; 18] = [0; 18]
 
 var G_ERROR_CODE: i64 = 0
 var G_ERROR_OFFSET: i64 = 0
@@ -60,6 +75,10 @@ var G_STRIDE: i64 = 0
 var G_K_MAX: i64 = 0
 var G_KMER_MIN_EFFECTIVE: i64 = 0
 var G_OBSERVED_COUNT: i64 = 0
+var G_NULL_MODEL: i64 = 0
+var G_NULL_REPLICATES: i64 = 0
+var G_NULL_STATE: i64 = 0
+var G_NULL_SEED_BASE: i64 = 0
 var G_HAVE_HEADER: bool = false
 var G_IN_HEADER: bool = false
 var G_AT_LINE_START: bool = true
@@ -182,6 +201,25 @@ fn str_span(text: string, start: i64, end: i64) -> string with Mut, Panic, Div {
         i = i + 1
     }
     str_from_bytes(buf, n)
+}
+
+fn hex_digit_value(ch: i64) -> i64 {
+    if ch >= 48 && ch <= 57 { return ch - 48 }
+    if ch >= 97 && ch <= 102 { return ch - 87 }
+    -1
+}
+
+// First 8 hex digits of the parameter hash as a non-negative i64 (at most
+// 0xFFFFFFFF). This binds every fixture null draw to the exact parameter
+// artifact; the pilot seed derivation remains proposed under ADR-0002.
+fn null_seed_base_from_sha(value: string) -> i64 with Mut, Panic, Div {
+    var base: i64 = 0
+    var i: i64 = 0
+    while i < 8 {
+        base = base * 16 + hex_digit_value(str_char_at(value, i))
+        i = i + 1
+    }
+    base
 }
 
 fn parse_nonnegative_i64(raw: string) -> i64 with Mut, Panic, Div {
@@ -388,9 +426,11 @@ fn metadata_row_at(target_index: i64) -> MetadataRow with Mut, Panic, Div {
 // The canonical parameter artifact is JSON validated and hashed by the runner.
 // A full JSON parser inside the executable would be an unnecessarily wide and
 // permissive surface, so the runner renders a fixed-order key=value file and
-// this parser accepts exactly that rendering: 13 lines, exact keys in exact
-// order, fixed value vocabularies, no extras. Any deviation is PARAM_INVALID
-// with the zero-based byte offset of the offending line.
+// this parser accepts exactly that rendering: 13 lines (null engine off) or
+// 15 lines (explicit null_model/null_replicates before the trailing
+// parameters_sha256), exact keys in exact order, fixed value vocabularies,
+// no extras. Any deviation is PARAM_INVALID with the zero-based byte offset
+// of the offending line.
 // ---------------------------------------------------------------------------
 
 fn flat_param_value(text: string, start: i64, end: i64, expected_key: string) -> string with Mut, Panic, Div {
@@ -451,7 +491,33 @@ fn validate_param_line(text: string, start: i64, end: i64, line_index: i64) -> b
     if line_index == 9 { return str_eq(flat_param_value(text, start, end, "coordinate_system"), "zero_based_half_open") }
     if line_index == 10 { return str_eq(flat_param_value(text, start, end, "window_wraparound"), "false") }
     if line_index == 11 { return str_eq(flat_param_value(text, start, end, "output_order"), "manifest_record_then_window_start") }
+    // The renderer always appends parameters_sha256 LAST: in the 13-line
+    // form it is line 12; in the 15-line form lines 12/13 carry the null
+    // keys and parameters_sha256 is line 14.
     if line_index == 12 {
+        let sha = flat_param_value(text, start, end, "parameters_sha256")
+        if is_hex_sha256(sha) {
+            G_PARAMETERS_SHA = sha
+            return true
+        }
+        let model = flat_param_value(text, start, end, "null_model")
+        if str_eq(model, "none") {
+            G_NULL_MODEL = NULL_MODEL_NONE
+            return true
+        }
+        if str_eq(model, "mononucleotide_shuffle") {
+            G_NULL_MODEL = NULL_MODEL_MONONUCLEOTIDE_SHUFFLE
+            return true
+        }
+        return false
+    }
+    if line_index == 13 {
+        let value = parse_nonnegative_i64(flat_param_value(text, start, end, "null_replicates"))
+        if value < 0 || value > NULL_MAX_REPLICATES { return false }
+        G_NULL_REPLICATES = value
+        return true
+    }
+    if line_index == 14 {
         let value = flat_param_value(text, start, end, "parameters_sha256")
         if !is_hex_sha256(value) { return false }
         G_PARAMETERS_SHA = value
@@ -482,7 +548,7 @@ fn load_parameters(path: string) -> bool with IO, Mut, Panic, Div {
         }
 
         if line_end > start {
-            if line_index >= 13 || !validate_param_line(text, start, line_end, line_index) {
+            if line_index >= 15 || !validate_param_line(text, start, line_end, line_index) {
                 set_error(fasta_err_param_invalid(), start, -1)
                 return false
             }
@@ -493,10 +559,26 @@ fn load_parameters(path: string) -> bool with IO, Mut, Panic, Div {
         start = end + 1
     }
 
-    if line_index != 13 {
+    // Exactly 13 lines (null engine off) or exactly 15 lines (explicit
+    // null_model/null_replicates). Any other count fails at offset n.
+    if line_index != 13 && line_index != 15 {
         set_error(fasta_err_param_invalid(), n, -1)
         return false
     }
+
+    // Cross-field rule: null_model=none requires null_replicates=0 and the
+    // shuffle model requires at least one replicate. A violation fails at
+    // offset n, like the line-count rule.
+    if G_NULL_MODEL == NULL_MODEL_NONE && G_NULL_REPLICATES != 0 {
+        set_error(fasta_err_param_invalid(), n, -1)
+        return false
+    }
+    if G_NULL_MODEL == NULL_MODEL_MONONUCLEOTIDE_SHUFFLE && G_NULL_REPLICATES < 1 {
+        set_error(fasta_err_param_invalid(), n, -1)
+        return false
+    }
+
+    G_NULL_SEED_BASE = null_seed_base_from_sha(G_PARAMETERS_SHA)
     true
 }
 
@@ -948,6 +1030,260 @@ fn window_effective_kmer_count(k: i64) -> i64 with Mut, Panic, Div {
     effective
 }
 
+// ---------------------------------------------------------------------------
+// Fixture null-model engine (window schema 0.3.0; spec 0.1.0 section 9
+// sensitivity null). Mononucleotide-preserving shuffle: a seeded Fisher-Yates
+// permutation of the actual window symbols, so mononucleotide composition is
+// invariant by construction. Every quantity is exact non-negative i64 below
+// 2^62 (LCG mod 2^31, glibc constants), so the independent Base-only Julia
+// validator reproduces every draw bit for bit without floating point. The
+// seed chain binds (parameters_sha256 prefix, window_start, record_index,
+// metric index, replicate index); metric indices are 0 = delta_R,
+// 1 = delta_RC, then 2k = reverse and 2k+1 = rc k-mer imbalance for k = 1..8.
+// Summaries are computed over the available replicate draws of the scaled
+// integer ratios (floor(x*1e6/den), the same integers the ratio fields
+// serialize): floored mean, exact mean absolute deviation from the rational
+// mean, and nearest-rank q025/q975 over the sorted draws. Each pipeline mode
+// draws with its own k-mer kernel (the optimized kernel is proven
+// byte-equivalent, and the null fixtures re-prove it over every shuffled
+// draw). This engine is an executable specification;
+// the ADR-0002 pilot null (primary model, replicate count, seed derivation)
+// remains proposed and is not fixed here.
+// ---------------------------------------------------------------------------
+
+fn null_lcg_step() with Mut, Div {
+    G_NULL_STATE = (G_NULL_STATE * NULL_LCG_MULTIPLIER + NULL_LCG_INCREMENT) % NULL_LCG_MODULUS
+}
+
+fn null_seed_state(metric_index: i64, replicate: i64) with Mut, Div {
+    G_NULL_STATE = (G_NULL_SEED_BASE
+        + G_WINDOW_START * 1000003
+        + G_RECORD_INDEX * 1000033
+        + metric_index * 100043
+        + replicate * 1009) % NULL_LCG_MODULUS
+}
+
+fn save_window_bases() with Mut, Panic {
+    var i: i64 = 0
+    while i < G_WINDOW_LEN {
+        SAVED_BASES[i as usize] = WINDOW_BASES[i as usize]
+        i = i + 1
+    }
+}
+
+fn restore_window_bases() with Mut, Panic {
+    var i: i64 = 0
+    while i < G_WINDOW_LEN {
+        WINDOW_BASES[i as usize] = SAVED_BASES[i as usize]
+        i = i + 1
+    }
+}
+
+fn null_shuffle_window() with Mut, Panic, Div {
+    var i: i64 = G_WINDOW_LEN - 1
+    while i >= 1 {
+        null_lcg_step()
+        let j = G_NULL_STATE % (i + 1)
+        let tmp = WINDOW_BASES[i as usize]
+        WINDOW_BASES[i as usize] = WINDOW_BASES[j as usize]
+        WINDOW_BASES[j as usize] = tmp
+        i = i - 1
+    }
+}
+
+// Positional null draw over the shuffled window; always available, returns
+// the scaled integer ratio floor(mismatches*1e6/window_length).
+fn null_positional_draw(metric_index: i64) -> i64 with Mut, Panic, Div {
+    var mismatches: i64 = 0
+    var i: i64 = 0
+    while i < G_WINDOW_LEN {
+        let opposite = WINDOW_BASES[(G_WINDOW_LEN - 1 - i) as usize]
+        if metric_index == 0 {
+            if WINDOW_BASES[i as usize] != opposite { mismatches = mismatches + 1 }
+        } else {
+            if WINDOW_BASES[i as usize] != base_complement(opposite) { mismatches = mismatches + 1 }
+        }
+        i = i + 1
+    }
+    (mismatches * 1000000) / G_WINDOW_LEN
+}
+
+// K-mer null draw over the shuffled window via the mode-selected kernel;
+// -1 when the draw is unavailable (masked below the configured minimum).
+// The optimized kernel is proven byte-equivalent to the reference kernel,
+// and the null fixtures re-prove that equivalence over every shuffled draw
+// (opt vs reference artifacts must stay byte-identical).
+fn null_kmer_draw(metric_index: i64) -> i64 with Mut, Panic, Div {
+    let k = metric_index / 2
+    let complement = metric_index % 2 == 1
+    let metric = if G_SIMPLE_KERNEL { compute_kmer_metric(k, complement) } else { compute_kmer_metric_optimized(k, complement) }
+    if !metric.available { return -1 }
+    (metric.numerator * 1000000) / metric.denominator
+}
+
+fn run_null_replicates(metric_index: i64) with Mut, Panic, Div {
+    var available: i64 = 0
+    var replicate: i64 = 1
+    while replicate <= G_NULL_REPLICATES {
+        restore_window_bases()
+        null_seed_state(metric_index, replicate)
+        null_shuffle_window()
+        var scaled: i64 = 0
+        if metric_index < 2 {
+            scaled = null_positional_draw(metric_index)
+        } else {
+            scaled = null_kmer_draw(metric_index)
+        }
+        if scaled >= 0 {
+            NULL_VALS[(metric_index * NULL_MAX_REPLICATES + available) as usize] = scaled
+            available = available + 1
+        }
+        replicate = replicate + 1
+    }
+    restore_window_bases()
+    NULL_AVAILABLE[metric_index as usize] = available
+}
+
+fn print_null_metric_name(metric_index: i64) with IO, Div {
+    if metric_index == 0 { print("delta_R") }
+    if metric_index == 1 { print("delta_RC") }
+    if metric_index >= 2 {
+        if metric_index % 2 == 0 { print("reverse_kmer_imbalance_") } else { print("rc_kmer_imbalance_") }
+        print_int(metric_index / 2)
+    }
+}
+
+// Five null fields for a metric whose observed value is null (or when the
+// null engine is off): everything null, never zero-filled.
+fn print_null_metric_unavailable(metric_index: i64) with IO, Div {
+    print(",\"")
+    print_null_metric_name(metric_index)
+    print("_null_replicates_available\":null,\"")
+    print_null_metric_name(metric_index)
+    print("_null_mean\":null,\"")
+    print_null_metric_name(metric_index)
+    print("_null_mad\":null,\"")
+    print_null_metric_name(metric_index)
+    print("_null_q025\":null,\"")
+    print_null_metric_name(metric_index)
+    print("_null_q975\":null")
+}
+
+fn print_null_metric_fields(metric_index: i64) with IO, Mut, Panic, Div {
+    print(",\"")
+    print_null_metric_name(metric_index)
+    print("_null_replicates_available\":")
+    let available = NULL_AVAILABLE[metric_index as usize]
+    print_int(available)
+    print(",\"")
+    print_null_metric_name(metric_index)
+    print("_null_mean\":")
+    if available <= 0 {
+        print("null,\"")
+        print_null_metric_name(metric_index)
+        print("_null_mad\":null,\"")
+        print_null_metric_name(metric_index)
+        print("_null_q025\":null,\"")
+        print_null_metric_name(metric_index)
+        print("_null_q975\":null")
+        return
+    }
+
+    // Insertion sort over the available scaled draws (at most 64).
+    let base = metric_index * NULL_MAX_REPLICATES
+    var i: i64 = 1
+    while i < available {
+        let key = NULL_VALS[(base + i) as usize]
+        var j: i64 = i - 1
+        while j >= 0 && NULL_VALS[(base + j) as usize] > key {
+            NULL_VALS[(base + j + 1) as usize] = NULL_VALS[(base + j) as usize]
+            j = j - 1
+        }
+        NULL_VALS[(base + j + 1) as usize] = key
+        i = i + 1
+    }
+
+    var sum: i64 = 0
+    i = 0
+    while i < available {
+        sum = sum + NULL_VALS[(base + i) as usize]
+        i = i + 1
+    }
+    let mean = sum / available
+    // Exact mean absolute deviation from the rational mean sum/available:
+    // sum(|available*x_i - sum|) / available^2, all integer.
+    var mad_sum: i64 = 0
+    i = 0
+    while i < available {
+        let centered = available * NULL_VALS[(base + i) as usize] - sum
+        if centered >= 0 { mad_sum = mad_sum + centered } else { mad_sum = mad_sum - centered }
+        i = i + 1
+    }
+    let mad = mad_sum / (available * available)
+    let q025 = NULL_VALS[(base + (25 * (available - 1)) / 100) as usize]
+    let q975 = NULL_VALS[(base + (975 * (available - 1)) / 1000) as usize]
+
+    print_ratio_6(mean, 1000000)
+    print(",\"")
+    print_null_metric_name(metric_index)
+    print("_null_mad\":")
+    print_ratio_6(mad, 1000000)
+    print(",\"")
+    print_null_metric_name(metric_index)
+    print("_null_q025\":")
+    print_ratio_6(q025, 1000000)
+    print(",\"")
+    print_null_metric_name(metric_index)
+    print("_null_q975\":")
+    print_ratio_6(q975, 1000000)
+}
+
+fn print_null_fields(excluded: bool) with IO, Mut, Panic, Div {
+    if G_NULL_MODEL == NULL_MODEL_MONONUCLEOTIDE_SHUFFLE && G_NULL_REPLICATES > 0 {
+        print(",\"null_model\":\"mononucleotide_shuffle\",\"null_replicates\":")
+        print_int(G_NULL_REPLICATES)
+        print(",\"null_seed_derivation\":\"lcg31_sha8_fixture_v1\"")
+        save_window_bases()
+        if excluded {
+            print_null_metric_unavailable(0)
+            print_null_metric_unavailable(1)
+        } else {
+            run_null_replicates(0)
+            print_null_metric_fields(0)
+            run_null_replicates(1)
+            print_null_metric_fields(1)
+        }
+        var k: i64 = 1
+        while k <= KMER_ABS_MAX_K {
+            if k > G_K_MAX {
+                print_null_metric_unavailable(2 * k)
+                print_null_metric_unavailable(2 * k + 1)
+            } else {
+                // Observed availability is decided by the effective count
+                // alone (proven equivalent to the orbit denominator rule).
+                let effective = window_effective_kmer_count(k)
+                if effective < G_KMER_MIN_EFFECTIVE {
+                    print_null_metric_unavailable(2 * k)
+                    print_null_metric_unavailable(2 * k + 1)
+                } else {
+                    run_null_replicates(2 * k)
+                    print_null_metric_fields(2 * k)
+                    run_null_replicates(2 * k + 1)
+                    print_null_metric_fields(2 * k + 1)
+                }
+            }
+            k = k + 1
+        }
+        return
+    }
+    print(",\"null_model\":null,\"null_replicates\":null,\"null_seed_derivation\":null")
+    var metric: i64 = 0
+    while metric < NULL_METRIC_COUNT {
+        print_null_metric_unavailable(metric)
+        metric = metric + 1
+    }
+}
+
 fn emit_pipeline_window() with IO, Mut, Panic, Div {
     let partial = G_WINDOW_LEN < G_WINDOW_SIZE
     let canonical = window_is_canonical()
@@ -997,7 +1333,7 @@ fn emit_pipeline_window() with IO, Mut, Panic, Div {
         }
     }
 
-    print("{\"schema_version\":\"0.2.0\",\"metric_version\":\"0.1.0\",\"parameters_sha256\":\"")
+    print("{\"schema_version\":\"0.3.0\",\"metric_version\":\"0.1.0\",\"parameters_sha256\":\"")
     print(G_PARAMETERS_SHA)
     print("\",\"assembly_accession_version\":\"")
     print(G_META_ASSEMBLY)
@@ -1052,6 +1388,7 @@ fn emit_pipeline_window() with IO, Mut, Panic, Div {
         print_kmer_metric_fields(k)
         k = k + 1
     }
+    print_null_fields(excluded)
     print("}\n")
 
     G_WINDOW_START = window_end

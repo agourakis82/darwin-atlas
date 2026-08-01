@@ -175,7 +175,7 @@ EXPECTED_JSONL_LINES="$lines" ruby -rjson -e '
       abort "JSONL line #{index + 1} is not valid JSON: #{e.message}"
     end
     abort "JSONL line #{index + 1} is not a JSON object" unless object.is_a?(Hash)
-    abort "JSONL line #{index + 1} has #{object.size} fields, expected 90" unless object.size == 90
+    abort "JSONL line #{index + 1} has #{object.size} fields, expected 183" unless object.size == 183
   end
 ' "$work_dir/smoke_pOSAK1.jsonl"
 

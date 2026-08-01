@@ -1,8 +1,19 @@
-const SCHEMA_VERSION = "0.2.0"
+const SCHEMA_VERSION = "0.3.0"
 const METRIC_VERSION = "0.1.0"
 const HEADER_ID_BYTES = 256
 const KMER_ABS_MAX_K = 8
 const WINDOW_MAX_BYTES = 16
+
+# Fixture null-model engine constants (mirror of the Sounio executable
+# specification): LCG mod 2^31 with glibc constants, fixture replicate
+# ceiling, and the metric index layout 0 = delta_R, 1 = delta_RC, then
+# 2k = reverse / 2k+1 = rc k-mer imbalance for k = 1..8. Every quantity is
+# exact non-negative integer arithmetic below 2^62; no floating point.
+const NULL_LCG_MODULUS = 2_147_483_648
+const NULL_LCG_MULTIPLIER = 1_103_515_245
+const NULL_LCG_INCREMENT = 12_345
+const NULL_MAX_REPLICATES = 64
+const NULL_SEED_DERIVATION = "lcg31_sha8_fixture_v1"
 
 const IUPAC_INDEX = let mapping = Dict{UInt8, Int}()
     for (index, symbol) in enumerate(codeunits("ACGTRYSWKMBDHVN"))
@@ -41,6 +52,8 @@ struct PipelineParams
     k_max::Int
     min_kmer_effective_count::Int
     sha256::String
+    null_model::String
+    null_replicates::Int
 end
 
 json_safe(value::AbstractString) =
@@ -108,6 +121,17 @@ function validate_param_line(line::AbstractString, line_index::Int, state::Ref{I
     elseif line_index == 11
         return flat_value(line, "output_order") == "manifest_record_then_window_start"
     elseif line_index == 12
+        # The renderer always appends parameters_sha256 LAST: line 12 in the
+        # 13-line form, line 14 in the 15-line form (lines 12/13 then carry
+        # the null keys).
+        value = flat_value(line, "parameters_sha256")
+        (value !== nothing && match(r"^[0-9a-f]{64}$", value) !== nothing) && return true
+        model = flat_value(line, "null_model")
+        return model in ("none", "mononucleotide_shuffle")
+    elseif line_index == 13
+        value = parse_nonnegative(something(flat_value(line, "null_replicates"), ""))
+        return value >= 0 && value <= NULL_MAX_REPLICATES
+    elseif line_index == 14
         value = flat_value(line, "parameters_sha256")
         return value !== nothing && match(r"^[0-9a-f]{64}$", value) !== nothing
     end
@@ -116,10 +140,11 @@ end
 
 """
 Independently validate the rendered flat parameter bytes with Sounio's exact
-semantics: CR stripped, empty lines skipped, at most 13 non-empty lines in
+semantics: CR stripped, empty lines skipped, at most 15 non-empty lines in
 fixed order, error offset is the zero-based byte offset of the offending
-line, and a wrong line count fails at offset n (total byte count). Returns
-either a PipelineParams or a PipelineError.
+line, and a wrong line count (anything but 13 or 15) or a null-model
+cross-field violation fails at offset n (total byte count). Returns either a
+PipelineParams or a PipelineError.
 """
 function load_parameters(text::String)
     bytes = codeunits(text)
@@ -144,20 +169,40 @@ function load_parameters(text::String)
 
     window_state = Ref(0)
     for (index, range) in enumerate(lines)
-        index > 13 && return PipelineError("PARAM_INVALID", 0, range[1], -1)
+        index > 15 && return PipelineError("PARAM_INVALID", 0, range[1], -1)
         line = String(bytes[range[1] + 1:range[2] + 1])
         validate_param_line(line, index - 1, window_state) ||
             return PipelineError("PARAM_INVALID", 0, range[1], -1)
     end
-    length(lines) == 13 || return PipelineError("PARAM_INVALID", 0, n, -1)
+    # Exactly 13 lines (null engine off) or exactly 15 lines (explicit
+    # null_model/null_replicates); any other count fails at offset n.
+    length(lines) in (13, 15) || return PipelineError("PARAM_INVALID", 0, n, -1)
 
     slice(i) = String(bytes[lines[i][1] + 1:lines[i][2] + 1])
+    null_model = "none"
+    null_replicates = 0
+    sha256 = flat_value(slice(13), "parameters_sha256")
+    if length(lines) == 15
+        null_model = flat_value(slice(13), "null_model")
+        null_replicates = Int(parse_nonnegative(flat_value(slice(14), "null_replicates")))
+        sha256 = flat_value(slice(15), "parameters_sha256")
+    end
+    # Cross-field rule (mirror of the Sounio loader): none requires 0
+    # replicates, the shuffle model requires at least one; violations fail at
+    # offset n like the line-count rule.
+    (null_model == "none" && null_replicates != 0) &&
+        return PipelineError("PARAM_INVALID", 0, n, -1)
+    (null_model == "mononucleotide_shuffle" && null_replicates < 1) &&
+        return PipelineError("PARAM_INVALID", 0, n, -1)
+
     PipelineParams(
         Int(parse_nonnegative(flat_value(slice(3), "window_size"))),
         Int(parse_nonnegative(flat_value(slice(4), "stride"))),
         Int(parse_nonnegative(flat_value(slice(6), "k_max"))),
         Int(parse_nonnegative(flat_value(slice(7), "min_kmer_effective_count"))),
-        flat_value(slice(13), "parameters_sha256"),
+        sha256,
+        null_model,
+        null_replicates,
     )
 end
 
@@ -286,6 +331,154 @@ end
 reverse_transform(u::String) = reverse(u)
 rc_transform(u::String) = String(reverse(map(c -> DNA_COMPLEMENT[c], collect(u))))
 
+# ---------------------------------------------------------------------------
+# Fixture null-model engine (window schema 0.3.0; spec 0.1.0 section 9
+# sensitivity null). Exact mirror of the Sounio executable specification:
+# mononucleotide-preserving Fisher-Yates shuffle driven by an LCG mod 2^31
+# (glibc constants), seeded per (parameter hash prefix, window_start,
+# record_index, metric index, replicate). Summaries over the available
+# replicate draws of the scaled integer ratios floor(x*1e6/den): floored
+# mean, exact mean absolute deviation from the rational mean, and
+# nearest-rank q025/q975. All integer arithmetic; no floating point. The
+# ADR-0002 pilot null remains proposed and is not fixed here.
+# ---------------------------------------------------------------------------
+
+null_lcg_step(state::Int) = mod(state * NULL_LCG_MULTIPLIER + NULL_LCG_INCREMENT, NULL_LCG_MODULUS)
+
+function null_seed_state(seed_base::Int, window_start::Int, record_index::Int,
+                         metric_index::Int, replicate::Int)
+    mod(seed_base + window_start * 1_000_003 + record_index * 1_000_033 +
+        metric_index * 100_043 + replicate * 1_009, NULL_LCG_MODULUS)
+end
+
+function null_shuffle!(window::Vector{Int}, state::Int)
+    for i in length(window):-1:2
+        state = null_lcg_step(state)
+        j = state % i + 1
+        window[i], window[j] = window[j], window[i]
+    end
+    return state
+end
+
+"""One positional null draw over the shuffled window (metric 0 = delta_R,
+1 = delta_RC): the scaled integer ratio floor(mismatches*1e6/length)."""
+function null_positional_draw(window::Vector{Int}, metric_index::Int)
+    mismatches = 0
+    len = length(window)
+    for i in 1:len
+        opposite = window[len - i + 1]
+        if metric_index == 0
+            window[i] != opposite && (mismatches += 1)
+        else
+            window[i] != COMPLEMENT[opposite + 1] && (mismatches += 1)
+        end
+    end
+    return div(mismatches * 1_000_000, len)
+end
+
+"""One k-mer null draw over the shuffled window; -1 when the draw is
+unavailable (masked below the configured minimum effective count)."""
+function null_kmer_draw(window::Vector{Int}, metric_index::Int, min_effective::Int)
+    k = div(metric_index, 2)
+    transform = isodd(metric_index) ? rc_transform : reverse_transform
+    metric = kmer_imbalance(valid_kmers(window, k), transform, min_effective)
+    metric.available || return -1
+    return div(metric.numerator * 1_000_000, metric.denominator)
+end
+
+"""Available scaled draws for one metric over all configured replicates."""
+function run_null_replicates(window::Vector{Int}, params::PipelineParams, seed_base::Int,
+                             window_start::Int, record_index::Int, metric_index::Int)
+    values = Int[]
+    for replicate in 1:params.null_replicates
+        state = null_seed_state(seed_base, window_start, record_index, metric_index, replicate)
+        shuffled = copy(window)
+        null_shuffle!(shuffled, state)
+        scaled = metric_index < 2 ? null_positional_draw(shuffled, metric_index) :
+            null_kmer_draw(shuffled, metric_index, params.min_kmer_effective_count)
+        scaled >= 0 && push!(values, scaled)
+    end
+    return values
+end
+
+const NULL_METRIC_NAMES = let names = String["delta_R", "delta_RC"]
+    for k in 1:KMER_ABS_MAX_K
+        push!(names, "reverse_kmer_imbalance_$k", "rc_kmer_imbalance_$k")
+    end
+    names
+end
+
+format_scaled(scaled::Int) = format_ratio(scaled, 1_000_000)
+
+"""Five null fields for a metric whose observed value is null (or when the
+null engine is off): everything null, never zero-filled."""
+function print_null_metric_unavailable(io::IOBuffer, metric_index::Int)
+    name = NULL_METRIC_NAMES[metric_index + 1]
+    print(io, ",\"", name, "_null_replicates_available\":null,\"", name,
+        "_null_mean\":null,\"", name, "_null_mad\":null,\"", name,
+        "_null_q025\":null,\"", name, "_null_q975\":null")
+end
+
+function print_null_metric_fields(io::IOBuffer, metric_index::Int, values::Vector{Int})
+    name = NULL_METRIC_NAMES[metric_index + 1]
+    available = length(values)
+    print(io, ",\"", name, "_null_replicates_available\":", available,
+        ",\"", name, "_null_mean\":")
+    if available == 0
+        print(io, "null,\"", name, "_null_mad\":null,\"", name,
+            "_null_q025\":null,\"", name, "_null_q975\":null")
+        return
+    end
+    sorted = sort(values)
+    total = sum(sorted)
+    mean = div(total, available)
+    # Exact mean absolute deviation from the rational mean total/available:
+    # sum(|available*x_i - total|) / available^2, all integer.
+    mad = div(sum(x -> abs(available * x - total), sorted), available * available)
+    q025 = sorted[div(25 * (available - 1), 100) + 1]
+    q975 = sorted[div(975 * (available - 1), 1000) + 1]
+    print(io, format_scaled(mean), ",\"", name, "_null_mad\":", format_scaled(mad),
+        ",\"", name, "_null_q025\":", format_scaled(q025),
+        ",\"", name, "_null_q975\":", format_scaled(q975))
+end
+
+"""Append the schema 0.3.0 null-model block (93 fields) in exact Sounio
+order. Observed k-mer availability is decided by the effective count alone,
+proven equivalent to the orbit denominator rule."""
+function print_null_fields(io::IOBuffer, window::Vector{Int}, params::PipelineParams,
+                           record_index::Int, window_start::Int, excluded::Bool)
+    if params.null_model == "mononucleotide_shuffle" && params.null_replicates > 0
+        print(io, ",\"null_model\":\"mononucleotide_shuffle\",\"null_replicates\":",
+            params.null_replicates, ",\"null_seed_derivation\":\"", NULL_SEED_DERIVATION, "\"")
+        seed_base = parse(Int, params.sha256[1:8], base=16)
+        for metric_index in 0:1
+            if excluded
+                print_null_metric_unavailable(io, metric_index)
+            else
+                print_null_metric_fields(io, metric_index,
+                    run_null_replicates(window, params, seed_base, window_start, record_index, metric_index))
+            end
+        end
+        for k in 1:KMER_ABS_MAX_K
+            for complement in 0:1
+                metric_index = 2 * k + complement
+                effective = length(valid_kmers(window, k))
+                if k > params.k_max || effective < params.min_kmer_effective_count
+                    print_null_metric_unavailable(io, metric_index)
+                else
+                    print_null_metric_fields(io, metric_index,
+                        run_null_replicates(window, params, seed_base, window_start, record_index, metric_index))
+                end
+            end
+        end
+        return
+    end
+    print(io, ",\"null_model\":null,\"null_replicates\":null,\"null_seed_derivation\":null")
+    for metric_index in 0:17
+        print_null_metric_unavailable(io, metric_index)
+    end
+end
+
 """Append the masked k-mer fields for k = 1..8 in exact Sounio order, with
 explicit unavailable reasons, and assert the specification invariants on the
 independent recomputation."""
@@ -399,6 +592,7 @@ function emit_window(row::MetadataRow, record_index::Int, window_index::Int,
     print(io, ",\"fixed_R\":", excluded ? "null" : string(reverse_mismatches == 0))
     print(io, ",\"fixed_RC\":", excluded ? "null" : string(rc_mismatches == 0))
     print_kmer_fields(io, window, params)
+    print_null_fields(io, window, params, record_index, window_start, excluded)
     print(io, "}")
     return String(take!(io))
 end

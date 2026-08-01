@@ -253,8 +253,8 @@ ruby -rjson -e '
   checks = {
     "cohort_assemblies.jsonl" => [2, 16],
     "atlas_replicons.jsonl" => [4, 14],
-    "windows_pOSAK1.jsonl" => [207, 90],
-    "windows_pO157.jsonl" => [5796, 90],
+    "windows_pOSAK1.jsonl" => [207, 183],
+    "windows_pO157.jsonl" => [5796, 183],
   }
   checks.each do |name, (expected_lines, expected_fields)|
     lines = File.readlines("#{ARGV[0]}/#{name}", chomp: true)
