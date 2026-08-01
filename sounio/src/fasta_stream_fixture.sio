@@ -75,6 +75,10 @@ var G_STRIDE: i64 = 0
 var G_K_MAX: i64 = 0
 var G_KMER_MIN_EFFECTIVE: i64 = 0
 var G_OBSERVED_COUNT: i64 = 0
+var G_METRIC_EFFECTIVE: i64 = 0
+var G_METRIC_NUMERATOR: i64 = 0
+var G_METRIC_DENOMINATOR: i64 = 0
+var G_METRIC_AVAILABLE: bool = false
 var G_NULL_MODEL: i64 = 0
 var G_NULL_REPLICATES: i64 = 0
 var G_NULL_STATE: i64 = 0
@@ -105,12 +109,12 @@ struct MetadataRow {
     source_scope: string,
 }
 
-struct KmerMetric {
-    effective_count: i64,
-    numerator: i64,
-    denominator: i64,
-    available: bool,
-}
+// Per-window k-mer metric results travel through the G_METRIC_* globals
+// above, never through a returned struct: the native backend allocates
+// struct constructions from a compiler arena that is never reclaimed inside
+// loops (probed: exit 182 between 1M and 2M constructions), which killed the
+// chromosome-scale pipeline at window 65,533 (16 metric constructions per
+// window ~= 1,048,5xx constructions).
 
 fn iupac_index(ch: i64) -> i64 {
     if ch == 65 || ch == 97 { return 0 }   // A
@@ -683,7 +687,7 @@ fn count_kmer_code(target: i64, k: i64) -> i64 with Mut, Panic, Div {
 // Compute the orbit-paired imbalance numerator and denominator from masked
 // canonical k-mers. Self-transformed k-mers contribute their count once to the
 // denominator and zero to the numerator, exactly as specification 0.1.0 §7.2.
-fn compute_kmer_metric(k: i64, complement: bool) -> KmerMetric with Mut, Panic, Div {
+fn compute_kmer_metric(k: i64, complement: bool) with Mut, Panic, Div {
     var effective_count: i64 = 0
     var start: i64 = 0
     while start + k <= G_WINDOW_LEN {
@@ -692,12 +696,11 @@ fn compute_kmer_metric(k: i64, complement: bool) -> KmerMetric with Mut, Panic, 
     }
 
     if effective_count < G_KMER_MIN_EFFECTIVE {
-        return KmerMetric {
-            effective_count: effective_count,
-            numerator: 0,
-            denominator: 0,
-            available: false,
-        }
+        G_METRIC_EFFECTIVE = effective_count
+        G_METRIC_NUMERATOR = 0
+        G_METRIC_DENOMINATOR = 0
+        G_METRIC_AVAILABLE = false
+        return
     }
 
     var numerator: i64 = 0
@@ -720,12 +723,10 @@ fn compute_kmer_metric(k: i64, complement: bool) -> KmerMetric with Mut, Panic, 
         code = code + 1
     }
 
-    KmerMetric {
-        effective_count: effective_count,
-        numerator: numerator,
-        denominator: denominator,
-        available: denominator > 0,
-    }
+    G_METRIC_EFFECTIVE = effective_count
+    G_METRIC_NUMERATOR = numerator
+    G_METRIC_DENOMINATOR = denominator
+    G_METRIC_AVAILABLE = denominator > 0
 }
 
 // ---------------------------------------------------------------------------
@@ -782,17 +783,16 @@ fn count_kmers_rolling(k: i64) -> i64 with Mut, Panic, Div {
     effective
 }
 
-fn compute_kmer_metric_optimized(k: i64, complement: bool) -> KmerMetric with Mut, Panic, Div {
+fn compute_kmer_metric_optimized(k: i64, complement: bool) with Mut, Panic, Div {
     zero_kmer_table(k)
     G_OBSERVED_COUNT = 0
     let effective_count = count_kmers_rolling(k)
     if effective_count < G_KMER_MIN_EFFECTIVE {
-        return KmerMetric {
-            effective_count: effective_count,
-            numerator: 0,
-            denominator: 0,
-            available: false,
-        }
+        G_METRIC_EFFECTIVE = effective_count
+        G_METRIC_NUMERATOR = 0
+        G_METRIC_DENOMINATOR = 0
+        G_METRIC_AVAILABLE = false
+        return
     }
 
     // Iterate the observed codes only. For each observed u with v = T(u):
@@ -828,12 +828,10 @@ fn compute_kmer_metric_optimized(k: i64, complement: bool) -> KmerMetric with Mu
         obs = obs + 1
     }
 
-    KmerMetric {
-        effective_count: effective_count,
-        numerator: numerator,
-        denominator: denominator,
-        available: denominator > 0,
-    }
+    G_METRIC_EFFECTIVE = effective_count
+    G_METRIC_NUMERATOR = numerator
+    G_METRIC_DENOMINATOR = denominator
+    G_METRIC_AVAILABLE = denominator > 0
 }
 
 fn window_is_canonical() -> bool with Mut, Panic, Div {
@@ -892,14 +890,20 @@ fn print_kmer_metric_fields(k: i64) with IO, Mut, Panic, Div {
         return
     }
 
-    let reverse_metric = if G_SIMPLE_KERNEL { compute_kmer_metric(k, false) } else { compute_kmer_metric_optimized(k, false) }
-    let rc_metric = if G_SIMPLE_KERNEL { compute_kmer_metric(k, true) } else { compute_kmer_metric_optimized(k, true) }
+    if G_SIMPLE_KERNEL { compute_kmer_metric(k, false) } else { compute_kmer_metric_optimized(k, false) }
+    let reverse_effective = G_METRIC_EFFECTIVE
+    let reverse_numerator = G_METRIC_NUMERATOR
+    let reverse_denominator = G_METRIC_DENOMINATOR
+    let reverse_available = G_METRIC_AVAILABLE
+    if G_SIMPLE_KERNEL { compute_kmer_metric(k, true) } else { compute_kmer_metric_optimized(k, true) }
+    let rc_numerator = G_METRIC_NUMERATOR
+    let rc_denominator = G_METRIC_DENOMINATOR
 
-    print_int(reverse_metric.effective_count)
+    print_int(reverse_effective)
     print(",\"kmer_")
     print_int(k)
     print("_unavailable_reason\":")
-    if !reverse_metric.available {
+    if !reverse_available {
         print("\"INSUFFICIENT_EFFECTIVE_KMERS\"")
         print_kmer_null_triplets(k)
         return
@@ -909,28 +913,28 @@ fn print_kmer_metric_fields(k: i64) with IO, Mut, Panic, Div {
     print(",\"reverse_kmer_imbalance_")
     print_int(k)
     print("_numerator\":")
-    print_int(reverse_metric.numerator)
+    print_int(reverse_numerator)
     print(",\"reverse_kmer_imbalance_")
     print_int(k)
     print("_denominator\":")
-    print_int(reverse_metric.denominator)
+    print_int(reverse_denominator)
     print(",\"reverse_kmer_imbalance_")
     print_int(k)
     print("\":")
-    print_ratio_6(reverse_metric.numerator, reverse_metric.denominator)
+    print_ratio_6(reverse_numerator, reverse_denominator)
 
     print(",\"rc_kmer_imbalance_")
     print_int(k)
     print("_numerator\":")
-    print_int(rc_metric.numerator)
+    print_int(rc_numerator)
     print(",\"rc_kmer_imbalance_")
     print_int(k)
     print("_denominator\":")
-    print_int(rc_metric.denominator)
+    print_int(rc_denominator)
     print(",\"rc_kmer_imbalance_")
     print_int(k)
     print("\":")
-    print_ratio_6(rc_metric.numerator, rc_metric.denominator)
+    print_ratio_6(rc_numerator, rc_denominator)
 }
 
 // ---------------------------------------------------------------------------
@@ -1116,9 +1120,9 @@ fn null_positional_draw(metric_index: i64) -> i64 with Mut, Panic, Div {
 fn null_kmer_draw(metric_index: i64) -> i64 with Mut, Panic, Div {
     let k = metric_index / 2
     let complement = metric_index % 2 == 1
-    let metric = if G_SIMPLE_KERNEL { compute_kmer_metric(k, complement) } else { compute_kmer_metric_optimized(k, complement) }
-    if !metric.available { return -1 }
-    (metric.numerator * 1000000) / metric.denominator
+    if G_SIMPLE_KERNEL { compute_kmer_metric(k, complement) } else { compute_kmer_metric_optimized(k, complement) }
+    if !G_METRIC_AVAILABLE { return -1 }
+    (G_METRIC_NUMERATOR * 1000000) / G_METRIC_DENOMINATOR
 }
 
 fn run_null_replicates(metric_index: i64) with Mut, Panic, Div {
