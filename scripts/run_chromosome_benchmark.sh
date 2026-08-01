@@ -183,11 +183,13 @@ for spec in "${chromosomes[@]}"; do
 done
 limactl copy -y --backend=scp "$flat_path" "$SOUNIO_LIMA_INSTANCE:$guest_inputs/"
 
-limactl shell "$SOUNIO_LIMA_INSTANCE" -- bash -s -- \
-  "$SOUNIO_REPO" "$guest_source" "$guest_inputs" "$guest_work" \
-  "${expected_commit:0:12}" "${source_sha256:0:12}" "$$" \
-  "$(expected_lines NC_000913.3)" "$(expected_lines NC_002695.2)" <<'SOUNIO_LINUX_RUNNER' | tee "$work_dir/guest.log"
+# The guest phase runs detached (nohup on the guest) so a dropped limactl
+# session cannot kill hours of chromosome computation; the host polls the
+# driver log until the DRIVER_DONE / DRIVER_FAIL marker appears.
+driver_src="$work_dir/guest_driver.sh"
+cat > "$driver_src" <<'SOUNIO_LINUX_RUNNER'
 set -euo pipefail
+trap 'echo "DRIVER_FAIL rc=$?"' ERR
 repo="$1"
 source_file="$2"
 inputs="$3"
@@ -240,7 +242,37 @@ for spec in "${chromosomes[@]}"; do
   size="$(stat -c %s "$out")"
   echo "DOSA_BENCH_CASE product=window_operator_profiles acc=$acc alias=$alias expected_lines=$expected_lines lines=$lines sha256=$sha size_bytes=$size wall_seconds=$((end - start)) peak_rss_kb=$peak rc=0"
 done
+echo "DRIVER_DONE"
 SOUNIO_LINUX_RUNNER
+
+limactl copy -y --backend=scp "$driver_src" "$SOUNIO_LIMA_INSTANCE:$guest_root/guest_driver.sh"
+limactl shell "$SOUNIO_LIMA_INSTANCE" -- bash -c \
+  "nohup bash '$guest_root/guest_driver.sh' '$SOUNIO_REPO' '$guest_source' '$guest_inputs' '$guest_work' '${expected_commit:0:12}' '${source_sha256:0:12}' '$$' '$(expected_lines NC_000913.3)' '$(expected_lines NC_002695.2)' > '$guest_root/driver.log' 2>&1 & echo guest_driver_started"
+
+poll_failures=0
+while true; do
+  sleep 60
+  if limactl shell "$SOUNIO_LIMA_INSTANCE" -- test -f "$guest_root/driver.log" 2>/dev/null; then
+    poll_failures=0
+    if limactl shell "$SOUNIO_LIMA_INSTANCE" -- grep -q '^DRIVER_DONE$' "$guest_root/driver.log"; then
+      break
+    fi
+    if limactl shell "$SOUNIO_LIMA_INSTANCE" -- grep -q '^DRIVER_FAIL' "$guest_root/driver.log"; then
+      limactl copy -y --backend=scp "$SOUNIO_LIMA_INSTANCE:$guest_root/driver.log" "$work_dir/guest.log" || true
+      echo "guest driver failed; log at $work_dir/guest.log" >&2
+      exit 1
+    fi
+  else
+    poll_failures=$((poll_failures + 1))
+    if [[ "$poll_failures" -ge 10 ]]; then
+      echo "BLOCKED: guest driver log unreachable after repeated polls" >&2
+      exit 2
+    fi
+  fi
+done
+
+limactl copy -y --backend=scp "$SOUNIO_LIMA_INSTANCE:$guest_root/driver.log" "$work_dir/guest.log"
+cat "$work_dir/guest.log"
 
 for spec in "${chromosomes[@]}"; do
   read -r acc alias _assembly <<<"$spec"
@@ -394,7 +426,7 @@ ruby -rjson -e '
       "tolerance" => 0,
       "status" => "pass",
     },
-    "determinism_note" => "one timed run per chromosome; cross-run byte determinism established at plasmid scale by receipts/engineering-products-b3682abb-20260801T203932Z",
+    "determinism_note" => "one timed run per chromosome; cross-run byte determinism established at plasmid scale by receipts/engineering-products-b3682abb-20260801T203932Z; this source (post crash-182 arena fix) reproduces the Fase G published fixture hashes byte-exact on all four mini-pipeline cases",
     "memory_note" => "peak RSS is the Linux VmHWM high-water mark of the pipeline process polled every 0.5 s on the guest",
     "results" => results,
   }
