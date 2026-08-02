@@ -1,0 +1,180 @@
+{
+  "schema_version": "1.0.0",
+  "specification_version": "0.1.0",
+  "run_id": "engineering-products-8bbe89fd-20260802T144440Z",
+  "state": "validated",
+  "started_utc": "2026-08-02T14:44:40Z",
+  "finished_utc": "2026-08-02T14:55:06Z",
+  "atlas_source": {
+    "commit": "8bbe89fd2191787d6a5a125ed009629ac6ebfd14",
+    "dirty": false,
+    "tree_sha256": "e169771010ff9be14ca5b137e51e635a178d6bb720e8f627e18d0d153f3c5735"
+  },
+  "producer": {
+    "language": "Sounio",
+    "language_source_commit": "37de2c9eefe68f3457a2c66004eff68bba5b4446",
+    "compiler_path": "/Users/demetriosagourakis/.cache/darwin-atlas/sounio-37de2c9eefe6/bin/souc",
+    "compiler_version": "Madaros v0.80.0 -- the Sounio self-hosted compiler",
+    "compiler_sha256": "ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008",
+    "executable_sha256": "a309104eb95e516dda64eaced55f57e75c3c989d3d73887c95a429087ba9930e"
+  },
+  "acquisition": {
+    "tool": "NCBI Datasets CLI",
+    "version": "18.34.0",
+    "retrieved_utc": "2026-07-31T18:04:35Z",
+    "filters": {
+      "assembly_accessions": [
+        "GCF_000005845.2",
+        "GCF_000008865.2"
+      ],
+      "scope": "engineering-mini-cohort",
+      "assembly_levels": [
+        "Complete Genome"
+      ]
+    },
+    "package_checksums_verified": true
+  },
+  "input_manifest_sha256": "438371e7635009f9ba6430862b123e217fb24ebc6383af81d1c303a83b0dab2d",
+  "parameters_sha256": "fdb6a170e38b7401f19ae4b435d028a045080379f70116a0284f79c6dd1097ce",
+  "commands": [
+    {
+      "argv": [
+        "bash",
+        "scripts/run_cohort_products.sh"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "c8896b6494a2512728a741d48bd3211c6d3bc32c4adea322ba4824d076e0e0cd",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "julia",
+        "--startup-file=no",
+        "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/julia/scripts/validate_mini_pipeline.jl",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/windows-runner.log",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj",
+        "cohort_plasmids"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "4c3abc5e05e9d34133051c7c53964475dc90ef98f6e379a88eee23fd54bb2f98",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "julia",
+        "--startup-file=no",
+        "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/julia/scripts/validate_cohort_products.jl",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/products.log",
+        "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/data/cohort/mini",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "10a1f5bd8134038f4c68e8a0d141c306514a7c05751a92eac942da4e583a14d4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "julia",
+        "--startup-file=no",
+        "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/julia/scripts/validate_window_sample.jl",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/windows_pOSAK1.jsonl",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/pOSAK1/record.fa",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/pOSAK1/metadata.tsv",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/params/products.flat",
+        "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/receipts/engineering-products-8bbe89fd-20260802T144440Z/sample_check_pOSAK1.txt"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "d9369cae77c9fe2536654086bcd5409416ec8def36f36591134a9c7060ab3141",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "julia",
+        "--startup-file=no",
+        "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/julia/scripts/validate_window_sample.jl",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/windows_pO157.jsonl",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/pO157/record.fa",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/pO157/metadata.tsv",
+        "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/params/products.flat",
+        "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/receipts/engineering-products-8bbe89fd-20260802T144440Z/sample_check_pO157.txt"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "a604c2f17fe3fab9d957435a01cc7c36bbff4ed648a057fd49fdbfe9d3416d09",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/receipts/engineering-products-8bbe89fd-20260802T144440Z/cohort_assemblies.jsonl",
+      "media_type": "application/jsonl",
+      "schema": "cohort_assemblies.schema.json",
+      "sha256": "dda64346e767bc65bc4d74f4590363768755b56b3b58ac6241b2cca79c5f81a5",
+      "size_bytes": 1680,
+      "record_count": 2
+    },
+    {
+      "path": "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/receipts/engineering-products-8bbe89fd-20260802T144440Z/atlas_replicons.jsonl",
+      "media_type": "application/jsonl",
+      "schema": "atlas_replicons.schema.json",
+      "sha256": "5037581e2e339c2cab5fd2d910252c5cb3ca327e20318889fd33cfb7cdeace8e",
+      "size_bytes": 1768,
+      "record_count": 4
+    },
+    {
+      "path": "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/receipts/engineering-products-8bbe89fd-20260802T144440Z/excluded_records.jsonl",
+      "media_type": "application/jsonl",
+      "schema": "excluded_records.schema.json",
+      "sha256": "675e77982e03bd1a0c95c6a856fdeda399a14fcd24d59c058d0c48a6f36d19d0",
+      "size_bytes": 12125,
+      "record_count": 38
+    },
+    {
+      "path": "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/windows_pOSAK1.jsonl",
+      "media_type": "application/jsonl",
+      "schema": "window_operator_profile.schema.json",
+      "sha256": "b26ecbe6c4d67b346443b3aa5552f28e722f2104c8bbc3d7b8884eca5233b29b",
+      "size_bytes": 1388408,
+      "record_count": 207
+    },
+    {
+      "path": "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/windows_pO157.jsonl",
+      "media_type": "application/jsonl",
+      "schema": "window_operator_profile.schema.json",
+      "sha256": "1599a45ad384d5a06c452cb85af9891af568e759f0daaf513fa868af94511774",
+      "size_bytes": 38898319,
+      "record_count": 5796
+    },
+    {
+      "path": "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/receipts/engineering-products-8bbe89fd-20260802T144440Z/sample_pOSAK1.txt",
+      "media_type": "text/plain",
+      "schema": null,
+      "sha256": "62f51dc9db292406be718eca601d01e1412fd6924c641ff69def4e1c476ecc0f",
+      "size_bytes": 80,
+      "record_count": 6
+    },
+    {
+      "path": "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/receipts/engineering-products-8bbe89fd-20260802T144440Z/sample_pO157.txt",
+      "media_type": "text/plain",
+      "schema": null,
+      "sha256": "d7ed3e4ad17a41788520a6f89ef0503cb4b9f35d705741866d03cd4f1bf35309",
+      "size_bytes": 665,
+      "record_count": 91
+    },
+    {
+      "path": "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/receipts/engineering-products-8bbe89fd-20260802T144440Z/products_runner.log",
+      "media_type": "text/plain",
+      "schema": null,
+      "sha256": "c8896b6494a2512728a741d48bd3211c6d3bc32c4adea322ba4824d076e0e0cd",
+      "size_bytes": 7478
+    }
+  ],
+  "validator": {
+    "language": "Julia",
+    "version": "1.12.2",
+    "project_manifest_sha256": "52375015c61d7d90460ec962865aef3b84c1e57f921d157c18d09625ede23591",
+    "sample_definition_sha256": "220cffff840f50fbf1ce39b7cb1c52856c768339036938cb86d3afa07b29a1d5",
+    "report_sha256": "6a0291bab964a9883fba0d6881e16bbede7693eca949a54d3eb7bd6bba9f276e",
+    "status": "pass",
+    "absolute_tolerance": 0
+  }
+}

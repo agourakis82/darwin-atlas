@@ -1,0 +1,6 @@
+sample_version=0.1.0 modulus=64 seed=fdb6a170e38b7401
+1,0
+1,57
+1,82
+1,126
+1,206

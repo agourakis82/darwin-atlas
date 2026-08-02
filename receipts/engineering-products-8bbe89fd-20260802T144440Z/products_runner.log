@@ -1,0 +1,92 @@
+sounio_repository=https://github.com/sounio-lang/sounio.git
+sounio_commit=37de2c9eefe68f3457a2c66004eff68bba5b4446
+sounio_launcher_sha256=ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008
+sounio_products_source_sha256=b5bd1054cd5c3d57b907a3062132d7e56ea3e32da738467d136fff73bca53891
+sounio_products_params json=/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/data/fixtures/cohort_smoke/parameters_k8.json sha256=fdb6a170e38b7401f19ae4b435d028a045080379f70116a0284f79c6dd1097ce
+sounio_products_replicon acc=NC_000913.3 alias=chr_MG1655 assembly=GCF_000005845.2 fasta=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/chr_MG1655/record.fa metadata=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/chr_MG1655/metadata.tsv fasta_sha256=53bb6a51b6e92139ced1e38f74b7938781027c52200922ff03718c2237d23bb4
+sounio_products_replicon acc=NC_002695.2 alias=chr_Sakai assembly=GCF_000008865.2 fasta=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/chr_Sakai/record.fa metadata=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/chr_Sakai/metadata.tsv fasta_sha256=a6c895e840e0b190cc7cbdd3f24af8866c58ece02c73d6ece7756ec980db5921
+sounio_products_replicon acc=NC_002127.1 alias=pOSAK1 assembly=GCF_000008865.2 fasta=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/pOSAK1/record.fa metadata=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/pOSAK1/metadata.tsv fasta_sha256=972cf4a97b844492784c669d45300ff126dc89176a92c243a79ae9a307ed9562
+sounio_products_replicon acc=NC_002128.1 alias=pO157 assembly=GCF_000008865.2 fasta=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/pO157/record.fa metadata=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/pO157/metadata.tsv fasta_sha256=c7a1f822f20977af8fd8e405ee9c61506dfd0859799bd171f2aaa8400e10b5fa
+DOSA_PRODUCTS_PARAMS_FLAT flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/params/products.flat
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+science_boundary=off (engineering products; not a release receipt)
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 143
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 141
+
+lower_array: final_fn_count 152
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 152
+ functions
+Written to /tmp/dosa-cohort-products-37de2c9eefe6-b5bd1054cd5c-70448.elf
+Written to /tmp/dosa-cohort-products-37de2c9eefe6-b5bd1054cd5c-70448.elf
+Compilation successful!
+   Output: /tmp/dosa-cohort-products-37de2c9eefe6-b5bd1054cd5c-70448.elf
+products_executable_sha256=a309104eb95e516dda64eaced55f57e75c3c989d3d73887c95a429087ba9930e
+DOSA_PRODUCT_CASE product=atlas_replicons acc=NC_000913.3 rc=0
+DOSA_PRODUCT_CASE product=excluded_records acc=NC_000913.3 rc=0
+DOSA_PRODUCT_TIMING product=excluded_records acc=NC_000913.3 wall_seconds=21
+DOSA_PRODUCT_CASE product=atlas_replicons acc=NC_002695.2 rc=0
+DOSA_PRODUCT_CASE product=excluded_records acc=NC_002695.2 rc=0
+DOSA_PRODUCT_TIMING product=excluded_records acc=NC_002695.2 wall_seconds=24
+DOSA_PRODUCT_CASE product=atlas_replicons acc=NC_002127.1 rc=0
+DOSA_PRODUCT_CASE product=excluded_records acc=NC_002127.1 rc=0
+DOSA_PRODUCT_TIMING product=excluded_records acc=NC_002127.1 wall_seconds=1
+DOSA_PRODUCT_CASE product=atlas_replicons acc=NC_002128.1 rc=0
+DOSA_PRODUCT_CASE product=excluded_records acc=NC_002128.1 rc=0
+DOSA_PRODUCT_TIMING product=excluded_records acc=NC_002128.1 wall_seconds=0
+DOSA_PRODUCT_TIMING product=window_operator_profiles acc=NC_002127.1 wall_seconds=5
+DOSA_PRODUCT_CASE product=window_operator_profiles acc=NC_002127.1 rc=0 runs=2 sha256=b26ecbe6c4d67b346443b3aa5552f28e722f2104c8bbc3d7b8884eca5233b29b
+DOSA_PRODUCT_TIMING product=window_operator_profiles acc=NC_002128.1 wall_seconds=126
+DOSA_PRODUCT_CASE product=window_operator_profiles acc=NC_002128.1 rc=0 runs=2 sha256=1599a45ad384d5a06c452cb85af9891af568e759f0daaf513fa868af94511774
+products_structural_check=PASS excluded_records_lines=38
+DOSA_PRODUCT_ARTIFACT name=cohort_assemblies path=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/cohort_assemblies.jsonl lines=2 sha256=dda64346e767bc65bc4d74f4590363768755b56b3b58ac6241b2cca79c5f81a5
+DOSA_PRODUCT_ARTIFACT name=atlas_replicons path=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/atlas_replicons.jsonl lines=4 sha256=5037581e2e339c2cab5fd2d910252c5cb3ca327e20318889fd33cfb7cdeace8e
+DOSA_PRODUCT_ARTIFACT name=excluded_records path=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/excluded_records.jsonl lines=38 sha256=675e77982e03bd1a0c95c6a856fdeda399a14fcd24d59c058d0c48a6f36d19d0
+DOSA_PRODUCT_ARTIFACT name=windows_pOSAK1 path=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/windows_pOSAK1.jsonl lines=207 sha256=b26ecbe6c4d67b346443b3aa5552f28e722f2104c8bbc3d7b8884eca5233b29b
+DOSA_PRODUCT_ARTIFACT name=windows_pO157 path=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/windows_pO157.jsonl lines=5796 sha256=1599a45ad384d5a06c452cb85af9891af568e759f0daaf513fa868af94511774
+DOSA_JULIA_MINI_PIPELINE_DIFFERENTIAL_OK
+validated_cases=2 validated_windows=6003 tolerance=0
+DOSA_JULIA_COHORT_PRODUCTS_OK
+validated_products=3 validated_replicons=4 validated_exclusions=38 tolerance=0
+DOSA_SAMPLE_DEFINITION version=0.1.0 strata=excluded_all,record_boundaries,fmix64_mod64 seed_source=parameters_sha256 seed=fdb6a170e38b7401
+DOSA_SAMPLE_REPORT total_windows=207 sampled=5 validated=5 tolerance=0
+DOSA_SAMPLE_OK
+DOSA_SAMPLE_ARTIFACT name=windows_pOSAK1 coordinates=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/sample_pOSAK1.txt sha256=62f51dc9db292406be718eca601d01e1412fd6924c641ff69def4e1c476ecc0f
+DOSA_SAMPLE_DEFINITION version=0.1.0 strata=excluded_all,record_boundaries,fmix64_mod64 seed_source=parameters_sha256 seed=fdb6a170e38b7401
+DOSA_SAMPLE_REPORT total_windows=5796 sampled=90 validated=90 tolerance=0
+DOSA_SAMPLE_OK
+DOSA_SAMPLE_ARTIFACT name=windows_pO157 coordinates=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/sample_pO157.txt sha256=d7ed3e4ad17a41788520a6f89ef0503cb4b9f35d705741866d03cd4f1bf35309
+sounio_products_runner_log=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj/products.log
+sounio_products_runner_log_sha256=4f9122e92f6649698203264768e8db79606e868a5791d20975811ef424196137
+DOSA_COHORT_PRODUCTS_OK work_dir=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.VT0OKj
