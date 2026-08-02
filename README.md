@@ -156,6 +156,15 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   scripts/emit_products_receipt.sh
 
+# Chromosome-scale benchmark (Fase I): run the optimized kernel on both
+# frozen-cohort chromosomes (290,104 + 343,662 windows) with wall-clock and
+# peak-RSS measurement, structural checks, and deterministic stratified Julia
+# sample validation; writes a small benchmark receipt under
+# receipts/chromosome-benchmark-<commit>-<utc>/ (window products hash-bound,
+# not committed; engineering scope, not the pilot)
+SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
+  scripts/run_chromosome_benchmark.sh
+
 # Must fail unless both implementations are actually available
 make cross-validate
 ```

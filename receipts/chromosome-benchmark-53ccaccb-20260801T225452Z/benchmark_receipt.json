@@ -1,0 +1,82 @@
+{
+  "receipt_kind": "chromosome_scale_benchmark",
+  "receipt_version": "0.1.0",
+  "specification_version": "0.1.0",
+  "engineering_scope": true,
+  "release_eligible": false,
+  "run_id": "chromosome-benchmark-53ccaccb-20260801T225452Z",
+  "started_utc": "2026-08-01T22:54:52Z",
+  "finished_utc": "2026-08-02T01:44:10Z",
+  "atlas_source": {
+    "commit": "53ccaccb1ca1613f9ef6689c39005ec24a1f7281",
+    "dirty": false
+  },
+  "producer": {
+    "language": "Sounio",
+    "repository": "https://github.com/sounio-lang/sounio.git",
+    "commit": "37de2c9eefe68f3457a2c66004eff68bba5b4446",
+    "launcher_sha256": "ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008",
+    "products_source_sha256": "b5bd1054cd5c3d57b907a3062132d7e56ea3e32da738467d136fff73bca53891",
+    "executable_sha256": "a309104eb95e516dda64eaced55f57e75c3c989d3d73887c95a429087ba9930e"
+  },
+  "parameters": {
+    "json": "/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/data/fixtures/cohort_smoke/parameters_k8.json",
+    "sha256": "fdb6a170e38b7401f19ae4b435d028a045080379f70116a0284f79c6dd1097ce"
+  },
+  "environment": {
+    "guest_instance": "souc-linux",
+    "guest_uname": "Linux 6.18.7-0-virt x86_64 Linux",
+    "host_uname": "Darwin 27.0.0 arm64"
+  },
+  "validator": {
+    "language": "Julia",
+    "version": "1.12.2",
+    "mode": "deterministic_stratified_sample specification 0.1.0 section 12.2",
+    "tolerance": 0,
+    "status": "pass"
+  },
+  "determinism_note": "one timed run per chromosome; cross-run byte determinism established at plasmid scale by receipts/engineering-products-b3682abb-20260801T203932Z; this source (post crash-182 arena fix) reproduces the Fase G published fixture hashes byte-exact on all four mini-pipeline cases",
+  "memory_note": "peak RSS is the Linux VmHWM high-water mark of the pipeline process polled every 0.5 s on the guest",
+  "results": [
+    {
+      "accession": "NC_000913.3",
+      "alias": "chr_MG1655",
+      "expected_lines": 290104,
+      "lines": 290104,
+      "sha256": "59ad5c34a1f0cf9dfa41c7fee9e94403419c38bf2fe86a8f0c40c99ee3148650",
+      "size_bytes": 1949472321,
+      "wall_seconds": 4588,
+      "peak_rss_kb": 6804,
+      "work_dir_path": "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-chromosome-benchmark.qHxeVH/windows_chr_MG1655.jsonl",
+      "sample": {
+        "definition_version": "0.1.0",
+        "total_windows": 290104,
+        "sampled": 4464,
+        "validated": 4464,
+        "tolerance": 0,
+        "coordinates_sha256": "52f0007265e5d68e0bd91db8c23baa94bc42925bef260d393b8e6a94d3f00606",
+        "status": "pass"
+      }
+    },
+    {
+      "accession": "NC_002695.2",
+      "alias": "chr_Sakai",
+      "expected_lines": 343662,
+      "lines": 343662,
+      "sha256": "6d119d223162bcf27f4f9d5a2ba7fb952f2b1746c93b8dd8db7eaae4933fb0e4",
+      "size_bytes": 2309418997,
+      "wall_seconds": 4943,
+      "peak_rss_kb": 6804,
+      "work_dir_path": "/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-chromosome-benchmark.qHxeVH/windows_chr_Sakai.jsonl",
+      "sample": {
+        "definition_version": "0.1.0",
+        "total_windows": 343662,
+        "sampled": 5308,
+        "validated": 5308,
+        "tolerance": 0,
+        "coordinates_sha256": "97985a637603bb4bf8d7490b56bd44dbac072b83cafc90aaebe4258c4f3db7a3",
+        "status": "pass"
+      }
+    }
+  ]
+}
