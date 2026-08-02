@@ -1,0 +1,2 @@
+benchmark_structural_check name=windows_chr_MG1655.jsonl lines=290104 fields=183 status=pass
+benchmark_structural_check name=windows_chr_Sakai.jsonl lines=343662 fields=183 status=pass

@@ -1,0 +1,49 @@
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+science_boundary=off (engineering benchmark; not a release receipt)
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 143
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 141
+
+lower_array: final_fn_count 152
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 152
+ functions
+Written to /tmp/dosa-chrom-bench-37de2c9eefe6-b5bd1054cd5c-65170.elf
+Written to /tmp/dosa-chrom-bench-37de2c9eefe6-b5bd1054cd5c-65170.elf
+Compilation successful!
+   Output: /tmp/dosa-chrom-bench-37de2c9eefe6-b5bd1054cd5c-65170.elf
+benchmark_executable_sha256=a309104eb95e516dda64eaced55f57e75c3c989d3d73887c95a429087ba9930e
+benchmark_guest_uname=Linux 6.18.7-0-virt x86_64 Linux
+DOSA_BENCH_CASE product=window_operator_profiles acc=NC_000913.3 alias=chr_MG1655 expected_lines=290104 lines=290104 sha256=59ad5c34a1f0cf9dfa41c7fee9e94403419c38bf2fe86a8f0c40c99ee3148650 size_bytes=1949472321 wall_seconds=4588 peak_rss_kb=6804 rc=0
+DOSA_BENCH_CASE product=window_operator_profiles acc=NC_002695.2 alias=chr_Sakai expected_lines=343662 lines=343662 sha256=6d119d223162bcf27f4f9d5a2ba7fb952f2b1746c93b8dd8db7eaae4933fb0e4 size_bytes=2309418997 wall_seconds=4943 peak_rss_kb=6804 rc=0
+DRIVER_DONE

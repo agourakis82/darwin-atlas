@@ -31,3 +31,5 @@ Thumbs.db
 # Temporary
 *.tmp
 *.log
+# Receipt directories are immutable evidence: logs inside them are committed.
+!receipts/**/*.log
