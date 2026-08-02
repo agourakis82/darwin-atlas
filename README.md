@@ -165,6 +165,12 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   scripts/run_chromosome_benchmark.sh
 
+# Engineering release bundle (Fase J): from a clean tree, archive the commit,
+# bind the battery evidence (must end with BATTERY_ALL_GREEN), the validated
+# products receipt, and the benchmark receipt into release/<bundle_id>/ with
+# a release receipt (DOI is an explicit placeholder; engineering scope)
+scripts/build_release_bundle.sh <battery_log> <products_receipt_run_id>
+
 # Must fail unless both implementations are actually available
 make cross-validate
 ```

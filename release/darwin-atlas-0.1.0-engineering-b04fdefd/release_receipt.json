@@ -1,0 +1,37 @@
+{
+  "receipt_kind": "engineering_release",
+  "receipt_version": "0.1.0",
+  "specification_version": "0.1.0",
+  "engineering_scope": true,
+  "release_eligible": false,
+  "doi": "pending",
+  "doi_note": "explicit placeholder: no deposit has been made; DOI assignment is pending",
+  "bundle_id": "darwin-atlas-0.1.0-engineering-b04fdefd",
+  "created_utc": "2026-08-02T15:00:20Z",
+  "source_commit": "b04fdefd420d1d6b7855b62d9b8f8d6591fecab0",
+  "source_dirty": false,
+  "archive_note": "the tarball is a git archive of source_commit; the release metadata commit (this bundle directory) follows it and is not inside the tarball",
+  "sounio": {
+    "repository": "https://github.com/sounio-lang/sounio.git",
+    "commit": "37de2c9eefe68f3457a2c66004eff68bba5b4446"
+  },
+  "products_receipt": {
+    "run_id": "engineering-products-8bbe89fd-20260802T144440Z",
+    "receipt_sha256": "7497c34a2fbfeca4c6dc05597d306bc05e95aa159ada0cc81a06af35d8dbc013"
+  },
+  "benchmark_receipt": {
+    "run_id": "chromosome-benchmark-53ccaccb-20260801T225452Z",
+    "receipt_sha256": "71e211a79d376ab7d4c24b518aba5374699439fffa4a99d2ac940800270f9bf2"
+  },
+  "battery": {
+    "evidence_file": "battery_evidence.txt",
+    "evidence_sha256": "9522186bf15f52661168e99dfcb750f3ac35801b89edc2c7680be270b24c1956",
+    "final_marker": "BATTERY_ALL_GREEN"
+  },
+  "bundle_files": {
+    "tarball": "darwin-atlas-0.1.0-engineering-b04fdefd.tar.gz",
+    "tarball_sha256": "d738a78dc25560bf891f0ebc98242076bdefa485586af6098062e81ce4bd8e80",
+    "tarball_size_bytes": 3343147,
+    "manifest": "SHA256SUMS"
+  }
+}

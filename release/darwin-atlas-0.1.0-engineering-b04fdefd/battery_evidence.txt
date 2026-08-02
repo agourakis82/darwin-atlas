@@ -1,0 +1,674 @@
+sounio_repository=https://github.com/sounio-lang/sounio.git
+sounio_commit=37de2c9eefe68f3457a2c66004eff68bba5b4446
+sounio_launcher_sha256=ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008
+sounio_fixture_source_sha256=18c44b447b7e82716c31eaf0b318c7552028eb97593156aed606463d3ee8099c
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+science_boundary=off (executable specification fixture; not a release receipt)
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 20
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 17
+
+lower_array: final_fn_count 22
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 22
+ functions
+Written to /tmp/dosa-operator-fixture-37de2c9eefe6-18c44b447b7e.elf
+Written to /tmp/dosa-operator-fixture-37de2c9eefe6-18c44b447b7e.elf
+Compilation successful!
+   Output: /tmp/dosa-operator-fixture-37de2c9eefe6-18c44b447b7e.elf
+fixture_executable_sha256=3df4963d3ff43ac518d7f7aff21dad255ec6671caa3deacaefa7f3398b4d9082
+DOSA_SOUNIO_OPERATOR_FIXTURE_OK
+DOSA_OBSERVATION sequence=ACGT metric=delta_R mismatches=4 denominator=4
+DOSA_OBSERVATION sequence=ACGT metric=delta_RC mismatches=0 denominator=4
+DOSA_OBSERVATION sequence=ACCA metric=delta_R mismatches=0 denominator=4
+DOSA_OBSERVATION sequence=ACCA metric=delta_RC mismatches=4 denominator=4
+sounio_repository=https://github.com/sounio-lang/sounio.git
+sounio_commit=37de2c9eefe68f3457a2c66004eff68bba5b4446
+sounio_launcher_sha256=ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008
+sounio_fasta_source_sha256=b5bd1054cd5c3d57b907a3062132d7e56ea3e32da738467d136fff73bca53891
+sounio_fasta_input name=valid_multi_record.fa sha256=a43937529b927c0346b30c0e1c2c01647f73b609773678fd08b91ddc9fe4ad46
+sounio_fasta_input name=invalid_symbol.fa sha256=844b2327c860ceaba0389e3f005343a2f16f014927076b20e25361ff70b2ef03
+sounio_fasta_input name=sequence_before_header.fa sha256=f9c8d625ef376ba7c565a86611750859be3fbf1c8e3c71d3da96440dc34bb7f7
+sounio_fasta_input name=empty_header.fa sha256=5b6e5fae5dd3e2db259d0f57149992f23ac7cb68b7dfedb8bde2bbdaec2e3a2e
+sounio_fasta_input name=empty_sequence.fa sha256=1ff2ec7dfe815752680026503fad8f0080879149c56b98e99d26f1c48200b42b
+sounio_fasta_input name=no_records.fa sha256=75a11da44c802486bc6f65640aa48a730f0f684c5c07a42ba3cd1735eb3fb070
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+science_boundary=off (streaming executable specification; not a release receipt)
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 143
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 141
+
+lower_array: final_fn_count 152
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 152
+ functions
+Written to /tmp/dosa-fasta-fixture-37de2c9eefe6-b5bd1054cd5c.elf
+Written to /tmp/dosa-fasta-fixture-37de2c9eefe6-b5bd1054cd5c.elf
+Compilation successful!
+   Output: /tmp/dosa-fasta-fixture-37de2c9eefe6-b5bd1054cd5c.elf
+fasta_fixture_executable_sha256=a309104eb95e516dda64eaced55f57e75c3c989d3d73887c95a429087ba9930e
+DOSA_FASTA_CASE name=valid_multi_record expected_rc=0 actual_rc=0
+DOSA_FASTA_RECORD index=1 length=11 canonical=8 ambiguous=3 hash_mod=211578441 a=2 c=2 g=2 t=2 r=1 y=1 s=0 w=0 k=0 m=0 b=0 d=0 h=0 v=0 n=1
+DOSA_FASTA_RECORD index=2 length=8 canonical=0 ambiguous=8 hash_mod=424003247 a=0 c=0 g=0 t=0 r=0 y=0 s=1 w=1 k=1 m=1 b=1 d=1 h=1 v=1 n=0
+DOSA_SOUNIO_FASTA_STREAM_OK records=2 bytes=81 chunks=5 chunk_bytes=17
+DOSA_FASTA_CASE name=invalid_symbol expected_rc=6 actual_rc=6
+DOSA_FASTA_ERROR code=INVALID_SYMBOL record=1 offset=16 byte=90
+DOSA_FASTA_CASE name=sequence_before_header expected_rc=3 actual_rc=3
+DOSA_FASTA_ERROR code=SEQUENCE_BEFORE_HEADER record=0 offset=0 byte=65
+DOSA_FASTA_CASE name=empty_header expected_rc=4 actual_rc=4
+DOSA_FASTA_ERROR code=EMPTY_HEADER record=1 offset=1 byte=10
+DOSA_FASTA_CASE name=empty_sequence expected_rc=5 actual_rc=5
+DOSA_FASTA_ERROR code=EMPTY_SEQUENCE record=1 offset=7 byte=62
+DOSA_FASTA_CASE name=no_records expected_rc=7 actual_rc=7
+DOSA_FASTA_ERROR code=NO_RECORDS record=0 offset=2 byte=-1
+sounio_repository=https://github.com/sounio-lang/sounio.git
+sounio_commit=37de2c9eefe68f3457a2c66004eff68bba5b4446
+sounio_launcher_sha256=ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008
+sounio_fixture_source_sha256=18c44b447b7e82716c31eaf0b318c7552028eb97593156aed606463d3ee8099c
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+science_boundary=off (executable specification fixture; not a release receipt)
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 20
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 17
+
+lower_array: final_fn_count 22
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 22
+ functions
+Written to /tmp/dosa-operator-fixture-37de2c9eefe6-18c44b447b7e.elf
+Written to /tmp/dosa-operator-fixture-37de2c9eefe6-18c44b447b7e.elf
+Compilation successful!
+   Output: /tmp/dosa-operator-fixture-37de2c9eefe6-18c44b447b7e.elf
+fixture_executable_sha256=3df4963d3ff43ac518d7f7aff21dad255ec6671caa3deacaefa7f3398b4d9082
+DOSA_SOUNIO_OPERATOR_FIXTURE_OK
+DOSA_OBSERVATION sequence=ACGT metric=delta_R mismatches=4 denominator=4
+DOSA_OBSERVATION sequence=ACGT metric=delta_RC mismatches=0 denominator=4
+DOSA_OBSERVATION sequence=ACCA metric=delta_R mismatches=0 denominator=4
+DOSA_OBSERVATION sequence=ACCA metric=delta_RC mismatches=4 denominator=4
+sounio_output_artifact=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-operator.log.36Ls1h
+sounio_output_sha256=7a530525483a31c62bbf2f9c0cd382b69830c167a4d30a41a09568f223f98dda
+DOSA_JULIA_DIFFERENTIAL_FIXTURE_OK
+validated_observations=4 tolerance=0
+sounio_repository=https://github.com/sounio-lang/sounio.git
+sounio_commit=37de2c9eefe68f3457a2c66004eff68bba5b4446
+sounio_launcher_sha256=ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008
+sounio_fasta_source_sha256=b5bd1054cd5c3d57b907a3062132d7e56ea3e32da738467d136fff73bca53891
+sounio_fasta_input name=valid_multi_record.fa sha256=a43937529b927c0346b30c0e1c2c01647f73b609773678fd08b91ddc9fe4ad46
+sounio_fasta_input name=invalid_symbol.fa sha256=844b2327c860ceaba0389e3f005343a2f16f014927076b20e25361ff70b2ef03
+sounio_fasta_input name=sequence_before_header.fa sha256=f9c8d625ef376ba7c565a86611750859be3fbf1c8e3c71d3da96440dc34bb7f7
+sounio_fasta_input name=empty_header.fa sha256=5b6e5fae5dd3e2db259d0f57149992f23ac7cb68b7dfedb8bde2bbdaec2e3a2e
+sounio_fasta_input name=empty_sequence.fa sha256=1ff2ec7dfe815752680026503fad8f0080879149c56b98e99d26f1c48200b42b
+sounio_fasta_input name=no_records.fa sha256=75a11da44c802486bc6f65640aa48a730f0f684c5c07a42ba3cd1735eb3fb070
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+science_boundary=off (streaming executable specification; not a release receipt)
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 143
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 141
+
+lower_array: final_fn_count 152
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 152
+ functions
+Written to /tmp/dosa-fasta-fixture-37de2c9eefe6-b5bd1054cd5c.elf
+Written to /tmp/dosa-fasta-fixture-37de2c9eefe6-b5bd1054cd5c.elf
+Compilation successful!
+   Output: /tmp/dosa-fasta-fixture-37de2c9eefe6-b5bd1054cd5c.elf
+fasta_fixture_executable_sha256=a309104eb95e516dda64eaced55f57e75c3c989d3d73887c95a429087ba9930e
+DOSA_FASTA_CASE name=valid_multi_record expected_rc=0 actual_rc=0
+DOSA_FASTA_RECORD index=1 length=11 canonical=8 ambiguous=3 hash_mod=211578441 a=2 c=2 g=2 t=2 r=1 y=1 s=0 w=0 k=0 m=0 b=0 d=0 h=0 v=0 n=1
+DOSA_FASTA_RECORD index=2 length=8 canonical=0 ambiguous=8 hash_mod=424003247 a=0 c=0 g=0 t=0 r=0 y=0 s=1 w=1 k=1 m=1 b=1 d=1 h=1 v=1 n=0
+DOSA_SOUNIO_FASTA_STREAM_OK records=2 bytes=81 chunks=5 chunk_bytes=17
+DOSA_FASTA_CASE name=invalid_symbol expected_rc=6 actual_rc=6
+DOSA_FASTA_ERROR code=INVALID_SYMBOL record=1 offset=16 byte=90
+DOSA_FASTA_CASE name=sequence_before_header expected_rc=3 actual_rc=3
+DOSA_FASTA_ERROR code=SEQUENCE_BEFORE_HEADER record=0 offset=0 byte=65
+DOSA_FASTA_CASE name=empty_header expected_rc=4 actual_rc=4
+DOSA_FASTA_ERROR code=EMPTY_HEADER record=1 offset=1 byte=10
+DOSA_FASTA_CASE name=empty_sequence expected_rc=5 actual_rc=5
+DOSA_FASTA_ERROR code=EMPTY_SEQUENCE record=1 offset=7 byte=62
+DOSA_FASTA_CASE name=no_records expected_rc=7 actual_rc=7
+DOSA_FASTA_ERROR code=NO_RECORDS record=0 offset=2 byte=-1
+sounio_fasta_output_artifact=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-fasta.log.U6xwE9
+sounio_fasta_output_sha256=56e519dca7c9f5b3434e0ec0ecf71b068cdf0921365e5bec9cfbd6514e46720b
+DOSA_JULIA_FASTA_DIFFERENTIAL_OK
+validated_cases=6 validated_records=2 tolerance=0
+sounio_repository=https://github.com/sounio-lang/sounio.git
+sounio_commit=37de2c9eefe68f3457a2c66004eff68bba5b4446
+sounio_launcher_sha256=ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008
+sounio_pipeline_source_sha256=b5bd1054cd5c3d57b907a3062132d7e56ea3e32da738467d136fff73bca53891
+sounio_pipeline_input name=pipeline_fixture.fa sha256=52837bc09d6394badf8373952142df05d478869d1ebca1046565c5e24f9ab35e
+sounio_pipeline_input name=pipeline_k8_fixture.fa sha256=4c8af28b13c85cc14394312dbd106b32aefa3d3e056550ee2ef484fea0517c75
+sounio_pipeline_input name=pipeline_metadata.tsv sha256=e29591db8f2532b5e19b6a82f7303a49d6e258386ac381d19085f8b7aadd5e4b
+sounio_pipeline_input name=pipeline_k8_metadata.tsv sha256=2fee5c935ce0a2ee6fdaa735784638b1aec8eb3eab0f6cf51be9d3f582e255eb
+sounio_pipeline_input name=metadata_invalid.tsv sha256=333727a9331fdc2aa23772a579b1d8ea871d389a08b00723f5881fc47a1adc86
+sounio_pipeline_input name=metadata_mismatch.tsv sha256=451f7e9ec4df3f04ef81a57df790d1a8b9a0adc65ee0c91329e2cd5acf18f168
+sounio_pipeline_input name=metadata_short.tsv sha256=6e63efea4c1a8403beb717bfdbb7a844745a677130b65cf203e9fdda3fd7a28a
+sounio_pipeline_input name=parameters_k4.json sha256=f01f5cd393bdb7c70ae775fbc89ad80743aacc6c3ac59127fcaa156c2c866097
+sounio_pipeline_input name=parameters_k8.json sha256=fdb6a170e38b7401f19ae4b435d028a045080379f70116a0284f79c6dd1097ce
+sounio_pipeline_input name=parameters_null_k4.json sha256=44b14902c4c51e0abd2090bd96f5543f5625a441a084307ddf8a16a2e52d557a
+sounio_pipeline_input name=parameters_null_k8.json sha256=9ad180ee2ad998ff9bc7016bc4be75bce5d5b176c02600136f6ad383b8f32b21
+sounio_pipeline_input name=params_invalid/extra_field.json sha256=8ff3cceea24c8dd78562ef71c1e1459ea28ccd9955f4f4bf2e863eca9a079a37
+sounio_pipeline_input name=params_invalid/k_max_above_window.json sha256=a1ea131daa082eff750345a720e067c7b16d8720bba6be380f4ed981e0e8e401
+sounio_pipeline_input name=params_invalid/k_max_nine.json sha256=da381c3af0774db47eaf0291b6001c77c4093d62914ba711d26087db7f474a24
+sounio_pipeline_input name=params_invalid/k_min_two.json sha256=f4dc56ed8b8af49d7602d14e48f784eb2bda5c4b9cf769dc43efb670b220a1a7
+sounio_pipeline_input name=params_invalid/null_model_unknown.json sha256=d0a6ad4dafabb7e90bab2e67bdab3e1dfb2be2c61f703b83859ef2bf12fa5edc
+sounio_pipeline_input name=params_invalid/null_replicates_mismatch.json sha256=e469074ea5e0d74fe0b19b90f57d959177d381ab0cd7d04421287d4dd93119f3
+sounio_pipeline_input name=params_invalid/stride_mismatch.json sha256=3793de63de2bab44612d15a09704d77e89b62e18092e2a12200cf915660dce7a
+sounio_pipeline_input name=params_invalid/stride_zero.json sha256=bab2584c59aaa80d493e1c37f3291d3dd877492c0eba3795670f5d6b9e9bbb97
+sounio_pipeline_input name=params_invalid/unknown_policy.json sha256=144bd1a729b62a396a58a2b300f78de3b282cd8a45b54dc3de45aef59227efde
+sounio_pipeline_input name=params_invalid/window_size_zero.json sha256=d5fe80c688e5c1571a43038f129090dcd043525f6f354e325c44e83c7b91bfea
+DOSA_PIPELINE_PARAMS name=main flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/main.flat sha256=f01f5cd393bdb7c70ae775fbc89ad80743aacc6c3ac59127fcaa156c2c866097
+DOSA_PIPELINE_PARAMS name=k8 flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/k8.flat sha256=fdb6a170e38b7401f19ae4b435d028a045080379f70116a0284f79c6dd1097ce
+DOSA_PIPELINE_PARAMS name=null_k4 flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/null_k4.flat sha256=44b14902c4c51e0abd2090bd96f5543f5625a441a084307ddf8a16a2e52d557a
+DOSA_PIPELINE_PARAMS name=null_k8 flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/null_k8.flat sha256=9ad180ee2ad998ff9bc7016bc4be75bce5d5b176c02600136f6ad383b8f32b21
+DOSA_PIPELINE_PARAMS name=param_window_size_zero flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/param_window_size_zero.flat sha256=d5fe80c688e5c1571a43038f129090dcd043525f6f354e325c44e83c7b91bfea
+DOSA_PIPELINE_PARAMS name=param_stride_zero flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/param_stride_zero.flat sha256=bab2584c59aaa80d493e1c37f3291d3dd877492c0eba3795670f5d6b9e9bbb97
+DOSA_PIPELINE_PARAMS name=param_stride_mismatch flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/param_stride_mismatch.flat sha256=3793de63de2bab44612d15a09704d77e89b62e18092e2a12200cf915660dce7a
+DOSA_PIPELINE_PARAMS name=param_k_min_two flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/param_k_min_two.flat sha256=f4dc56ed8b8af49d7602d14e48f784eb2bda5c4b9cf769dc43efb670b220a1a7
+DOSA_PIPELINE_PARAMS name=param_k_max_nine flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/param_k_max_nine.flat sha256=da381c3af0774db47eaf0291b6001c77c4093d62914ba711d26087db7f474a24
+DOSA_PIPELINE_PARAMS name=param_k_max_above_window flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/param_k_max_above_window.flat sha256=a1ea131daa082eff750345a720e067c7b16d8720bba6be380f4ed981e0e8e401
+DOSA_PIPELINE_PARAMS name=param_unknown_policy flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/param_unknown_policy.flat sha256=144bd1a729b62a396a58a2b300f78de3b282cd8a45b54dc3de45aef59227efde
+DOSA_PIPELINE_PARAMS name=param_extra_field flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/param_extra_field.flat sha256=8ff3cceea24c8dd78562ef71c1e1459ea28ccd9955f4f4bf2e863eca9a079a37
+DOSA_PIPELINE_PARAMS name=param_null_model_unknown flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/param_null_model_unknown.flat sha256=d0a6ad4dafabb7e90bab2e67bdab3e1dfb2be2c61f703b83859ef2bf12fa5edc
+DOSA_PIPELINE_PARAMS name=param_null_replicates_mismatch flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/params/param_null_replicates_mismatch.flat sha256=e469074ea5e0d74fe0b19b90f57d959177d381ab0cd7d04421287d4dd93119f3
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+science_boundary=off (streaming executable specification; not a release receipt)
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 143
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 141
+
+lower_array: final_fn_count 152
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 152
+ functions
+Written to /tmp/dosa-mini-pipeline-37de2c9eefe6-b5bd1054cd5c-28759.elf
+Written to /tmp/dosa-mini-pipeline-37de2c9eefe6-b5bd1054cd5c-28759.elf
+Compilation successful!
+   Output: /tmp/dosa-mini-pipeline-37de2c9eefe6-b5bd1054cd5c-28759.elf
+mini_pipeline_executable_sha256=a309104eb95e516dda64eaced55f57e75c3c989d3d73887c95a429087ba9930e
+DOSA_PIPELINE_KERNEL_EQUIVALENCE name=main sha256=e5564ea3843d433eed82fc15f9a5163fa5bb36e4e098e71ca9c659d83312e027
+DOSA_PIPELINE_CASE name=main expected_rc=0 actual_rc=0
+DOSA_PIPELINE_KERNEL_EQUIVALENCE name=k8 sha256=f87bd3f6b41e0f2508c629cf2b1ae1ed1bc058fe3d55b8180f5f02d1b848edd7
+DOSA_PIPELINE_CASE name=k8 expected_rc=0 actual_rc=0
+DOSA_PIPELINE_KERNEL_EQUIVALENCE name=null_k4 sha256=4997efede7e0ffa400b5d3179d5a67e933dd871fecb396d24c648728fb3a1dc4
+DOSA_PIPELINE_CASE name=null_k4 expected_rc=0 actual_rc=0
+DOSA_PIPELINE_KERNEL_EQUIVALENCE name=null_k8 sha256=d53de8b3063449fea58e7f51cb5e4d1b37c4f8569ff79f5b5b9cda0b62deda0e
+DOSA_PIPELINE_CASE name=null_k8 expected_rc=0 actual_rc=0
+DOSA_PIPELINE_CASE name=metadata_invalid expected_rc=9 actual_rc=9
+DOSA_FASTA_ERROR code=METADATA_INVALID record=0 offset=113 byte=-1
+DOSA_PIPELINE_CASE name=metadata_mismatch expected_rc=10 actual_rc=10
+DOSA_FASTA_ERROR code=METADATA_MISMATCH record=2 offset=148 byte=-1
+DOSA_PIPELINE_CASE name=metadata_short expected_rc=10 actual_rc=10
+DOSA_FASTA_ERROR code=METADATA_MISMATCH record=4 offset=316 byte=-1
+DOSA_PIPELINE_CASE name=param_window_size_zero expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=49 byte=-1
+DOSA_PIPELINE_CASE name=param_stride_zero expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=63 byte=-1
+DOSA_PIPELINE_CASE name=param_stride_mismatch expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=63 byte=-1
+DOSA_PIPELINE_CASE name=param_k_min_two expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=72 byte=-1
+DOSA_PIPELINE_CASE name=param_k_max_nine expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=80 byte=-1
+DOSA_PIPELINE_CASE name=param_k_max_above_window expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=80 byte=-1
+DOSA_PIPELINE_CASE name=param_unknown_policy expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=158 byte=-1
+DOSA_PIPELINE_CASE name=param_extra_field expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=297 byte=-1
+DOSA_PIPELINE_CASE name=param_null_model_unknown expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=297 byte=-1
+DOSA_PIPELINE_CASE name=param_null_replicates_mismatch expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=414 byte=-1
+sounio_pipeline_jsonl_artifact=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/main.jsonl
+sounio_pipeline_jsonl_lines=12
+sounio_pipeline_jsonl_sha256=e5564ea3843d433eed82fc15f9a5163fa5bb36e4e098e71ca9c659d83312e027
+sounio_pipeline_jsonl_artifact_k8=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/k8.jsonl
+sounio_pipeline_jsonl_lines_k8=84
+sounio_pipeline_jsonl_sha256_k8=f87bd3f6b41e0f2508c629cf2b1ae1ed1bc058fe3d55b8180f5f02d1b848edd7
+sounio_pipeline_jsonl_artifact_null_k4=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/null_k4.jsonl
+sounio_pipeline_jsonl_lines_null_k4=12
+sounio_pipeline_jsonl_sha256_null_k4=4997efede7e0ffa400b5d3179d5a67e933dd871fecb396d24c648728fb3a1dc4
+sounio_pipeline_jsonl_artifact_null_k8=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.7MK6oh/null_k8.jsonl
+sounio_pipeline_jsonl_lines_null_k8=84
+sounio_pipeline_jsonl_sha256_null_k8=d53de8b3063449fea58e7f51cb5e4d1b37c4f8569ff79f5b5b9cda0b62deda0e
+sounio_repository=https://github.com/sounio-lang/sounio.git
+sounio_commit=37de2c9eefe68f3457a2c66004eff68bba5b4446
+sounio_launcher_sha256=ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008
+sounio_pipeline_source_sha256=b5bd1054cd5c3d57b907a3062132d7e56ea3e32da738467d136fff73bca53891
+sounio_pipeline_input name=pipeline_fixture.fa sha256=52837bc09d6394badf8373952142df05d478869d1ebca1046565c5e24f9ab35e
+sounio_pipeline_input name=pipeline_k8_fixture.fa sha256=4c8af28b13c85cc14394312dbd106b32aefa3d3e056550ee2ef484fea0517c75
+sounio_pipeline_input name=pipeline_metadata.tsv sha256=e29591db8f2532b5e19b6a82f7303a49d6e258386ac381d19085f8b7aadd5e4b
+sounio_pipeline_input name=pipeline_k8_metadata.tsv sha256=2fee5c935ce0a2ee6fdaa735784638b1aec8eb3eab0f6cf51be9d3f582e255eb
+sounio_pipeline_input name=metadata_invalid.tsv sha256=333727a9331fdc2aa23772a579b1d8ea871d389a08b00723f5881fc47a1adc86
+sounio_pipeline_input name=metadata_mismatch.tsv sha256=451f7e9ec4df3f04ef81a57df790d1a8b9a0adc65ee0c91329e2cd5acf18f168
+sounio_pipeline_input name=metadata_short.tsv sha256=6e63efea4c1a8403beb717bfdbb7a844745a677130b65cf203e9fdda3fd7a28a
+sounio_pipeline_input name=parameters_k4.json sha256=f01f5cd393bdb7c70ae775fbc89ad80743aacc6c3ac59127fcaa156c2c866097
+sounio_pipeline_input name=parameters_k8.json sha256=fdb6a170e38b7401f19ae4b435d028a045080379f70116a0284f79c6dd1097ce
+sounio_pipeline_input name=parameters_null_k4.json sha256=44b14902c4c51e0abd2090bd96f5543f5625a441a084307ddf8a16a2e52d557a
+sounio_pipeline_input name=parameters_null_k8.json sha256=9ad180ee2ad998ff9bc7016bc4be75bce5d5b176c02600136f6ad383b8f32b21
+sounio_pipeline_input name=params_invalid/extra_field.json sha256=8ff3cceea24c8dd78562ef71c1e1459ea28ccd9955f4f4bf2e863eca9a079a37
+sounio_pipeline_input name=params_invalid/k_max_above_window.json sha256=a1ea131daa082eff750345a720e067c7b16d8720bba6be380f4ed981e0e8e401
+sounio_pipeline_input name=params_invalid/k_max_nine.json sha256=da381c3af0774db47eaf0291b6001c77c4093d62914ba711d26087db7f474a24
+sounio_pipeline_input name=params_invalid/k_min_two.json sha256=f4dc56ed8b8af49d7602d14e48f784eb2bda5c4b9cf769dc43efb670b220a1a7
+sounio_pipeline_input name=params_invalid/null_model_unknown.json sha256=d0a6ad4dafabb7e90bab2e67bdab3e1dfb2be2c61f703b83859ef2bf12fa5edc
+sounio_pipeline_input name=params_invalid/null_replicates_mismatch.json sha256=e469074ea5e0d74fe0b19b90f57d959177d381ab0cd7d04421287d4dd93119f3
+sounio_pipeline_input name=params_invalid/stride_mismatch.json sha256=3793de63de2bab44612d15a09704d77e89b62e18092e2a12200cf915660dce7a
+sounio_pipeline_input name=params_invalid/stride_zero.json sha256=bab2584c59aaa80d493e1c37f3291d3dd877492c0eba3795670f5d6b9e9bbb97
+sounio_pipeline_input name=params_invalid/unknown_policy.json sha256=144bd1a729b62a396a58a2b300f78de3b282cd8a45b54dc3de45aef59227efde
+sounio_pipeline_input name=params_invalid/window_size_zero.json sha256=d5fe80c688e5c1571a43038f129090dcd043525f6f354e325c44e83c7b91bfea
+DOSA_PIPELINE_PARAMS name=main flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/main.flat sha256=f01f5cd393bdb7c70ae775fbc89ad80743aacc6c3ac59127fcaa156c2c866097
+DOSA_PIPELINE_PARAMS name=k8 flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/k8.flat sha256=fdb6a170e38b7401f19ae4b435d028a045080379f70116a0284f79c6dd1097ce
+DOSA_PIPELINE_PARAMS name=null_k4 flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/null_k4.flat sha256=44b14902c4c51e0abd2090bd96f5543f5625a441a084307ddf8a16a2e52d557a
+DOSA_PIPELINE_PARAMS name=null_k8 flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/null_k8.flat sha256=9ad180ee2ad998ff9bc7016bc4be75bce5d5b176c02600136f6ad383b8f32b21
+DOSA_PIPELINE_PARAMS name=param_window_size_zero flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/param_window_size_zero.flat sha256=d5fe80c688e5c1571a43038f129090dcd043525f6f354e325c44e83c7b91bfea
+DOSA_PIPELINE_PARAMS name=param_stride_zero flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/param_stride_zero.flat sha256=bab2584c59aaa80d493e1c37f3291d3dd877492c0eba3795670f5d6b9e9bbb97
+DOSA_PIPELINE_PARAMS name=param_stride_mismatch flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/param_stride_mismatch.flat sha256=3793de63de2bab44612d15a09704d77e89b62e18092e2a12200cf915660dce7a
+DOSA_PIPELINE_PARAMS name=param_k_min_two flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/param_k_min_two.flat sha256=f4dc56ed8b8af49d7602d14e48f784eb2bda5c4b9cf769dc43efb670b220a1a7
+DOSA_PIPELINE_PARAMS name=param_k_max_nine flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/param_k_max_nine.flat sha256=da381c3af0774db47eaf0291b6001c77c4093d62914ba711d26087db7f474a24
+DOSA_PIPELINE_PARAMS name=param_k_max_above_window flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/param_k_max_above_window.flat sha256=a1ea131daa082eff750345a720e067c7b16d8720bba6be380f4ed981e0e8e401
+DOSA_PIPELINE_PARAMS name=param_unknown_policy flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/param_unknown_policy.flat sha256=144bd1a729b62a396a58a2b300f78de3b282cd8a45b54dc3de45aef59227efde
+DOSA_PIPELINE_PARAMS name=param_extra_field flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/param_extra_field.flat sha256=8ff3cceea24c8dd78562ef71c1e1459ea28ccd9955f4f4bf2e863eca9a079a37
+DOSA_PIPELINE_PARAMS name=param_null_model_unknown flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/param_null_model_unknown.flat sha256=d0a6ad4dafabb7e90bab2e67bdab3e1dfb2be2c61f703b83859ef2bf12fa5edc
+DOSA_PIPELINE_PARAMS name=param_null_replicates_mismatch flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/params/param_null_replicates_mismatch.flat sha256=e469074ea5e0d74fe0b19b90f57d959177d381ab0cd7d04421287d4dd93119f3
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+science_boundary=off (streaming executable specification; not a release receipt)
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 143
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 141
+
+lower_array: final_fn_count 152
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 152
+ functions
+Written to /tmp/dosa-mini-pipeline-37de2c9eefe6-b5bd1054cd5c-43690.elf
+Written to /tmp/dosa-mini-pipeline-37de2c9eefe6-b5bd1054cd5c-43690.elf
+Compilation successful!
+   Output: /tmp/dosa-mini-pipeline-37de2c9eefe6-b5bd1054cd5c-43690.elf
+mini_pipeline_executable_sha256=a309104eb95e516dda64eaced55f57e75c3c989d3d73887c95a429087ba9930e
+DOSA_PIPELINE_KERNEL_EQUIVALENCE name=main sha256=e5564ea3843d433eed82fc15f9a5163fa5bb36e4e098e71ca9c659d83312e027
+DOSA_PIPELINE_CASE name=main expected_rc=0 actual_rc=0
+DOSA_PIPELINE_KERNEL_EQUIVALENCE name=k8 sha256=f87bd3f6b41e0f2508c629cf2b1ae1ed1bc058fe3d55b8180f5f02d1b848edd7
+DOSA_PIPELINE_CASE name=k8 expected_rc=0 actual_rc=0
+DOSA_PIPELINE_KERNEL_EQUIVALENCE name=null_k4 sha256=4997efede7e0ffa400b5d3179d5a67e933dd871fecb396d24c648728fb3a1dc4
+DOSA_PIPELINE_CASE name=null_k4 expected_rc=0 actual_rc=0
+DOSA_PIPELINE_KERNEL_EQUIVALENCE name=null_k8 sha256=d53de8b3063449fea58e7f51cb5e4d1b37c4f8569ff79f5b5b9cda0b62deda0e
+DOSA_PIPELINE_CASE name=null_k8 expected_rc=0 actual_rc=0
+DOSA_PIPELINE_CASE name=metadata_invalid expected_rc=9 actual_rc=9
+DOSA_FASTA_ERROR code=METADATA_INVALID record=0 offset=113 byte=-1
+DOSA_PIPELINE_CASE name=metadata_mismatch expected_rc=10 actual_rc=10
+DOSA_FASTA_ERROR code=METADATA_MISMATCH record=2 offset=148 byte=-1
+DOSA_PIPELINE_CASE name=metadata_short expected_rc=10 actual_rc=10
+DOSA_FASTA_ERROR code=METADATA_MISMATCH record=4 offset=316 byte=-1
+DOSA_PIPELINE_CASE name=param_window_size_zero expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=49 byte=-1
+DOSA_PIPELINE_CASE name=param_stride_zero expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=63 byte=-1
+DOSA_PIPELINE_CASE name=param_stride_mismatch expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=63 byte=-1
+DOSA_PIPELINE_CASE name=param_k_min_two expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=72 byte=-1
+DOSA_PIPELINE_CASE name=param_k_max_nine expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=80 byte=-1
+DOSA_PIPELINE_CASE name=param_k_max_above_window expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=80 byte=-1
+DOSA_PIPELINE_CASE name=param_unknown_policy expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=158 byte=-1
+DOSA_PIPELINE_CASE name=param_extra_field expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=297 byte=-1
+DOSA_PIPELINE_CASE name=param_null_model_unknown expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=297 byte=-1
+DOSA_PIPELINE_CASE name=param_null_replicates_mismatch expected_rc=11 actual_rc=11
+DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=414 byte=-1
+sounio_pipeline_jsonl_artifact=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/main.jsonl
+sounio_pipeline_jsonl_lines=12
+sounio_pipeline_jsonl_sha256=e5564ea3843d433eed82fc15f9a5163fa5bb36e4e098e71ca9c659d83312e027
+sounio_pipeline_jsonl_artifact_k8=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/k8.jsonl
+sounio_pipeline_jsonl_lines_k8=84
+sounio_pipeline_jsonl_sha256_k8=f87bd3f6b41e0f2508c629cf2b1ae1ed1bc058fe3d55b8180f5f02d1b848edd7
+sounio_pipeline_jsonl_artifact_null_k4=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/null_k4.jsonl
+sounio_pipeline_jsonl_lines_null_k4=12
+sounio_pipeline_jsonl_sha256_null_k4=4997efede7e0ffa400b5d3179d5a67e933dd871fecb396d24c648728fb3a1dc4
+sounio_pipeline_jsonl_artifact_null_k8=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.VmXIMZ/null_k8.jsonl
+sounio_pipeline_jsonl_lines_null_k8=84
+sounio_pipeline_jsonl_sha256_null_k8=d53de8b3063449fea58e7f51cb5e4d1b37c4f8569ff79f5b5b9cda0b62deda0e
+sounio_pipeline_runner_log=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-sounio-mini-pipeline.log.ikhE8Z
+sounio_pipeline_runner_log_sha256=aa8a1ecd86d395adcb5466e2dee8b87f020df78540a000407361b86ec3201c83
+DOSA_JULIA_MINI_PIPELINE_DIFFERENTIAL_OK
+validated_cases=17 validated_windows=192 tolerance=0
+sounio_repository=https://github.com/sounio-lang/sounio.git
+sounio_commit=37de2c9eefe68f3457a2c66004eff68bba5b4446
+sounio_launcher_sha256=ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008
+sounio_smoke_source_sha256=b5bd1054cd5c3d57b907a3062132d7e56ea3e32da738467d136fff73bca53891
+sounio_smoke_input name=nc_002127_1.fa sha256=972cf4a97b844492784c669d45300ff126dc89176a92c243a79ae9a307ed9562
+sounio_smoke_input name=nc_002127_1_metadata.tsv sha256=55a59064f7c4206bb333e5a6e94ef4b0d573b62d84a76c9d8aa4bacfa87950c5
+sounio_smoke_input name=parameters_k8.json sha256=fdb6a170e38b7401f19ae4b435d028a045080379f70116a0284f79c6dd1097ce
+DOSA_PIPELINE_PARAMS name=smoke_pOSAK1 flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-smoke.Y8hP7Z/params/smoke_pOSAK1.flat sha256=fdb6a170e38b7401f19ae4b435d028a045080379f70116a0284f79c6dd1097ce
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+science_boundary=off (complete-replicon engineering smoke; not a release receipt)
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 143
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 141
+
+lower_array: final_fn_count 152
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 152
+ functions
+Written to /tmp/dosa-cohort-smoke-37de2c9eefe6-b5bd1054cd5c-65096.elf
+Written to /tmp/dosa-cohort-smoke-37de2c9eefe6-b5bd1054cd5c-65096.elf
+Compilation successful!
+   Output: /tmp/dosa-cohort-smoke-37de2c9eefe6-b5bd1054cd5c-65096.elf
+smoke_executable_sha256=a309104eb95e516dda64eaced55f57e75c3c989d3d73887c95a429087ba9930e
+DOSA_PIPELINE_TIMING name=smoke_pOSAK1 opt_wall_seconds=4
+DOSA_PIPELINE_DETERMINISM name=smoke_pOSAK1 runs=2 sha256=b26ecbe6c4d67b346443b3aa5552f28e722f2104c8bbc3d7b8884eca5233b29b
+DOSA_PIPELINE_CASE name=smoke_pOSAK1 expected_rc=0 actual_rc=0
+sounio_pipeline_jsonl_artifact_smoke_pOSAK1=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-smoke.Y8hP7Z/smoke_pOSAK1.jsonl
+sounio_pipeline_jsonl_lines_smoke_pOSAK1=207
+sounio_pipeline_jsonl_sha256_smoke_pOSAK1=b26ecbe6c4d67b346443b3aa5552f28e722f2104c8bbc3d7b8884eca5233b29b
+DOSA_JULIA_MINI_PIPELINE_DIFFERENTIAL_OK
+validated_cases=1 validated_windows=207 tolerance=0
+sounio_smoke_runner_log=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-smoke.Y8hP7Z/smoke-runner.log
+sounio_smoke_runner_log_sha256=ad7c01e118bae81e22e92dee55c995a390c40b321d402667b8c05f9d82de2f09
+sounio_repository=https://github.com/sounio-lang/sounio.git
+sounio_commit=37de2c9eefe68f3457a2c66004eff68bba5b4446
+sounio_launcher_sha256=ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008
+sounio_products_source_sha256=b5bd1054cd5c3d57b907a3062132d7e56ea3e32da738467d136fff73bca53891
+sounio_products_params json=/Users/demetriosagourakis/Documents/Codex/Darwin-atlas/data/fixtures/cohort_smoke/parameters_k8.json sha256=fdb6a170e38b7401f19ae4b435d028a045080379f70116a0284f79c6dd1097ce
+sounio_products_replicon acc=NC_000913.3 alias=chr_MG1655 assembly=GCF_000005845.2 fasta=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/chr_MG1655/record.fa metadata=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/chr_MG1655/metadata.tsv fasta_sha256=53bb6a51b6e92139ced1e38f74b7938781027c52200922ff03718c2237d23bb4
+sounio_products_replicon acc=NC_002695.2 alias=chr_Sakai assembly=GCF_000008865.2 fasta=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/chr_Sakai/record.fa metadata=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/chr_Sakai/metadata.tsv fasta_sha256=a6c895e840e0b190cc7cbdd3f24af8866c58ece02c73d6ece7756ec980db5921
+sounio_products_replicon acc=NC_002127.1 alias=pOSAK1 assembly=GCF_000008865.2 fasta=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/pOSAK1/record.fa metadata=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/pOSAK1/metadata.tsv fasta_sha256=972cf4a97b844492784c669d45300ff126dc89176a92c243a79ae9a307ed9562
+sounio_products_replicon acc=NC_002128.1 alias=pO157 assembly=GCF_000008865.2 fasta=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/pO157/record.fa metadata=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/pO157/metadata.tsv fasta_sha256=c7a1f822f20977af8fd8e405ee9c61506dfd0859799bd171f2aaa8400e10b5fa
+DOSA_PRODUCTS_PARAMS_FLAT flat=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/params/products.flat
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+science_boundary=off (engineering products; not a release receipt)
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 143
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 141
+
+lower_array: final_fn_count 152
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 152
+ functions
+Written to /tmp/dosa-cohort-products-37de2c9eefe6-b5bd1054cd5c-65414.elf
+Written to /tmp/dosa-cohort-products-37de2c9eefe6-b5bd1054cd5c-65414.elf
+Compilation successful!
+   Output: /tmp/dosa-cohort-products-37de2c9eefe6-b5bd1054cd5c-65414.elf
+products_executable_sha256=a309104eb95e516dda64eaced55f57e75c3c989d3d73887c95a429087ba9930e
+DOSA_PRODUCT_CASE product=atlas_replicons acc=NC_000913.3 rc=0
+DOSA_PRODUCT_CASE product=excluded_records acc=NC_000913.3 rc=0
+DOSA_PRODUCT_TIMING product=excluded_records acc=NC_000913.3 wall_seconds=21
+DOSA_PRODUCT_CASE product=atlas_replicons acc=NC_002695.2 rc=0
+DOSA_PRODUCT_CASE product=excluded_records acc=NC_002695.2 rc=0
+DOSA_PRODUCT_TIMING product=excluded_records acc=NC_002695.2 wall_seconds=25
+DOSA_PRODUCT_CASE product=atlas_replicons acc=NC_002127.1 rc=0
+DOSA_PRODUCT_CASE product=excluded_records acc=NC_002127.1 rc=0
+DOSA_PRODUCT_TIMING product=excluded_records acc=NC_002127.1 wall_seconds=0
+DOSA_PRODUCT_CASE product=atlas_replicons acc=NC_002128.1 rc=0
+DOSA_PRODUCT_CASE product=excluded_records acc=NC_002128.1 rc=0
+DOSA_PRODUCT_TIMING product=excluded_records acc=NC_002128.1 wall_seconds=1
+DOSA_PRODUCT_TIMING product=window_operator_profiles acc=NC_002127.1 wall_seconds=4
+DOSA_PRODUCT_CASE product=window_operator_profiles acc=NC_002127.1 rc=0 runs=2 sha256=b26ecbe6c4d67b346443b3aa5552f28e722f2104c8bbc3d7b8884eca5233b29b
+DOSA_PRODUCT_TIMING product=window_operator_profiles acc=NC_002128.1 wall_seconds=129
+DOSA_PRODUCT_CASE product=window_operator_profiles acc=NC_002128.1 rc=0 runs=2 sha256=1599a45ad384d5a06c452cb85af9891af568e759f0daaf513fa868af94511774
+products_structural_check=PASS excluded_records_lines=38
+DOSA_PRODUCT_ARTIFACT name=cohort_assemblies path=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/cohort_assemblies.jsonl lines=2 sha256=dda64346e767bc65bc4d74f4590363768755b56b3b58ac6241b2cca79c5f81a5
+DOSA_PRODUCT_ARTIFACT name=atlas_replicons path=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/atlas_replicons.jsonl lines=4 sha256=5037581e2e339c2cab5fd2d910252c5cb3ca327e20318889fd33cfb7cdeace8e
+DOSA_PRODUCT_ARTIFACT name=excluded_records path=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/excluded_records.jsonl lines=38 sha256=675e77982e03bd1a0c95c6a856fdeda399a14fcd24d59c058d0c48a6f36d19d0
+DOSA_PRODUCT_ARTIFACT name=windows_pOSAK1 path=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/windows_pOSAK1.jsonl lines=207 sha256=b26ecbe6c4d67b346443b3aa5552f28e722f2104c8bbc3d7b8884eca5233b29b
+DOSA_PRODUCT_ARTIFACT name=windows_pO157 path=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/windows_pO157.jsonl lines=5796 sha256=1599a45ad384d5a06c452cb85af9891af568e759f0daaf513fa868af94511774
+DOSA_JULIA_MINI_PIPELINE_DIFFERENTIAL_OK
+validated_cases=2 validated_windows=6003 tolerance=0
+DOSA_JULIA_COHORT_PRODUCTS_OK
+validated_products=3 validated_replicons=4 validated_exclusions=38 tolerance=0
+DOSA_SAMPLE_DEFINITION version=0.1.0 strata=excluded_all,record_boundaries,fmix64_mod64 seed_source=parameters_sha256 seed=fdb6a170e38b7401
+DOSA_SAMPLE_REPORT total_windows=207 sampled=5 validated=5 tolerance=0
+DOSA_SAMPLE_OK
+DOSA_SAMPLE_ARTIFACT name=windows_pOSAK1 coordinates=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/sample_pOSAK1.txt sha256=62f51dc9db292406be718eca601d01e1412fd6924c641ff69def4e1c476ecc0f
+DOSA_SAMPLE_DEFINITION version=0.1.0 strata=excluded_all,record_boundaries,fmix64_mod64 seed_source=parameters_sha256 seed=fdb6a170e38b7401
+DOSA_SAMPLE_REPORT total_windows=5796 sampled=90 validated=90 tolerance=0
+DOSA_SAMPLE_OK
+DOSA_SAMPLE_ARTIFACT name=windows_pO157 coordinates=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/sample_pO157.txt sha256=d7ed3e4ad17a41788520a6f89ef0503cb4b9f35d705741866d03cd4f1bf35309
+sounio_products_runner_log=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3/products.log
+sounio_products_runner_log_sha256=3678590524998f8ba63cf66308799c236f4135f7a7a4c3dd4a99d0a7bed298ef
+DOSA_COHORT_PRODUCTS_OK work_dir=/var/folders/p4/d7m6ckl549z7m2plfkn9v9j00000gn/T//dosa-cohort-products.SEAKj3
+BATTERY_ALL_GREEN
