@@ -1,0 +1,7 @@
+Runtime: dl380-proxmox / Debian GNU/Linux 13 (trixie) / 7.0.14-8-pve
+XRT: 2.23.0 / e61a02867980c8fd8acd80a3a4936d683caa1d82
+BDF: 0000:d8:00.1
+Shell: xilinx_u250_gen3x16_xdma_shell_4_1
+Device Ready: Yes
+null_draws.xclbin 390c5a101848dcc23b70a72f5dceabe87a5d9a1e637385c33e7d2cc8624d86ba 48699767
+null_draws_host d1520af7733044eea0a8b428472878559cddade6bfc82568ed10cf67878d9de7 27552

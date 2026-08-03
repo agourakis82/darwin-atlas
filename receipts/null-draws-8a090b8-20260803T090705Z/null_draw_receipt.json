@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_kind": "u250_null_draw_hardware",
+  "state": "validated",
+  "engineering_scope": true,
+  "semantic_scope": "executable_fixture_mononucleotide_sensitivity",
+  "adr_0002_status": "proposed",
+  "pilot_null_primary": false,
+  "scientific_claim": false,
+  "performance_claim": false,
+  "run_id": "null-draws-8a090b8-20260803T090705Z",
+  "started_utc": "2026-08-03T09:07:05Z",
+  "finished_utc": "2026-08-03T10:52:29Z",
+  "atlas_source": {
+    "commit": "8a090b86cb2df88bff7dc5534bd3ff0a8863d180",
+    "dirty": false
+  },
+  "builder": {
+    "host": "vitis-u250-builder.lab.sounio",
+    "os": "Ubuntu 22.04",
+    "vitis_version": "2025.1",
+    "vitis_build": "6137779"
+  },
+  "platform": {
+    "name": "xilinx_u250_gen3x16_xdma_4_1_202210_1",
+    "xpfm_sha256": "7ece7bb344e67fb1fbb0a837daba2817de4935e187eeae0e43b82d776c6f9317",
+    "xsa_sha256": "57e591b04dac337b860e3d5b0237ac6a2394c670208cbdc320428e8a351b489f",
+    "kernel_frequency_mhz": 411
+  },
+  "runtime": {
+    "kubernetes_node": "dl380-proxmox",
+    "bdf": "0000:d8:00.1",
+    "shell": "xilinx_u250_gen3x16_xdma_shell_4_1",
+    "device_ready": true,
+    "xrt_version": "2.23.0",
+    "xrt_hash": "e61a02867980c8fd8acd80a3a4936d683caa1d82"
+  },
+  "fixture": {
+    "cases": 8,
+    "metrics": 18,
+    "replicates": 8,
+    "draws": 1152,
+    "tolerance": 0,
+    "fixture_sha256": "580c4753f308a23f0e69878c0cdf3bf86ebfcd46c1588d67e451174a239c29c8",
+    "generated_header_sha256": "dc2781c4154f6d3f690ee71bab59b9038800cfa552af4d2dce6dd79254fcc133"
+  },
+  "artifacts": [
+    {
+      "kind": "kernel_source",
+      "path": "fpga/u250-null-model/src/null_draws.cpp",
+      "sha256": "559a6bca06a2c7757c47cee378e0a7c1928376be76410b92cbe8cbee88709e3c",
+      "size_bytes": 7460
+    },
+    {
+      "kind": "xo",
+      "path": "fpga/u250-null-model/build/null_draws.xo",
+      "sha256": "fd30b48c1de5668de07c73ce8ba47326783a3fdf3c698288d3b4d0b111ecc653",
+      "size_bytes": 335204
+    },
+    {
+      "kind": "xclbin",
+      "path": "fpga/u250-null-model/build/null_draws.xclbin",
+      "sha256": "390c5a101848dcc23b70a72f5dceabe87a5d9a1e637385c33e7d2cc8624d86ba",
+      "size_bytes": 48699767
+    },
+    {
+      "kind": "host_binary",
+      "path": "fpga/u250-null-model/build/null_draws_host",
+      "sha256": "d1520af7733044eea0a8b428472878559cddade6bfc82568ed10cf67878d9de7",
+      "size_bytes": 27552
+    }
+  ],
+  "validation": {
+    "julia_marker": "U250_NULL_JULIA_FIXTURE_PASS",
+    "csim_marker": "U250_NULL_CSIM_PASS",
+    "hardware_marker": "U250_NULL_HARDWARE_PASS",
+    "exit_code": 0,
+    "hardware_log_sha256": "4efcf39658f0f7c5b777a908449cfdcee87fbdf6538c6091893571437032782d"
+  }
+}

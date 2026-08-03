@@ -62,9 +62,11 @@ contract:
 	@test -s docs/ADR-0002-pilot-parameter-decisions.md
 	@test -s schemas/run_receipt.schema.json
 	@test -s schemas/u250_hardware_smoke_receipt.schema.json
+	@test -s schemas/u250_null_draw_receipt.schema.json
 	@test -s receipts/u250-smoke-659ab549-20260803T022116Z/u250_smoke_receipt.json
 	@test -s fpga/u250-null-model/src/null_draws.cpp
 	@test -s fpga/u250-null-model/generated_fixture.hpp
+	@test -s fpga/u250-null-model/kubernetes/null-draw-pod.yaml
 	@test -x fpga/u250-null-model/verify-fixture.sh
 	@test -s toolchains/sounio.lock.json
 	@test -s fpga/u250-smoke/src/vector_add.cpp
@@ -152,6 +154,18 @@ u250-null-contract:
 	@rg -q 'lcg31_sha8_fixture_v1' fpga/u250-null-model/README.md
 	@rg -q 'U250_NULL_HARDWARE_PASS' fpga/u250-null-model/run-hardware.sh
 	@rg -q 'null_draws_1.windows:DDR\[0\]' fpga/u250-null-model/null_draws.cfg
+	@rg -q 'sounio.dev/u250' fpga/u250-null-model/kubernetes/null-draw-pod.yaml
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/u250_null_draw_receipt.schema.json")); abort "U250 null receipt scope drift" unless s.dig("properties","engineering_scope","const")==true && s.dig("properties","pilot_null_primary","const")==false && s.dig("properties","scientific_claim","const")==false && s.dig("properties","performance_claim","const")==false; abort "U250 null receipt marker drift" unless s.dig("properties","validation","properties","hardware_marker","const")=="U250_NULL_HARDWARE_PASS"; abort "U250 null fixture draw count drift" unless s.dig("properties","fixture","properties","draws","const")==1152'
+	@fpga/u250-null-model/verify-fixture.sh
+	@ruby -rjson -rdigest -e 'dir="receipts/null-draws-8a090b8-20260803T090705Z"; r=JSON.parse(File.read("#{dir}/null_draw_receipt.json")); abort "null receipt kind/state drift" unless r["receipt_kind"]=="u250_null_draw_hardware" && r["state"]=="validated"; abort "null receipt scope drift" unless r["engineering_scope"]==true && r["pilot_null_primary"]==false && r["scientific_claim"]==false && r["performance_claim"]==false; abort "null receipt adr drift" unless r["adr_0002_status"]=="proposed"; abort "null source receipt drift" unless r.dig("atlas_source","commit")=="8a090b86cb2df88bff7dc5534bd3ff0a8863d180" && r.dig("atlas_source","dirty")==false; abort "null fixture drift" unless r.dig("fixture","cases")==8 && r.dig("fixture","metrics")==18 && r.dig("fixture","replicates")==8 && r.dig("fixture","draws")==1152 && r.dig("fixture","tolerance")==0; kinds=r["artifacts"].map{|a|a["kind"]}; expected=%w[kernel_source xo xclbin host_binary]; abort "null artifact set drift" unless kinds.sort==expected.sort && kinds.uniq.size==4; r["artifacts"].each{|a| f=a["path"]; abort "null artifact missing #{f}" unless File.file?(f); abort "null artifact hash drift #{f}" unless Digest::SHA256.file(f).hexdigest==a["sha256"]; abort "null artifact size drift #{f}" unless File.size(f)==a["size_bytes"]}; builder=File.read("#{dir}/SHA256SUMS"); %w[xo xclbin].each{|kind| a=r["artifacts"].find{|x|x["kind"]==kind}; abort "null builder hash evidence missing #{kind}" unless builder.include?(a["sha256"])}; env=File.read("#{dir}/builder-environment.txt"); abort "null builder environment drift" unless env.include?(r.dig("builder","host")) && env.include?(r.dig("platform","xpfm_sha256")) && env.include?(r.dig("platform","xsa_sha256")); runtime=File.read("#{dir}/runtime-artifacts.txt"); %w[xclbin host_binary].each{|kind| a=r["artifacts"].find{|x|x["kind"]==kind}; abort "null runtime hash evidence missing #{kind}" unless runtime.include?(a["sha256"])}; log="#{dir}/hardware-run.log"; abort "null hardware log hash drift" unless Digest::SHA256.file(log).hexdigest==r.dig("validation","hardware_log_sha256"); text=File.read(log); abort "null hardware log missing draw marker" unless text.include?("U250_NULL_DRAW_PASS cases=8 metrics=18 replicates=8 draws=1152"); abort "null hardware log missing pass marker" unless text.include?("U250_NULL_HARDWARE_PASS")'
+	@cd receipts/null-draws-8a090b8-20260803T090705Z && (sha256sum -c evidence-SHA256SUMS 2>/dev/null || shasum -a 256 -c evidence-SHA256SUMS)
+	@echo "U250 null-model contract checks passed"
+	@bash -n fpga/u250-null-model/build.sh fpga/u250-null-model/compile-host.sh fpga/u250-null-model/run-hardware.sh fpga/u250-null-model/verify-fixture.sh
+	@rg -q 'lcg31_sha8_fixture_v1' fpga/u250-null-model/README.md
+	@rg -q 'U250_NULL_HARDWARE_PASS' fpga/u250-null-model/run-hardware.sh
+	@rg -q 'null_draws_1.windows:DDR\[0\]' fpga/u250-null-model/null_draws.cfg
+	@rg -q 'sounio.dev/u250' fpga/u250-null-model/kubernetes/null-draw-pod.yaml
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/u250_null_draw_receipt.schema.json")); abort "U250 null receipt scope drift" unless s.dig("properties","engineering_scope","const")==true && s.dig("properties","pilot_null_primary","const")==false && s.dig("properties","scientific_claim","const")==false && s.dig("properties","performance_claim","const")==false; abort "U250 null receipt marker drift" unless s.dig("properties","validation","properties","hardware_marker","const")=="U250_NULL_HARDWARE_PASS"; abort "U250 null fixture draw count drift" unless s.dig("properties","fixture","properties","draws","const")==1152'
 	@fpga/u250-null-model/verify-fixture.sh
 	@echo "U250 null-model contract checks passed"
 

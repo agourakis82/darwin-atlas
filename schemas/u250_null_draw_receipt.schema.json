@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://darwin-atlas.example/schemas/u250_null_draw_receipt.schema.json",
+  "title": "Darwin Atlas U250 fixture null-draw receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_kind",
+    "state",
+    "engineering_scope",
+    "semantic_scope",
+    "adr_0002_status",
+    "pilot_null_primary",
+    "scientific_claim",
+    "performance_claim",
+    "run_id",
+    "started_utc",
+    "finished_utc",
+    "atlas_source",
+    "builder",
+    "platform",
+    "runtime",
+    "fixture",
+    "artifacts",
+    "validation"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "receipt_kind": { "const": "u250_null_draw_hardware" },
+    "state": { "const": "validated" },
+    "engineering_scope": { "const": true },
+    "semantic_scope": { "const": "executable_fixture_mononucleotide_sensitivity" },
+    "adr_0002_status": { "const": "proposed" },
+    "pilot_null_primary": { "const": false },
+    "scientific_claim": { "const": false },
+    "performance_claim": { "const": false },
+    "run_id": { "type": "string", "pattern": "^null-draws-[0-9a-f]{7}-[0-9]{8}T[0-9]{6}Z$" },
+    "started_utc": { "type": "string", "format": "date-time" },
+    "finished_utc": { "type": "string", "format": "date-time" },
+    "atlas_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "dirty"],
+      "properties": {
+        "commit": { "$ref": "#/$defs/sha1" },
+        "dirty": { "const": false }
+      }
+    },
+    "builder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["host", "os", "vitis_version", "vitis_build"],
+      "properties": {
+        "host": { "type": "string", "minLength": 1 },
+        "os": { "type": "string", "minLength": 1 },
+        "vitis_version": { "const": "2025.1" },
+        "vitis_build": { "const": "6137779" }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "xpfm_sha256", "xsa_sha256", "kernel_frequency_mhz"],
+      "properties": {
+        "name": { "const": "xilinx_u250_gen3x16_xdma_4_1_202210_1" },
+        "xpfm_sha256": { "$ref": "#/$defs/sha256" },
+        "xsa_sha256": { "$ref": "#/$defs/sha256" },
+        "kernel_frequency_mhz": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kubernetes_node", "bdf", "shell", "device_ready", "xrt_version", "xrt_hash"],
+      "properties": {
+        "kubernetes_node": { "const": "dl380-proxmox" },
+        "bdf": { "const": "0000:d8:00.1" },
+        "shell": { "const": "xilinx_u250_gen3x16_xdma_shell_4_1" },
+        "device_ready": { "const": true },
+        "xrt_version": { "const": "2.23.0" },
+        "xrt_hash": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cases", "metrics", "replicates", "draws", "tolerance", "fixture_sha256", "generated_header_sha256"],
+      "properties": {
+        "cases": { "const": 8 },
+        "metrics": { "const": 18 },
+        "replicates": { "const": 8 },
+        "draws": { "const": 1152 },
+        "tolerance": { "const": 0 },
+        "fixture_sha256": { "$ref": "#/$defs/sha256" },
+        "generated_header_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "path", "sha256", "size_bytes"],
+        "properties": {
+          "kind": { "enum": ["kernel_source", "xo", "xclbin", "host_binary"] },
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "size_bytes": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["julia_marker", "csim_marker", "hardware_marker", "exit_code", "hardware_log_sha256"],
+      "properties": {
+        "julia_marker": { "const": "U250_NULL_JULIA_FIXTURE_PASS" },
+        "csim_marker": { "const": "U250_NULL_CSIM_PASS" },
+        "hardware_marker": { "const": "U250_NULL_HARDWARE_PASS" },
+        "exit_code": { "const": 0 },
+        "hardware_log_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  },
+  "$defs": {
+    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
