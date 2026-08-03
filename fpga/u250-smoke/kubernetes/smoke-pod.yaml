@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: darwin-atlas-u250-smoke
+  namespace: default
+  labels:
+    app.kubernetes.io/name: darwin-atlas-u250-smoke
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    sounio.dev/fpga: u250
+  containers:
+    - name: smoke
+      # Match the Debian 13 XRT userspace ABI installed on dl380-proxmox.
+      image: debian:trixie-slim
+      command: ["/bin/bash", "-lc", "sleep infinity"]
+      resources:
+        limits:
+          sounio.dev/u250: "1"
+        requests:
+          sounio.dev/u250: "1"
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsUser: 0
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+        - name: host-xrt
+          mountPath: /opt/xilinx/xrt
+          readOnly: true
+        - name: host-libs
+          mountPath: /opt/dl380-libs
+          readOnly: true
+  volumes:
+    - name: host-xrt
+      hostPath:
+        path: /opt/xilinx/xrt
+        type: Directory
+    - name: host-libs
+      hostPath:
+        path: /usr/lib/x86_64-linux-gnu
+        type: Directory

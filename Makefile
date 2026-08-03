@@ -4,6 +4,7 @@
 	sounio-mini-pipeline mini-pipeline-differential-fixture \
 	cohort-smoke-differential \
 	cohort-products \
+	u250-smoke-contract \
 	cross-validate pipeline release-gate \
 	legacy-julia-pipeline legacy-export-knowledge legacy-verify-knowledge clean
 
@@ -33,6 +34,7 @@ help:
 	@echo "  mini-pipeline-differential-fixture  Sounio JSONL + independent Base-only Julia check"
 	@echo "  cohort-smoke-differential  Complete-replicon engineering smoke + Julia byte-exact check"
 	@echo "  cohort-products         Engineering canonical products + Julia byte-exact checks"
+	@echo "  u250-smoke-contract     Validate the engineering U250 hardware-smoke scaffold"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"
 	@echo "  release-gate            Full publication gate (red until pipeline is ready)"
@@ -59,6 +61,13 @@ contract:
 	@test -s docs/ADR-0002-pilot-parameter-decisions.md
 	@test -s schemas/run_receipt.schema.json
 	@test -s toolchains/sounio.lock.json
+	@test -s fpga/u250-smoke/src/vector_add.cpp
+	@test -s fpga/u250-smoke/src/host.cpp
+	@test -s fpga/u250-smoke/vector_add.cfg
+	@test -x fpga/u250-smoke/build.sh
+	@test -x fpga/u250-smoke/compile-host.sh
+	@test -x fpga/u250-smoke/run-hardware.sh
+	@test -s fpga/u250-smoke/kubernetes/smoke-pod.yaml
 	@test -s sounio/src/operator_fixture.sio
 	@test -s sounio/src/fasta_stream_fixture.sio
 	@test -s julia/scripts/validate_operator_fixture.jl
@@ -117,6 +126,15 @@ contract:
 	@! rg -n "Running Julia-only validation instead" julia/scripts/cross_validation.jl
 	@! rg -n "rm -rf julia/[M]anifest.toml" Makefile
 	@echo "Contract checks passed"
+
+u250-smoke-contract:
+	@bash -n fpga/u250-smoke/build.sh fpga/u250-smoke/compile-host.sh fpga/u250-smoke/run-hardware.sh
+	@rg -q 'xilinx_u250_gen3x16_xdma_4_1_202210_1' fpga/u250-smoke/build.sh
+	@rg -q 'sounio.dev/u250' fpga/u250-smoke/kubernetes/smoke-pod.yaml
+	@rg -q 'kElementCount = 4096' fpga/u250-smoke/src/host.cpp
+	@rg -q 'U250_VECTOR_ADD_PASS elements=' fpga/u250-smoke/src/host.cpp
+	@rg -q 'U250_HARDWARE_SMOKE_PASS' fpga/u250-smoke/run-hardware.sh
+	@echo "U250 smoke contract checks passed"
 
 setup-julia:
 	$(JULIA) -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
