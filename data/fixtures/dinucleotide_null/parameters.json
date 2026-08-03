@@ -1,0 +1,1 @@
+{"schema_version":"0.1.0","null_model":"dinucleotide_shuffle","null_replicates":8,"rng":"lecuyer_combined31_substream20_sha64_v1","shuffle":"euler_wilson_fixed_endpoints_v1"}

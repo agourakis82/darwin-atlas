@@ -34,7 +34,9 @@ The normative definitions, hypotheses, schemas, and release gates are in
 [`docs/SCIENTIFIC_SPEC.md`](docs/SCIENTIFIC_SPEC.md). Architecture decision
 [`ADR-0001`](docs/ADR-0001-sounio-primary-julia-validator.md) defines the
 implementation roles; [`ADR-0002`](docs/ADR-0002-pilot-parameter-decisions.md)
-(proposed) records the pilot parameter decisions ahead of cohort acquisition.
+(proposed) records the pilot parameter decisions ahead of cohort acquisition;
+[`ADR-0003`](docs/ADR-0003-dinucleotide-null-engineering-contract.md) fixes the
+exact Euler/Wilson engineering-fixture semantics without accepting the pilot.
 The latest evidence-bounded local snapshot is
 [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
 
@@ -170,6 +172,17 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 # products receipt, and the benchmark receipt into release/<bundle_id>/ with
 # a release receipt (DOI is an explicit placeholder; engineering scope)
 scripts/build_release_bundle.sh <battery_log> <products_receipt_run_id>
+
+# Fase L CPU differential: pinned Sounio produces 64 exact
+# dinucleotide-preserving sequence draws; Julia independently recomputes the
+# SHA-derived seeds, every byte, endpoints, and all 16 dinucleotide counts.
+SOUNIO_REPO=/path/to/pinned/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
+  scripts/run_dinucleotide_null_differential.sh
+
+# Regenerate the Julia golden header and compare all 1,024 base slots against
+# the HLS kernel in C simulation. Real-card closure additionally requires the
+# build, host, and hardware scripts documented under fpga/u250-dinucleotide-null.
+make u250-dinucleotide-contract
 
 # Must fail unless both implementations are actually available
 make cross-validate

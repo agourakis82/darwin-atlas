@@ -204,6 +204,12 @@ Seeds MUST be deterministically derived from the run parameter hash, stable
 replicon identifier, window coordinates, metric identifier, and replicate index.
 The derivation algorithm is part of the parameter artifact.
 
+ADR-0003 fixes one engineering candidate for the dinucleotide shuffle: a
+fixed-endpoint Euler trail over the directed dinucleotide multigraph, with a
+Wilson loop-erased arborescence, rejection-sampled bounded choices, and
+deterministic replicate substreams. That executable fixture does not select the
+pilot model or constitute inferential validation; ADR-0002 remains proposed.
+
 Tests MUST be grouped into predeclared hypothesis families and corrected with
 Benjamini-Hochberg FDR. Effect sizes and null quantiles MUST accompany p- and
 q-values. Chromosomes and plasmids, circular and linear replicons, and the core
@@ -322,9 +328,12 @@ unavailable reasons — reaches `EXECUTES` with deterministic JSONL (schema
 and negative parameter fixtures, under two independently written k-mer kernels
 (simple reference and scale-oriented rolling table) required to agree byte for
 byte. `min_kmer_effective_count=1` remains an executable-fixture parameter,
-not the pilot threshold; the pilot minimum expected count, all null models,
-and the definitive cohort manifest remain unimplemented (see proposed
-ADR-0002). These executable specifications do not elevate the absent full
+not the pilot threshold. The mononucleotide sensitivity fixture and the
+ADR-0003 exact dinucleotide-preserving candidate now execute under independent
+Julia differential checks, and both have engineering U250 accelerator
+surfaces; neither is integrated into canonical pilot products. The pilot
+minimum expected count and final null parameters remain open under proposed
+ADR-0002. These executable specifications do not elevate the absent full
 cohort pipeline to `SCIENTIFICALLY_VALIDATED`. Successful parsing/code
 generation by itself remains evidence only for `COMPILES`.
 

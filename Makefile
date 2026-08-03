@@ -4,7 +4,7 @@
 	sounio-mini-pipeline mini-pipeline-differential-fixture \
 	cohort-smoke-differential \
 	cohort-products \
-	u250-smoke-contract u250-null-contract \
+	u250-smoke-contract u250-null-contract u250-dinucleotide-contract \
 	cross-validate pipeline release-gate \
 	legacy-julia-pipeline legacy-export-knowledge legacy-verify-knowledge clean
 
@@ -36,6 +36,7 @@ help:
 	@echo "  cohort-products         Engineering canonical products + Julia byte-exact checks"
 	@echo "  u250-smoke-contract     Validate the engineering U250 hardware-smoke scaffold"
 	@echo "  u250-null-contract      Validate Julia/HLS exact null-draw fixtures"
+	@echo "  u250-dinucleotide-contract  Validate exact Euler/Wilson Sounio/Julia/HLS fixture"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"
 	@echo "  release-gate            Full publication gate (red until pipeline is ready)"
@@ -60,14 +61,23 @@ contract:
 	@test -s docs/SCIENTIFIC_SPEC.md
 	@test -s docs/ADR-0001-sounio-primary-julia-validator.md
 	@test -s docs/ADR-0002-pilot-parameter-decisions.md
+	@test -s docs/ADR-0003-dinucleotide-null-engineering-contract.md
 	@test -s schemas/run_receipt.schema.json
 	@test -s schemas/u250_hardware_smoke_receipt.schema.json
 	@test -s schemas/u250_null_draw_receipt.schema.json
+	@test -s schemas/u250_dinucleotide_null_receipt.schema.json
 	@test -s receipts/u250-smoke-659ab549-20260803T022116Z/u250_smoke_receipt.json
 	@test -s fpga/u250-null-model/src/null_draws.cpp
 	@test -s fpga/u250-null-model/generated_fixture.hpp
 	@test -s fpga/u250-null-model/kubernetes/null-draw-pod.yaml
 	@test -x fpga/u250-null-model/verify-fixture.sh
+	@test -s sounio/src/dinucleotide_null_fixture.sio
+	@test -x scripts/generate_dinucleotide_cases.rb
+	@test -x scripts/run_dinucleotide_null_differential.sh
+	@test -x julia/scripts/validate_dinucleotide_null.jl
+	@test -x fpga/u250-dinucleotide-null/verify-fixture.sh
+	@test -s data/fixtures/dinucleotide_null/SHA256SUMS
+	@cd data/fixtures/dinucleotide_null && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
 	@test -s toolchains/sounio.lock.json
 	@test -s fpga/u250-smoke/src/vector_add.cpp
 	@test -s fpga/u250-smoke/src/host.cpp
@@ -125,6 +135,7 @@ contract:
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/run_receipt.schema.json")); abort "producer must be Sounio" unless s.dig("properties","producer","properties","language","const")=="Sounio"; abort "validator must be Julia" unless s.dig("properties","validator","oneOf",1,"properties","language","const")=="Julia"'
 	@$(MAKE) --no-print-directory u250-smoke-contract
 	@$(MAKE) --no-print-directory u250-null-contract
+	@$(MAKE) --no-print-directory u250-dinucleotide-contract
 	@ruby -rjson -rdigest -e 'id="engineering-products-b3682abb-20260801T203932Z"; r=JSON.parse(File.read("receipts/#{id}/run_receipt.json")); abort "engineering receipt must be validated" unless r["state"]=="validated"; v=r["validator"]; abort "receipt validator drift" unless v["language"]=="Julia" && v["status"]=="pass" && v["absolute_tolerance"]==0; abort "receipt commit must be a 40-hex sha" unless r.dig("atlas_source","commit").to_s.match?(/\A[0-9a-f]{40}\z/); abort "receipt must come from a clean tree" unless r.dig("atlas_source","dirty")==false; r["artifacts"].each{|a| p=a["path"].to_s; next unless p.include?("receipts/#{id}/"); f="receipts/#{id}/#{File.basename(p)}"; abort "receipt artifact missing #{f}" unless File.file?(f); abort "receipt sha256 mismatch #{f}" unless Digest::SHA256.file(f).hexdigest==a["sha256"] }'
 	@ruby -rjson -rdigest -e 'id="engineering-products-8bbe89fd-20260802T144440Z"; r=JSON.parse(File.read("receipts/#{id}/run_receipt.json")); abort "release-tree engineering receipt must be validated" unless r["state"]=="validated"; v=r["validator"]; abort "release-tree receipt validator drift" unless v["language"]=="Julia" && v["status"]=="pass" && v["absolute_tolerance"]==0; abort "release-tree receipt commit must be a 40-hex sha" unless r.dig("atlas_source","commit").to_s.match?(/\A[0-9a-f]{40}\z/); abort "release-tree receipt must come from a clean tree" unless r.dig("atlas_source","dirty")==false; r["artifacts"].each{|a| p=a["path"].to_s; next unless p.include?("receipts/#{id}/"); f="receipts/#{id}/#{File.basename(p)}"; abort "release-tree receipt artifact missing #{f}" unless File.file?(f); abort "release-tree receipt sha256 mismatch #{f}" unless Digest::SHA256.file(f).hexdigest==a["sha256"] }'
 	@ruby -rjson -rdigest -e 'dir="release/darwin-atlas-0.1.0-engineering-b04fdefd"; r=JSON.parse(File.read("#{dir}/release_receipt.json")); abort "release kind drift" unless r["receipt_kind"]=="engineering_release"; abort "release must stay engineering scope" unless r["engineering_scope"]==true && r["release_eligible"]==false; abort "DOI must stay an explicit placeholder" unless r["doi"]=="pending"; abort "release commit must be a 40-hex sha" unless r["source_commit"].to_s.match?(/\A[0-9a-f]{40}\z/); abort "release must come from a clean tree" unless r["source_dirty"]==false; abort "battery marker drift" unless r.dig("battery","final_marker")=="BATTERY_ALL_GREEN"; abort "battery evidence hash drift" unless Digest::SHA256.file("#{dir}/battery_evidence.txt").hexdigest==r.dig("battery","evidence_sha256"); abort "tarball hash drift" unless Digest::SHA256.file("#{dir}/#{r.dig("bundle_files","tarball")}").hexdigest==r.dig("bundle_files","tarball_sha256"); abort "products receipt hash drift" unless Digest::SHA256.file("receipts/#{r.dig("products_receipt","run_id")}/run_receipt.json").hexdigest==r.dig("products_receipt","receipt_sha256"); abort "benchmark receipt hash drift" unless Digest::SHA256.file("receipts/#{r.dig("benchmark_receipt","run_id")}/benchmark_receipt.json").hexdigest==r.dig("benchmark_receipt","receipt_sha256")'
@@ -160,14 +171,18 @@ u250-null-contract:
 	@ruby -rjson -rdigest -e 'dir="receipts/null-draws-8a090b8-20260803T090705Z"; r=JSON.parse(File.read("#{dir}/null_draw_receipt.json")); abort "null receipt kind/state drift" unless r["receipt_kind"]=="u250_null_draw_hardware" && r["state"]=="validated"; abort "null receipt scope drift" unless r["engineering_scope"]==true && r["pilot_null_primary"]==false && r["scientific_claim"]==false && r["performance_claim"]==false; abort "null receipt adr drift" unless r["adr_0002_status"]=="proposed"; abort "null source receipt drift" unless r.dig("atlas_source","commit")=="8a090b86cb2df88bff7dc5534bd3ff0a8863d180" && r.dig("atlas_source","dirty")==false; abort "null fixture drift" unless r.dig("fixture","cases")==8 && r.dig("fixture","metrics")==18 && r.dig("fixture","replicates")==8 && r.dig("fixture","draws")==1152 && r.dig("fixture","tolerance")==0; kinds=r["artifacts"].map{|a|a["kind"]}; expected=%w[kernel_source xo xclbin host_binary]; abort "null artifact set drift" unless kinds.sort==expected.sort && kinds.uniq.size==4; r["artifacts"].each{|a| f=a["path"]; abort "null artifact missing #{f}" unless File.file?(f); abort "null artifact hash drift #{f}" unless Digest::SHA256.file(f).hexdigest==a["sha256"]; abort "null artifact size drift #{f}" unless File.size(f)==a["size_bytes"]}; builder=File.read("#{dir}/SHA256SUMS"); %w[xo xclbin].each{|kind| a=r["artifacts"].find{|x|x["kind"]==kind}; abort "null builder hash evidence missing #{kind}" unless builder.include?(a["sha256"])}; env=File.read("#{dir}/builder-environment.txt"); abort "null builder environment drift" unless env.include?(r.dig("builder","host")) && env.include?(r.dig("platform","xpfm_sha256")) && env.include?(r.dig("platform","xsa_sha256")); runtime=File.read("#{dir}/runtime-artifacts.txt"); %w[xclbin host_binary].each{|kind| a=r["artifacts"].find{|x|x["kind"]==kind}; abort "null runtime hash evidence missing #{kind}" unless runtime.include?(a["sha256"])}; log="#{dir}/hardware-run.log"; abort "null hardware log hash drift" unless Digest::SHA256.file(log).hexdigest==r.dig("validation","hardware_log_sha256"); text=File.read(log); abort "null hardware log missing draw marker" unless text.include?("U250_NULL_DRAW_PASS cases=8 metrics=18 replicates=8 draws=1152"); abort "null hardware log missing pass marker" unless text.include?("U250_NULL_HARDWARE_PASS")'
 	@cd receipts/null-draws-8a090b8-20260803T090705Z && (sha256sum -c evidence-SHA256SUMS 2>/dev/null || shasum -a 256 -c evidence-SHA256SUMS)
 	@echo "U250 null-model contract checks passed"
-	@bash -n fpga/u250-null-model/build.sh fpga/u250-null-model/compile-host.sh fpga/u250-null-model/run-hardware.sh fpga/u250-null-model/verify-fixture.sh
-	@rg -q 'lcg31_sha8_fixture_v1' fpga/u250-null-model/README.md
-	@rg -q 'U250_NULL_HARDWARE_PASS' fpga/u250-null-model/run-hardware.sh
-	@rg -q 'null_draws_1.windows:DDR\[0\]' fpga/u250-null-model/null_draws.cfg
-	@rg -q 'sounio.dev/u250' fpga/u250-null-model/kubernetes/null-draw-pod.yaml
-	@ruby -rjson -e 's=JSON.parse(File.read("schemas/u250_null_draw_receipt.schema.json")); abort "U250 null receipt scope drift" unless s.dig("properties","engineering_scope","const")==true && s.dig("properties","pilot_null_primary","const")==false && s.dig("properties","scientific_claim","const")==false && s.dig("properties","performance_claim","const")==false; abort "U250 null receipt marker drift" unless s.dig("properties","validation","properties","hardware_marker","const")=="U250_NULL_HARDWARE_PASS"; abort "U250 null fixture draw count drift" unless s.dig("properties","fixture","properties","draws","const")==1152'
-	@fpga/u250-null-model/verify-fixture.sh
-	@echo "U250 null-model contract checks passed"
+
+u250-dinucleotide-contract:
+	@bash -n fpga/u250-dinucleotide-null/build.sh fpga/u250-dinucleotide-null/compile-host.sh fpga/u250-dinucleotide-null/run-hardware.sh fpga/u250-dinucleotide-null/verify-fixture.sh scripts/run_dinucleotide_null_differential.sh
+	@rg -q 'euler_wilson_fixed_endpoints_v1' docs/ADR-0003-dinucleotide-null-engineering-contract.md fpga/u250-dinucleotide-null/README.md
+	@rg -q 'DINUCLEOTIDE_NULL_DIFFERENTIAL_PASS' scripts/run_dinucleotide_null_differential.sh
+	@rg -q 'U250_DINUCLEOTIDE_HARDWARE_PASS' fpga/u250-dinucleotide-null/run-hardware.sh
+	@rg -q 'dinucleotide_draws_1.windows:DDR\[0\]' fpga/u250-dinucleotide-null/dinucleotide_draws.cfg
+	@rg -q 'sounio.dev/u250' fpga/u250-dinucleotide-null/kubernetes/dinucleotide-pod.yaml
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/u250_dinucleotide_null_receipt.schema.json")); abort "dinucleotide receipt scope drift" unless s.dig("properties","engineering_scope","const")==true && s.dig("properties","pilot_primary_candidate","const")==true && s.dig("properties","pilot_null_primary","const")==false && s.dig("properties","scientific_claim","const")==false && s.dig("properties","performance_claim","const")==false; abort "dinucleotide receipt slot count drift" unless s.dig("properties","fixture","properties","base_slots","const")==1024; abort "dinucleotide hardware marker drift" unless s.dig("properties","validation","properties","hardware_marker","const")=="U250_DINUCLEOTIDE_HARDWARE_PASS"'
+	@temp="$$(mktemp)"; scripts/generate_dinucleotide_cases.rb data/fixtures/dinucleotide_null/parameters.json data/fixtures/dinucleotide_null/case_templates.tsv "$$temp"; cmp data/fixtures/dinucleotide_null/cases.tsv "$$temp"; rm -f "$$temp"
+	@fpga/u250-dinucleotide-null/verify-fixture.sh
+	@echo "U250 dinucleotide-null contract checks passed"
 
 setup-julia:
 	$(JULIA) -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
