@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_kind": "u250_dinucleotide_null_hardware",
+  "state": "validated",
+  "engineering_scope": true,
+  "semantic_scope": "exact_dinucleotide_preserving_fixture",
+  "adr_0002_status": "proposed",
+  "adr_0003_status": "accepted",
+  "pilot_primary_candidate": true,
+  "pilot_null_primary": false,
+  "scientific_claim": false,
+  "performance_claim": false,
+  "run_id": "dinucleotide-null-556ac81-20260803T171300Z",
+  "started_utc": "2026-08-03T17:13:00Z",
+  "finished_utc": "2026-08-03T19:01:20Z",
+  "atlas_source": {
+    "commit": "556ac81eedc58a3a2e1ae9c0a2497dd434a5a944",
+    "dirty": false
+  },
+  "sounio": {
+    "repository": "https://github.com/sounio-lang/sounio.git",
+    "commit": "37de2c9eefe68f3457a2c66004eff68bba5b4446",
+    "launcher_sha256": "ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008",
+    "source_sha256": "pending",
+    "executable_sha256": "pending",
+    "artifact_sha256": "pending"
+  },
+  "algorithm": {
+    "shuffle": "euler_wilson_fixed_endpoints_v1",
+    "seed_derivation": "sha256_parameters_accession_window_first64be_v1",
+    "rng": "lecuyer_combined31_substream20_sha64_v1",
+    "replicate_substream_steps": 1048576,
+    "bounded_draw": "rejection_sampling"
+  },
+  "builder": {
+    "host": "vitis-u250-builder.lab.sounio",
+    "os": "Ubuntu 22.04",
+    "vitis_version": "2025.1",
+    "vitis_build": "6137779",
+    "errors": 0,
+    "critical_warnings": 0
+  },
+  "platform": {
+    "name": "xilinx_u250_gen3x16_xdma_4_1_202210_1",
+    "xpfm_sha256": "7ece7bb344e67fb1fbb0a837daba2817de4935e187eeae0e43b82d776c6f9317",
+    "xsa_sha256": "57e591b04dac337b860e3d5b0237ac6a2394c670208cbdc320428e8a351b489f",
+    "kernel_frequency_mhz": 411
+  },
+  "runtime": {
+    "kubernetes_node": "dl380-proxmox",
+    "bdf": "0000:d8:00.1",
+    "shell": "xilinx_u250_gen3x16_xdma_shell_4_1",
+    "device_ready": true,
+    "xrt_version": "2.23.0",
+    "xrt_hash": "e61a02867980c8fd8acd80a3a4936d683caa1d82"
+  },
+  "fixture": {
+    "cases": 8,
+    "replicates": 8,
+    "sequence_draws": 64,
+    "base_slots": 1024,
+    "tolerance": 0,
+    "parameters_sha256": "45ecde713524da42e5ae8281b8937a0b4ae9c32042233b80c1aee112209062c0",
+    "cases_sha256": "b471a8a6a40efe1488287faa28ba7d6d332f06f38bda031dbd340e5d6ac46f3b",
+    "generated_header_sha256": "ebdb45bbca939c19df3cd59b9a8b12c961b046a73e007e7e41a3a0a85cb380c6"
+  },
+  "artifacts": [
+    {
+      "kind": "kernel_source",
+      "path": "fpga/u250-dinucleotide-null/src/dinucleotide_draws.cpp",
+      "sha256": "3b440fc34ac927cd36fd242ba11a3bc9dd5c0edc98c0a4b0e06591e1047ccf7a",
+      "size_bytes": 8275
+    },
+    {
+      "kind": "xo",
+      "path": "fpga/u250-dinucleotide-null/build/dinucleotide_draws.xo",
+      "sha256": "15e53e19ac5831a2dead872b0b16050d5c2890e596e502fc1b4ccb54d0c04605",
+      "size_bytes": 444135
+    },
+    {
+      "kind": "xclbin",
+      "path": "fpga/u250-dinucleotide-null/build/dinucleotide_draws.xclbin",
+      "sha256": "b123ea0cfba5284e16e457bc1326435864ef50123e0ec2208666a741b888c9be",
+      "size_bytes": 52316448
+    },
+    {
+      "kind": "host_binary",
+      "path": "fpga/u250-dinucleotide-null/build/dinucleotide_draws_host",
+      "sha256": "8a303bcc0c2f3dcbaf23db20fd3b37f075e7d3382ac4f19160dde04d301f7826",
+      "size_bytes": 27296
+    }
+  ],
+  "validation": {
+    "sounio_marker": "DINUCLEOTIDE_NULL_DIFFERENTIAL_PASS",
+    "julia_marker": "DINUCLEOTIDE_JULIA_DIFFERENTIAL_PASS",
+    "csim_marker": "U250_DINUCLEOTIDE_CSIM_PASS",
+    "hardware_marker": "U250_DINUCLEOTIDE_HARDWARE_PASS",
+    "exit_code": 0,
+    "hardware_log_sha256": "f180b66c71782e763046b431826484c7208d8046bcae09e37c4a9a4f798204fb"
+  }
+}

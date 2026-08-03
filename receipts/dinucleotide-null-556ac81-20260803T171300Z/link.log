@@ -1,0 +1,337 @@
+Option Map File Used: '/opt/amd/2025.1/Vitis/data/vitis/vpp/optMap.xml'
+
+****** v++ v2025.1 (64-bit)
+  **** SW Build 6137779 on 2025-05-21-18:10:03
+  **** Start of session at: Mon Aug  3 17:17:01 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+
+INFO: [v++ 60-1306] Additional information associated with this v++ link can be found at:
+	Reports: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/reports/link
+	Log files: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/logs/link
+INFO: [v++ 60-1548] Creating build summary session with primary output /home/devsounio/darwin-atlas-phase-l/build-authorized/dinucleotide_draws.xclbin.link_summary, at Mon Aug  3 17:17:04 2026
+INFO: [v++ 60-1315] Creating rulecheck session with output '/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/reports/link/v++_link_dinucleotide_draws_guidance.html', at Mon Aug  3 17:17:04 2026
+INFO: [v++ 60-895]   Target platform: /opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm
+INFO: [v++ 60-1578]   This platform contains Xilinx Shell Archive '/opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/hw/hw.xsa'
+INFO: [v++ 74-78] Compiler Version string: 2025.1
+INFO: [v++ 60-1302] Platform 'xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm' has been explicitly enabled for this release.
+INFO: [v++ 60-629] Linking for hardware target
+INFO: [v++ 60-423]   Target device: xilinx_u250_gen3x16_xdma_4_1_202210_1
+INFO: [v++ 60-1332] Run 'run_link' status: Not started
+INFO: [v++ 60-1443] [17:17:07] Run run_link: Step system_link: Started
+INFO: [v++ 60-1453] Command Line: system_link --xo /home/devsounio/darwin-atlas-phase-l/build-authorized/dinucleotide_draws.xo -keep --config /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/syslinkConfig.ini --xpfm /opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm --target hw --output_dir /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int --temp_dir /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link
+INFO: [v++ 60-1454] Run Directory: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/run_link
+INFO: [SYSTEM_LINK 82-70] Extracting xo v3 file /home/devsounio/darwin-atlas-phase-l/build-authorized/dinucleotide_draws.xo
+INFO: [SYSTEM_LINK 82-53] Creating IP database /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/_sysl/.cdb/xd_ip_db.xml
+INFO: [SYSTEM_LINK 82-38] [17:17:09] build_xd_ip_db started: /opt/amd/2025.1/Vitis/bin/build_xd_ip_db -ip_search 0  -sds-pf /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/hw.hpfm -clkid 0 -ip /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/iprepo/xilinx_com_hls_dinucleotide_draws_1_0,dinucleotide_draws -o /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/_sysl/.cdb/xd_ip_db.xml
+INFO: [SYSTEM_LINK 82-37] [17:17:10] build_xd_ip_db finished successfully
+Time (s): cpu = 00:00:00.23 ; elapsed = 00:00:00.6 . Memory (MB): peak = 498.832 ; gain = 0.000 ; free physical = 77654 ; free virtual = 79674
+INFO: [SYSTEM_LINK 82-51] Create system connectivity graph
+INFO: [SYSTEM_LINK 82-102] Applying explicit connections to the system connectivity graph: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/cfgraph/cfgen_cfgraph.xml
+INFO: [SYSTEM_LINK 82-38] [17:17:10] cfgen started: /opt/amd/2025.1/Vitis/bin/cfgen  -nk dinucleotide_draws:1:dinucleotide_draws_1 -sp dinucleotide_draws_1.windows:DDR[0] -sp dinucleotide_draws_1.metadata:DDR[1] -sp dinucleotide_draws_1.outputs:DDR[2] -dpa_mem_offload false -dpa_aie_mem_offload false -dmclkid 0 -r /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/_sysl/.cdb/xd_ip_db.xml -o /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/cfgraph/cfgen_cfgraph.xml
+INFO: [CFGEN 83-0] Kernel Specs: 
+INFO: [CFGEN 83-0]   kernel: dinucleotide_draws, num: 1  {dinucleotide_draws_1}
+INFO: [CFGEN 83-0] Port Specs: 
+INFO: [CFGEN 83-0]   kernel: dinucleotide_draws_1, k_port: windows, sptag: DDR[0]
+INFO: [CFGEN 83-0]   kernel: dinucleotide_draws_1, k_port: metadata, sptag: DDR[1]
+INFO: [CFGEN 83-0]   kernel: dinucleotide_draws_1, k_port: outputs, sptag: DDR[2]
+INFO: [SYSTEM_LINK 82-37] [17:17:13] cfgen finished successfully
+Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 498.832 ; gain = 0.000 ; free physical = 77645 ; free virtual = 79668
+INFO: [SYSTEM_LINK 82-52] Create top-level block diagram
+INFO: [SYSTEM_LINK 82-38] [17:17:13] cf2bd started: /opt/amd/2025.1/Vitis/bin/cf2bd  --linux --trace_buffer 1024 --input_file /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/cfgraph/cfgen_cfgraph.xml --ip_db /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/_sysl/.cdb/xd_ip_db.xml --cf_name dr --working_dir /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/_sysl/.xsd --temp_dir /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link --output_dir /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int --target_bd ulp.bd
+INFO: [CF2BD 82-31] Launching cf2xd: cf2xd -linux -trace-buffer 1024 -i /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/cfgraph/cfgen_cfgraph.xml -r /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/_sysl/.cdb/xd_ip_db.xml -o dr.xml
+INFO: [CF2BD 82-28] cf2xd finished successfully
+INFO: [CF2BD 82-31] Launching cf_xsd: cf_xsd -disable-address-gen -bd ulp.bd -dn dr -dp /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/sys_link/_sysl/.xsd
+INFO: [CF2BD 82-28] cf_xsd finished successfully
+INFO: [SYSTEM_LINK 82-37] [17:17:16] cf2bd finished successfully
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:03 . Memory (MB): peak = 498.832 ; gain = 0.000 ; free physical = 77631 ; free virtual = 79656
+INFO: [v++ 60-1441] [17:17:16] Run run_link: Step system_link: Completed
+Time (s): cpu = 00:00:07 ; elapsed = 00:00:09 . Memory (MB): peak = 515.836 ; gain = 0.000 ; free physical = 77741 ; free virtual = 79767
+INFO: [v++ 60-1443] [17:17:16] Run run_link: Step cf2sw: Started
+INFO: [v++ 60-1453] Command Line: cf2sw -sdsl /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/sdsl.dat -rtd /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/cf2sw.rtd -nofilter /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/cf2sw_full.rtd -xclbin /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/xclbin_orig.xml -o /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/xclbin_orig.1.xml
+INFO: [v++ 60-1454] Run Directory: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/run_link
+INFO: [v++ 60-1441] [17:17:19] Run run_link: Step cf2sw: Completed
+Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 515.836 ; gain = 0.000 ; free physical = 77735 ; free virtual = 79763
+INFO: [v++ 60-1443] [17:17:19] Run run_link: Step rtd2_system_diagram: Started
+INFO: [v++ 60-1453] Command Line: rtd2SystemDiagram
+INFO: [v++ 60-1454] Run Directory: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/run_link
+INFO: [v++ 60-1441] [17:17:20] Run run_link: Step rtd2_system_diagram: Completed
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.24 . Memory (MB): peak = 515.836 ; gain = 0.000 ; free physical = 77723 ; free virtual = 79751
+INFO: [v++ 60-1443] [17:17:20] Run run_link: Step vpl: Started
+INFO: [v++ 60-1453] Command Line: vpl -t hw -f /opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm -s -g --remote_ip_cache /home/devsounio/darwin-atlas-phase-l/build-authorized/.ipcache --output_dir /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int --log_dir /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/logs/link --report_dir /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/reports/link --config /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/vplConfig.ini -k /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/kernel_info.dat --webtalk_flag Vitis --temp_dir /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link --no-info --iprepo /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/xo/ip_repo/xilinx_com_hls_dinucleotide_draws_1_0 --messageDb /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/run_link/vpl.pb /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/dr.bd.tcl
+INFO: [v++ 60-1454] Run Directory: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/run_link
+
+****** vpl v2025.1 (64-bit)
+  **** SW Build 6137779 on 2025-05-21-18:10:03
+  **** Start of session at: Mon Aug  3 17:17:21 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+
+INFO: [VPL 60-839] Read in kernel information from file '/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/kernel_info.dat'.
+INFO: [VPL 74-78] Compiler Version string: 2025.1
+INFO: [VPL 60-423]   Target device: xilinx_u250_gen3x16_xdma_4_1_202210_1
+INFO: [VPL 60-1032] Extracting hardware platform to /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/vivado/vpl/.local/hw_platform
+[17:17:29] Run vpl: Step create_project: Started
+Creating Vivado project.
+[17:17:34] Run vpl: Step create_project: Completed
+[17:17:34] Run vpl: Step create_bd: Started
+[17:18:28] Run vpl: Step create_bd: Completed
+[17:18:28] Run vpl: Step update_bd: Started
+[17:18:29] Run vpl: Step update_bd: Completed
+[17:18:29] Run vpl: Step generate_target: Started
+[17:19:44] Run vpl: Step generate_target: RUNNING...
+[17:20:04] Run vpl: Step generate_target: Completed
+[17:20:04] Run vpl: Step config_hw_runs: Started
+[17:21:20] Run vpl: Step config_hw_runs: RUNNING...
+[17:21:42] Run vpl: Step config_hw_runs: Completed
+[17:21:42] Run vpl: Step synth: Started
+[17:22:13] Block-level synthesis in progress, 0 of 199 jobs complete, 8 jobs running.
+[17:22:43] Block-level synthesis in progress, 0 of 199 jobs complete, 8 jobs running.
+[17:23:13] Block-level synthesis in progress, 7 of 199 jobs complete, 1 job running.
+[17:23:43] Block-level synthesis in progress, 10 of 199 jobs complete, 5 jobs running.
+[17:24:13] Block-level synthesis in progress, 15 of 199 jobs complete, 3 jobs running.
+[17:24:43] Block-level synthesis in progress, 19 of 199 jobs complete, 7 jobs running.
+[17:25:13] Block-level synthesis in progress, 23 of 199 jobs complete, 6 jobs running.
+[17:25:43] Block-level synthesis in progress, 27 of 199 jobs complete, 5 jobs running.
+[17:26:14] Block-level synthesis in progress, 29 of 199 jobs complete, 6 jobs running.
+[17:26:44] Block-level synthesis in progress, 33 of 199 jobs complete, 4 jobs running.
+[17:27:14] Block-level synthesis in progress, 33 of 199 jobs complete, 8 jobs running.
+[17:27:44] Block-level synthesis in progress, 40 of 199 jobs complete, 3 jobs running.
+[17:28:14] Block-level synthesis in progress, 41 of 199 jobs complete, 7 jobs running.
+[17:28:44] Block-level synthesis in progress, 48 of 199 jobs complete, 1 job running.
+[17:29:14] Block-level synthesis in progress, 49 of 199 jobs complete, 8 jobs running.
+[17:29:44] Block-level synthesis in progress, 56 of 199 jobs complete, 1 job running.
+[17:30:15] Block-level synthesis in progress, 58 of 199 jobs complete, 6 jobs running.
+[17:30:45] Block-level synthesis in progress, 62 of 199 jobs complete, 4 jobs running.
+[17:31:15] Block-level synthesis in progress, 65 of 199 jobs complete, 6 jobs running.
+[17:31:45] Block-level synthesis in progress, 67 of 199 jobs complete, 7 jobs running.
+[17:32:15] Block-level synthesis in progress, 73 of 199 jobs complete, 2 jobs running.
+[17:32:46] Block-level synthesis in progress, 76 of 199 jobs complete, 5 jobs running.
+[17:33:16] Block-level synthesis in progress, 80 of 199 jobs complete, 5 jobs running.
+[17:33:46] Block-level synthesis in progress, 82 of 199 jobs complete, 6 jobs running.
+[17:34:16] Block-level synthesis in progress, 87 of 199 jobs complete, 3 jobs running.
+[17:34:47] Block-level synthesis in progress, 91 of 199 jobs complete, 4 jobs running.
+[17:35:17] Block-level synthesis in progress, 94 of 199 jobs complete, 5 jobs running.
+[17:35:47] Block-level synthesis in progress, 99 of 199 jobs complete, 3 jobs running.
+[17:36:17] Block-level synthesis in progress, 100 of 199 jobs complete, 7 jobs running.
+[17:36:48] Block-level synthesis in progress, 103 of 199 jobs complete, 5 jobs running.
+[17:37:18] Block-level synthesis in progress, 108 of 199 jobs complete, 5 jobs running.
+[17:37:48] Block-level synthesis in progress, 112 of 199 jobs complete, 5 jobs running.
+[17:38:18] Block-level synthesis in progress, 117 of 199 jobs complete, 6 jobs running.
+[17:38:49] Block-level synthesis in progress, 122 of 199 jobs complete, 6 jobs running.
+[17:39:19] Block-level synthesis in progress, 130 of 199 jobs complete, 3 jobs running.
+[17:39:49] Block-level synthesis in progress, 136 of 199 jobs complete, 4 jobs running.
+[17:40:19] Block-level synthesis in progress, 143 of 199 jobs complete, 3 jobs running.
+[17:40:50] Block-level synthesis in progress, 147 of 199 jobs complete, 5 jobs running.
+[17:41:20] Block-level synthesis in progress, 154 of 199 jobs complete, 2 jobs running.
+[17:41:50] Block-level synthesis in progress, 157 of 199 jobs complete, 6 jobs running.
+[17:42:20] Block-level synthesis in progress, 163 of 199 jobs complete, 2 jobs running.
+[17:42:51] Block-level synthesis in progress, 171 of 199 jobs complete, 1 job running.
+[17:43:21] Block-level synthesis in progress, 179 of 199 jobs complete, 1 job running.
+[17:43:51] Block-level synthesis in progress, 187 of 199 jobs complete, 1 job running.
+[17:44:21] Block-level synthesis in progress, 195 of 199 jobs complete, 3 jobs running.
+[17:44:52] Block-level synthesis in progress, 196 of 199 jobs complete, 2 jobs running.
+[17:45:22] Block-level synthesis in progress, 198 of 199 jobs complete, 0 jobs running.
+[17:45:52] Block-level synthesis in progress, 198 of 199 jobs complete, 1 job running.
+[17:46:23] Block-level synthesis in progress, 199 of 199 jobs complete, 0 jobs running.
+[17:46:53] Top-level synthesis in progress.
+[17:47:23] Top-level synthesis in progress.
+[17:47:58] Run vpl: Step synth: Completed
+[17:47:58] Run vpl: Step impl: Started
+[17:56:03] Finished 2nd of 6 tasks (FPGA linking synthesized kernels to platform). Elapsed time: 00h 38m 41s 
+
+[17:56:03] Starting logic optimization..
+[17:56:33] Phase 1 Initialization
+[17:56:33] Phase 1.1 Core Generation And Design Setup
+[17:56:33] Phase 1.1.1 Generate And Synthesize MIG Cores
+[18:01:06] Phase 1.1.2 Generate And Synthesize Debug Cores
+[18:03:07] Phase 1.2 Setup Constraints And Sort Netlist
+[18:03:07] Phase 2 Timer Update And Timing Data Collection
+[18:03:07] Phase 2.1 Timer Update
+[18:03:38] Phase 2.2 Timing Data Collection
+[18:03:38] Phase 3 Retarget
+[18:03:38] Phase 4 Constant propagation
+[18:03:38] Phase 5 Sweep
+[18:04:08] Phase 6 BUFG optimization
+[18:04:08] Phase 7 Shift Register Optimization
+[18:04:08] Phase 8 Post Processing Netlist
+[18:04:08] Phase 9 Finalization
+[18:04:08] Phase 9.1 Finalizing Design Cores and Updating Shapes
+[18:04:08] Phase 9.2 Verifying Netlist Connectivity
+[18:04:38] Finished 3rd of 6 tasks (FPGA logic optimization). Elapsed time: 00h 08m 35s 
+
+[18:04:38] Starting logic placement..
+[18:05:09] Phase 1 Placer Initialization
+[18:05:09] Phase 1.1 Placer Initialization Netlist Sorting
+[18:11:43] Phase 1.2 IO Placement/ Clock Placement/ Build Placer Device
+[18:12:13] Phase 1.3 Build Placer Netlist Model
+[18:13:44] Phase 1.4 Constrain Clocks/Macros
+[18:14:14] Phase 2 Global Placement
+[18:14:14] Phase 2.1 Floorplanning
+[18:14:44] Phase 2.1.1 Partition Driven Placement
+[18:14:44] Phase 2.1.1.1 PBP: Partition Driven Placement
+[18:15:15] Phase 2.1.1.2 PBP: Clock Region Placement
+[18:17:16] Phase 2.1.1.3 PBP: Compute Congestion
+[18:17:16] Phase 2.1.1.4 PBP: UpdateTiming
+[18:17:47] Phase 2.1.1.5 PBP: Add part constraints
+[18:17:47] Phase 2.2 Physical Synthesis After Floorplan
+[18:17:47] Phase 2.3 Update Timing before SLR Path Opt
+[18:17:47] Phase 2.4 Post-Processing in Floorplanning
+[18:18:17] Phase 2.5 Global Place Phase1
+[18:23:51] Phase 2.6 Global Place Phase2
+[18:23:51] Phase 2.6.1 UpdateTiming Before Physical Synthesis
+[18:23:51] Phase 2.6.2 Physical Synthesis In Placer
+[18:26:53] Phase 3 Detail Placement
+[18:26:53] Phase 3.1 Commit Multi Column Macros
+[18:26:53] Phase 3.2 Commit Most Macros & LUTRAMs
+[18:28:55] Phase 3.3 Small Shape DP
+[18:28:55] Phase 3.3.1 Small Shape Clustering
+[18:29:25] Phase 3.3.2 Slice Area Swap
+[18:29:25] Phase 3.3.2.1 Slice Area Swap Initial
+[18:30:26] Phase 3.4 Place Remaining
+[18:30:26] Phase 3.5 Re-assign LUT pins
+[18:31:27] Phase 3.6 Pipeline Register Optimization
+[18:31:27] Phase 3.7 Fast Optimization
+[18:32:28] Phase 4 Post Placement Optimization and Clean-Up
+[18:32:28] Phase 4.1 Post Commit Optimization
+[18:33:29] Phase 4.1.1 Post Placement Optimization
+[18:33:29] Phase 4.1.1.1 BUFG Insertion
+[18:33:29] Phase 1 Physical Synthesis Initialization
+[18:33:59] Phase 4.1.1.2 BUFG Replication
+[18:33:59] Phase 4.1.1.3 Post Placement Timing Optimization
+[18:34:29] Phase 4.1.1.4 Replication
+[18:35:30] Phase 4.2 Post Placement Cleanup
+[18:35:30] Phase 4.3 Placer Reporting
+[18:35:30] Phase 4.3.1 Print Estimated Congestion
+[18:35:30] Phase 4.4 Final Placement Cleanup
+[18:38:02] Finished 4th of 6 tasks (FPGA logic placement). Elapsed time: 00h 33m 23s 
+
+[18:38:02] Starting logic routing..
+[18:38:02] Phase 1 Build RT Design
+[18:39:33] Phase 2 Router Initialization
+[18:39:33] Phase 2.1 Fix Topology Constraints
+[18:39:33] Phase 2.2 Pre Route Cleanup
+[18:39:33] Phase 2.3 Global Clock Net Routing
+[18:40:03] Phase 2.4 Update Timing
+[18:41:04] Phase 2.5 Update Timing for Bus Skew
+[18:41:04] Phase 2.5.1 Update Timing
+[18:41:04] Phase 2.6 Soft Constraint Pins - Fast Budgeting
+[18:41:35] Phase 3 Global Routing
+[18:41:35] Phase 4 Initial Routing
+[18:41:35] Phase 4.1 Initial Net Routing Pass
+[18:42:05] Phase 5 Rip-up And Reroute
+[18:42:05] Phase 5.1 Global Iteration 0
+[18:46:08] Phase 5.2 Global Iteration 1
+[18:46:38] Phase 5.3 Global Iteration 2
+[18:47:08] Phase 6 Delay and Skew Optimization
+[18:47:08] Phase 6.1 Delay CleanUp
+[18:47:08] Phase 6.2 Clock Skew Optimization
+[18:47:08] Phase 7 Post Hold Fix
+[18:47:08] Phase 7.1 Hold Fix Iter
+[18:47:39] Phase 8 Leaf Clock Prog Delay Opt
+[18:47:39] Phase 9 Route finalize
+[18:47:39] Phase 10 Verifying routed nets
+[18:47:39] Phase 11 Depositing Routes
+[18:48:09] Phase 12 Resolve XTalk
+[18:48:09] Phase 13 Post Process Routing
+[18:48:09] Phase 14 Post Router Timing
+[18:48:09] Phase 14.1 Update Timing
+[18:48:40] Phase 15 Post-Route Event Processing
+[18:49:10] Finished 5th of 6 tasks (FPGA routing). Elapsed time: 00h 11m 07s 
+
+[18:49:10] Starting bitstream generation..
+[18:57:16] Creating bitmap...
+[18:59:47] Writing bitstream ./level0_i_level1_level1_i_ulp_my_rm_partial.bit...
+[18:59:47] Finished 6th of 6 tasks (FPGA bitstream generation). Elapsed time: 00h 10m 37s 
+Check VPL, containing 11 checks, has run: 0 errors, 1 advisory violation
+ADVISORY: [AUTO-FREQ-SCALING-08] For clock clk_kernel_00_unbuffered_net, the auto scaled frequency 309.5 MHz exceeds the original specified frequency. The compiler will select the original specified frequency of 300.0 MHz.
+[19:01:17] Run vpl: Step impl: Completed
+[19:01:17] Run vpl: FINISHED. Run Status: impl Complete!
+INFO: [v++ 60-1441] [19:01:18] Run run_link: Step vpl: Completed
+Time (s): cpu = 00:00:58 ; elapsed = 01:43:58 . Memory (MB): peak = 515.836 ; gain = 0.000 ; free physical = 71827 ; free virtual = 76517
+INFO: [v++ 60-1443] [19:01:18] Run run_link: Step rtdgen: Started
+INFO: [v++ 60-1453] Command Line: rtdgen
+INFO: [v++ 60-1454] Run Directory: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/run_link
+INFO: [v++ 60-991] clock name 'ss_ucs/aclk_kernel_00' (clock ID '0') is being mapped to clock name 'DATA_CLK' in the xclbin
+INFO: [v++ 60-991] clock name 'ss_ucs/aclk_kernel_01' (clock ID '1') is being mapped to clock name 'KERNEL_CLK' in the xclbin
+INFO: [v++ 60-1230] The compiler selected the following frequencies for the runtime controllable kernel clock(s) and scalable system clock(s): Kernel (DATA) clock: ss_ucs/aclk_kernel_00 = 300, Kernel (KERNEL) clock: ss_ucs/aclk_kernel_01 = 500
+INFO: [v++ 60-1453] Command Line: cf2sw -a /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/address_map.xml -sdsl /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/sdsl.dat -xclbin /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/xclbin_orig.xml -rtd /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/dinucleotide_draws.rtd -o /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/dinucleotide_draws.xml
+INFO: [v++ 60-1652] Cf2sw returned exit code: 0
+INFO: [v++ 60-1441] [19:01:20] Run run_link: Step rtdgen: Completed
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:03 . Memory (MB): peak = 515.836 ; gain = 0.000 ; free physical = 71817 ; free virtual = 76508
+INFO: [v++ 60-1443] [19:01:20] Run run_link: Step xclbinutil: Started
+INFO: [v++ 60-1453] Command Line: xclbinutil --add-section BITSTREAM:RAW:/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/partial.bit --force --target hw --key-value SYS:dfx_enable:true --add-section :JSON:/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/dinucleotide_draws.rtd --append-section :JSON:/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/appendSection.rtd --add-section CLOCK_FREQ_TOPOLOGY:JSON:/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/dinucleotide_draws_xml.rtd --add-section BUILD_METADATA:JSON:/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/dinucleotide_draws_build.rtd --add-section EMBEDDED_METADATA:RAW:/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/dinucleotide_draws.xml --add-section SYSTEM_METADATA:RAW:/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/systemDiagramModelSlrBaseAddress.json --key-value SYS:PlatformVBNV:xilinx_u250_gen3x16_xdma_4_1_202210_1 --output /home/devsounio/darwin-atlas-phase-l/build-authorized/dinucleotide_draws.xclbin
+INFO: [v++ 60-1454] Run Directory: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/run_link
+XRT Build Version: 2.19.0 (Vitis)
+       Build Date: 2025-02-07 10:52:04
+          Hash ID: f02de266f785111094b02d32a9012bd0da3abd58
+Creating a default 'in-memory' xclbin image.
+
+Section: 'BITSTREAM'(0) was successfully added.
+Size   : 52259010 bytes
+Format : RAW
+File   : '/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/partial.bit'
+
+Section: 'MEM_TOPOLOGY'(6) was successfully added.
+Format : JSON
+File   : 'mem_topology'
+
+Section: 'IP_LAYOUT'(8) was successfully added.
+Format : JSON
+File   : 'ip_layout'
+
+Section: 'CONNECTIVITY'(7) was successfully added.
+Format : JSON
+File   : 'connectivity'
+
+Section: 'CLOCK_FREQ_TOPOLOGY'(11) was successfully added.
+Size   : 274 bytes
+Format : JSON
+File   : '/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/dinucleotide_draws_xml.rtd'
+
+Section: 'BUILD_METADATA'(14) was successfully added.
+Size   : 2878 bytes
+Format : JSON
+File   : '/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/dinucleotide_draws_build.rtd'
+
+Section: 'EMBEDDED_METADATA'(2) was successfully added.
+Size   : 17245 bytes
+Format : RAW
+File   : '/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/dinucleotide_draws.xml'
+
+Section: 'SYSTEM_METADATA'(22) was successfully added.
+Size   : 22663 bytes
+Format : RAW
+File   : '/home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/int/systemDiagramModelSlrBaseAddress.json'
+
+Section: 'PARTITION_METADATA'(20) was successfully appended to.
+Format : JSON
+File   : 'partition_metadata'
+
+Section: 'IP_LAYOUT'(8) was successfully appended to.
+Format : JSON
+File   : 'ip_layout'
+Successfully wrote (52316448 bytes) to the output file: /home/devsounio/darwin-atlas-phase-l/build-authorized/dinucleotide_draws.xclbin
+Leaving xclbinutil.
+INFO: [v++ 60-1441] [19:01:20] Run run_link: Step xclbinutil: Completed
+Time (s): cpu = 00:00:00.09 ; elapsed = 00:00:00.36 . Memory (MB): peak = 515.836 ; gain = 0.000 ; free physical = 71757 ; free virtual = 76499
+INFO: [v++ 60-1443] [19:01:20] Run run_link: Step xclbinutilinfo: Started
+INFO: [v++ 60-1453] Command Line: xclbinutil --quiet --force --info /home/devsounio/darwin-atlas-phase-l/build-authorized/dinucleotide_draws.xclbin.info --input /home/devsounio/darwin-atlas-phase-l/build-authorized/dinucleotide_draws.xclbin
+INFO: [v++ 60-1454] Run Directory: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/link/run_link
+INFO: [v++ 60-1441] [19:01:21] Run run_link: Step xclbinutilinfo: Completed
+Time (s): cpu = 00:00:00.4 ; elapsed = 00:00:00.45 . Memory (MB): peak = 515.836 ; gain = 0.000 ; free physical = 71756 ; free virtual = 76498
+Check POST-VPL, containing 1 checks, has run: 0 errors
+INFO: [v++ 60-244] Generating system estimate report...
+INFO: [v++ 60-1092] Generated system estimate report: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/reports/link/system_estimate_dinucleotide_draws.xtxt
+INFO: [v++ 60-586] Created /home/devsounio/darwin-atlas-phase-l/build-authorized/dinucleotide_draws.ltx
+INFO: [v++ 60-586] Created dinucleotide_draws.xclbin
+INFO: [v++ 60-1307] Run completed. Additional information can be found in:
+	Guidance: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/reports/link/v++_link_dinucleotide_draws_guidance.html
+	Timing Report: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/reports/link/imp/impl_1_hw_bb_locked_timing_summary_routed.rpt
+	Vivado Log: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/logs/link/vivado.log
+	Steps Log File: /home/devsounio/darwin-atlas-phase-l/build-authorized/_x/logs/link/link.steps.log
+
+INFO: [v++ 60-2343] Use the Vitis Unified IDE to visualize and navigate the reports. Run the following command. 
+    vitis --analyze /home/devsounio/darwin-atlas-phase-l/build-authorized/dinucleotide_draws.xclbin.link_summary 
+INFO: [v++ 60-791] Total elapsed time: 1h 44m 19s
+INFO: [v++ 60-1653] Closing dispatch client.
