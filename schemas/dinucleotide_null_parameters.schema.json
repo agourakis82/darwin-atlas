@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://darwin-atlas.example/schemas/dinucleotide_null_parameters.schema.json",
+  "title": "Fase L exact dinucleotide-null fixture parameters",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "null_model", "null_replicates", "rng", "shuffle"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "null_model": { "const": "dinucleotide_shuffle" },
+    "null_replicates": { "const": 8 },
+    "rng": { "const": "lecuyer_combined31_substream20_sha64_v1" },
+    "shuffle": { "const": "euler_wilson_fixed_endpoints_v1" }
+  }
+}

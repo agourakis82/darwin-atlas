@@ -61,6 +61,7 @@ root="$2"
 cd "${repo}"
 "${repo}/bin/souc" check "${root}/fixture.sio" --science-boundary off
 "${repo}/bin/souc" compile "${root}/fixture.sio" -o "${root}/fixture.elf" --science-boundary off
+echo "sounio_executable_sha256=$(sha256sum "${root}/fixture.elf" | awk '{print $1}')"
 "${root}/fixture.elf" "${root}/cases.tsv" > "${root}/run1.jsonl"
 "${root}/fixture.elf" "${root}/cases.tsv" > "${root}/run2.jsonl"
 cmp "${root}/run1.jsonl" "${root}/run2.jsonl"
@@ -76,6 +77,9 @@ SOUNIO_RUN
 limactl copy -y --backend=scp "${instance}:${guest_root}/run1.jsonl" "${temp_dir}/sounio.jsonl"
 julia --startup-file=no "${atlas_root}/julia/scripts/validate_dinucleotide_null.jl" \
   "${fixture_dir}/parameters.json" "${fixture_dir}/cases.tsv" "${temp_dir}/sounio.jsonl"
+if [[ -n "${DINUCLEOTIDE_ARTIFACT_OUT:-}" ]]; then
+  cp "${temp_dir}/sounio.jsonl" "${DINUCLEOTIDE_ARTIFACT_OUT}"
+fi
 
 cp "${temp_dir}/sounio.jsonl" "${temp_dir}/perturbed.jsonl"
 ruby -e 'p=ARGV[0]; s=File.read(p); at=s.index(%q{"sequence":"}); abort "sequence marker missing" unless at; at += 13; s[at] = s[at] == "A" ? "C" : "A"; File.write(p,s)' "${temp_dir}/perturbed.jsonl"
@@ -89,6 +93,7 @@ set -e
 
 echo "sounio_repository=${expected_repo}"
 echo "sounio_commit=${actual_commit}"
+echo "sounio_launcher_sha256=$(sha256_file "${SOUNIO_REPO}/bin/souc")"
 echo "sounio_source_sha256=${source_sha}"
 echo "parameters_sha256=$(sha256_file "${fixture_dir}/parameters.json")"
 echo "cases_sha256=$(sha256_file "${fixture_dir}/cases.tsv")"

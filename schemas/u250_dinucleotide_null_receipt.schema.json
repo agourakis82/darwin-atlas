@@ -34,11 +34,13 @@
     },
     "sounio": {
       "type": "object", "additionalProperties": false,
-      "required": ["repository", "commit", "source_sha256", "artifact_sha256"],
+      "required": ["repository", "commit", "launcher_sha256", "source_sha256", "executable_sha256", "artifact_sha256"],
       "properties": {
         "repository": { "const": "https://github.com/sounio-lang/sounio.git" },
         "commit": { "$ref": "#/$defs/sha1" },
+        "launcher_sha256": { "$ref": "#/$defs/sha256" },
         "source_sha256": { "$ref": "#/$defs/sha256" },
+        "executable_sha256": { "$ref": "#/$defs/sha256" },
         "artifact_sha256": { "$ref": "#/$defs/sha256" }
       }
     },

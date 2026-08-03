@@ -66,6 +66,7 @@ contract:
 	@test -s schemas/u250_hardware_smoke_receipt.schema.json
 	@test -s schemas/u250_null_draw_receipt.schema.json
 	@test -s schemas/u250_dinucleotide_null_receipt.schema.json
+	@test -s schemas/dinucleotide_null_parameters.schema.json
 	@test -s receipts/u250-smoke-659ab549-20260803T022116Z/u250_smoke_receipt.json
 	@test -s fpga/u250-null-model/src/null_draws.cpp
 	@test -s fpga/u250-null-model/generated_fixture.hpp
@@ -180,6 +181,7 @@ u250-dinucleotide-contract:
 	@rg -q 'dinucleotide_draws_1.windows:DDR\[0\]' fpga/u250-dinucleotide-null/dinucleotide_draws.cfg
 	@rg -q 'sounio.dev/u250' fpga/u250-dinucleotide-null/kubernetes/dinucleotide-pod.yaml
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/u250_dinucleotide_null_receipt.schema.json")); abort "dinucleotide receipt scope drift" unless s.dig("properties","engineering_scope","const")==true && s.dig("properties","pilot_primary_candidate","const")==true && s.dig("properties","pilot_null_primary","const")==false && s.dig("properties","scientific_claim","const")==false && s.dig("properties","performance_claim","const")==false; abort "dinucleotide receipt slot count drift" unless s.dig("properties","fixture","properties","base_slots","const")==1024; abort "dinucleotide hardware marker drift" unless s.dig("properties","validation","properties","hardware_marker","const")=="U250_DINUCLEOTIDE_HARDWARE_PASS"'
+	@ruby -rjson -e 'p=JSON.parse(File.read("data/fixtures/dinucleotide_null/parameters.json")); s=JSON.parse(File.read("schemas/dinucleotide_null_parameters.schema.json")); abort "dinucleotide parameter keys drift" unless p.keys==s.fetch("required"); s.fetch("properties").each{|key,rule| abort "dinucleotide parameter #{key} drift" unless p[key]==rule["const"]}'
 	@temp="$$(mktemp)"; scripts/generate_dinucleotide_cases.rb data/fixtures/dinucleotide_null/parameters.json data/fixtures/dinucleotide_null/case_templates.tsv "$$temp"; cmp data/fixtures/dinucleotide_null/cases.tsv "$$temp"; rm -f "$$temp"
 	@fpga/u250-dinucleotide-null/verify-fixture.sh
 	@echo "U250 dinucleotide-null contract checks passed"

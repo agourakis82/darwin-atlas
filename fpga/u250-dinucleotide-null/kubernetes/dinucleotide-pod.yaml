@@ -11,7 +11,7 @@ spec:
     sounio.dev/fpga: u250
   containers:
     - name: dinucleotide
-      image: debian:trixie-slim
+      image: gcc:15-trixie
       command: ["/bin/bash", "-lc", "sleep infinity"]
       resources:
         limits:
