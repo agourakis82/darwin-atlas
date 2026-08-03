@@ -11,8 +11,8 @@
   "scientific_claim": false,
   "performance_claim": false,
   "run_id": "dinucleotide-null-556ac81-20260803T171300Z",
-  "started_utc": "2026-08-03T17:13:00Z",
-  "finished_utc": "2026-08-03T19:01:20Z",
+  "started_utc": "2026-08-03T17:13:35Z",
+  "finished_utc": "2026-08-03T19:29:51Z",
   "atlas_source": {
     "commit": "556ac81eedc58a3a2e1ae9c0a2497dd434a5a944",
     "dirty": false
@@ -21,9 +21,9 @@
     "repository": "https://github.com/sounio-lang/sounio.git",
     "commit": "37de2c9eefe68f3457a2c66004eff68bba5b4446",
     "launcher_sha256": "ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008",
-    "source_sha256": "pending",
-    "executable_sha256": "pending",
-    "artifact_sha256": "pending"
+    "source_sha256": "bb1af8cd6af75063cc773d0bcf297eab0c516de848d7c7f238aa84b5e9ef5afc",
+    "executable_sha256": "791a40e08525f91023c52167984804a9149f7d9b8dcb272fa13d77084e9bbb11",
+    "artifact_sha256": "a21e1f20de30e8d41bfb722858943a52669f18b2801ba89337e3d94825e5084c"
   },
   "algorithm": {
     "shuffle": "euler_wilson_fixed_endpoints_v1",
@@ -38,7 +38,7 @@
     "vitis_version": "2025.1",
     "vitis_build": "6137779",
     "errors": 0,
-    "critical_warnings": 0
+    "critical_warnings": 2
   },
   "platform": {
     "name": "xilinx_u250_gen3x16_xdma_4_1_202210_1",

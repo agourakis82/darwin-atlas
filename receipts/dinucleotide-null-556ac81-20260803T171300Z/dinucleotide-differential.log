@@ -1,0 +1,52 @@
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+check: OK
+Madaros v0.80.0 -- the Sounio self-hosted compiler
+the bare highland that does not negotiate with ill-formed code -- Sfakia, Crete
+Horizon 3: self-hosted primary compiler.
+
+Main file: 40
+ items
+Loaded 1 modules
+Resolve skip: single module with no imports
+Type checking module 0
+Type check complete for module 0
+imported_compile: begin
+imported_compile: load_begin
+imported_compile: load_done
+imported_compile: loaded 1
+ modules
+imported_compile: typecheck_begin
+imported_compile: typecheck_done
+imported_compile: typecheck ok
+imported_compile: lower_begin
+lower_array: seed_begin
+lower_array: seed_done
+lower_array: dep_mode into_acc
+lower_array: seed_main_idx 39
+
+lower_array: final_fn_count 50
+
+lower_array: arena_reset_totals ok=0
+ skip=0
+ sites_reclaimed=0
+
+imported_compile: lower_done
+Merged IR: 50
+ functions
+Written to /tmp/dosa-dinucleotide-bb1af8cd6af7-65205/fixture.elf
+Written to /tmp/dosa-dinucleotide-bb1af8cd6af7-65205/fixture.elf
+Compilation successful!
+   Output: /tmp/dosa-dinucleotide-bb1af8cd6af7-65205/fixture.elf
+sounio_executable_sha256=791a40e08525f91023c52167984804a9149f7d9b8dcb272fa13d77084e9bbb11
+DINUCLEOTIDE_JULIA_DIFFERENTIAL_PASS cases=8 replicates=8 draws=64 distinct_case_draws=30 tolerance=0
+sounio_repository=https://github.com/sounio-lang/sounio.git
+sounio_commit=37de2c9eefe68f3457a2c66004eff68bba5b4446
+sounio_launcher_sha256=ad3ee58b3835cccfbf9382fba01498bc61bdcb8402c8ef47c1c3abf26099c008
+sounio_source_sha256=bb1af8cd6af75063cc773d0bcf297eab0c516de848d7c7f238aa84b5e9ef5afc
+parameters_sha256=45ecde713524da42e5ae8281b8937a0b4ae9c32042233b80c1aee112209062c0
+cases_sha256=b471a8a6a40efe1488287faa28ba7d6d332f06f38bda031dbd340e5d6ac46f3b
+artifact_sha256=a21e1f20de30e8d41bfb722858943a52669f18b2801ba89337e3d94825e5084c
+DINUCLEOTIDE_NULL_DIFFERENTIAL_PASS cases=8 replicates=8 draws=64 tolerance=0

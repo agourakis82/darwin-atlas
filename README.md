@@ -184,6 +184,11 @@ SOUNIO_REPO=/path/to/pinned/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 # build, host, and hardware scripts documented under fpga/u250-dinucleotide-null.
 make u250-dinucleotide-contract
 
+# The validated engineering-fixture hardware receipt is hash-closed under
+# receipts/dinucleotide-null-556ac81-20260803T171300Z/. It records the real
+# U250 execution, official pinned-Sounio differential, and the two inherited
+# shell/DFX critical warnings; it does not promote the ADR-0002 pilot null.
+
 # Must fail unless both implementations are actually available
 make cross-validate
 ```
