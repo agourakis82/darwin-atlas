@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://darwin-atlas.example/schemas/u250_hardware_smoke_receipt.schema.json",
+  "title": "Darwin Atlas U250 hardware smoke receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_kind",
+    "state",
+    "engineering_scope",
+    "scientific_claim",
+    "run_id",
+    "started_utc",
+    "finished_utc",
+    "atlas_source",
+    "package_verification",
+    "builder",
+    "platform",
+    "runtime",
+    "artifacts",
+    "execution"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "receipt_kind": { "const": "u250_hardware_smoke" },
+    "state": { "const": "validated" },
+    "engineering_scope": { "const": true },
+    "scientific_claim": { "const": false },
+    "run_id": { "type": "string", "pattern": "^u250-smoke-[0-9a-f]{8}-[0-9]{8}T[0-9]{6}Z$" },
+    "started_utc": { "type": "string", "format": "date-time" },
+    "finished_utc": { "type": "string", "format": "date-time" },
+    "atlas_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "dirty"],
+      "properties": {
+        "commit": { "$ref": "#/$defs/sha1" },
+        "dirty": { "const": false }
+      }
+    },
+    "package_verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "sha256", "manifest_signature_valid", "signing_key_fingerprint"],
+      "properties": {
+        "filename": { "const": "xilinx-u250-gen3x16-xdma-4.1-202210-1-dev_1-3512975_all.deb" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "manifest_signature_valid": { "const": true },
+        "signing_key_fingerprint": { "type": "string", "pattern": "^[0-9A-F]{40}$" }
+      }
+    },
+    "builder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["host", "os", "vitis_version", "vitis_build"],
+      "properties": {
+        "host": { "type": "string", "minLength": 1 },
+        "os": { "type": "string", "minLength": 1 },
+        "vitis_version": { "const": "2025.1" },
+        "vitis_build": { "const": "6137779" }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "xpfm_sha256", "xsa_sha256"],
+      "properties": {
+        "name": { "const": "xilinx_u250_gen3x16_xdma_4_1_202210_1" },
+        "xpfm_sha256": { "$ref": "#/$defs/sha256" },
+        "xsa_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kubernetes_node", "bdf", "shell", "device_ready", "xrt_version", "xrt_hash"],
+      "properties": {
+        "kubernetes_node": { "const": "dl380-proxmox" },
+        "bdf": { "type": "string", "pattern": "^[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\\.[0-7]$" },
+        "shell": { "const": "xilinx_u250_gen3x16_xdma_shell_4_1" },
+        "device_ready": { "const": true },
+        "xrt_version": { "type": "string", "minLength": 1 },
+        "xrt_hash": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "path", "sha256", "size_bytes"],
+        "properties": {
+          "kind": {
+            "enum": ["kernel_source", "host_source", "connectivity", "xo", "xclbin", "host_binary"]
+          },
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "size_bytes": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exit_code", "marker", "elements", "log_sha256"],
+      "properties": {
+        "exit_code": { "const": 0 },
+        "marker": { "const": "U250_HARDWARE_SMOKE_PASS" },
+        "elements": { "const": 4096 },
+        "log_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  },
+  "$defs": {
+    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

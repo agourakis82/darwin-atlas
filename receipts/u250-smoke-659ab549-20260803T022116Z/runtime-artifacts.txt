@@ -1,0 +1,7 @@
+captured_utc=2026-08-03T04:11:13Z
+g++ (Debian 14.2.0-19) 14.2.0
+   23216 /tmp/u250-repo/build/vector_add_host
+48731747 /tmp/u250-repo/build/vector_add.xclbin
+48754963 total
+1dc30c61405ba2c921025f94fd7b9a9be86d4ef921e5523d4b30e4f4688a6a58  /tmp/u250-repo/build/vector_add_host
+005145f4bf863237cab06398222910440e99bfee89d070d4862c3ba45d8ce3e0  /tmp/u250-repo/build/vector_add.xclbin

@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_kind": "u250_hardware_smoke",
+  "state": "validated",
+  "engineering_scope": true,
+  "scientific_claim": false,
+  "run_id": "u250-smoke-659ab549-20260803T022116Z",
+  "started_utc": "2026-08-03T02:21:16Z",
+  "finished_utc": "2026-08-03T04:08:34Z",
+  "atlas_source": {
+    "commit": "659ab54985edc17efaabaad9e3320e0ab92b1275",
+    "dirty": false
+  },
+  "package_verification": {
+    "filename": "xilinx-u250-gen3x16-xdma-4.1-202210-1-dev_1-3512975_all.deb",
+    "sha256": "3fb846e90e79997e5f0d96cfa060d7bd041fbd9fd5ed25432ba92ec0956dc62f",
+    "manifest_signature_valid": true,
+    "signing_key_fingerprint": "4D27DDF2A08955CE241B4304FD3DD2C355D2B701"
+  },
+  "builder": {
+    "host": "vitis-u250-builder.lab.sounio",
+    "os": "Ubuntu 22.04",
+    "vitis_version": "2025.1",
+    "vitis_build": "6137779"
+  },
+  "platform": {
+    "name": "xilinx_u250_gen3x16_xdma_4_1_202210_1",
+    "xpfm_sha256": "7ece7bb344e67fb1fbb0a837daba2817de4935e187eeae0e43b82d776c6f9317",
+    "xsa_sha256": "57e591b04dac337b860e3d5b0237ac6a2394c670208cbdc320428e8a351b489f"
+  },
+  "runtime": {
+    "kubernetes_node": "dl380-proxmox",
+    "bdf": "0000:d8:00.1",
+    "shell": "xilinx_u250_gen3x16_xdma_shell_4_1",
+    "device_ready": true,
+    "xrt_version": "2.23.0",
+    "xrt_hash": "e61a02867980c8fd8acd80a3a4936d683caa1d82"
+  },
+  "artifacts": [
+    {
+      "kind": "kernel_source",
+      "path": "fpga/u250-smoke/src/vector_add.cpp",
+      "sha256": "b2151e4855498c84bb4c6465be82031c1102d4ff4d8e559ec9080754169b108e",
+      "size_bytes": 691
+    },
+    {
+      "kind": "host_source",
+      "path": "fpga/u250-smoke/src/host.cpp",
+      "sha256": "99f17ebcfe5d11bd0fb777110b20268f9c848f487e31cbaadae1862200e1ac2f",
+      "size_bytes": 2018
+    },
+    {
+      "kind": "connectivity",
+      "path": "fpga/u250-smoke/vector_add.cfg",
+      "sha256": "adc25ab61c489a063ea123e5c0b11fd04465db25534ab083471d5ca267d2794b",
+      "size_bytes": 121
+    },
+    {
+      "kind": "xo",
+      "path": "/home/devsounio/u250-runs/vector-add-20260803T022116Z/build/vector_add.xo",
+      "sha256": "1903197cc52a8d4e225a9a55b9ac5ecca0b9f901dd1fb38b7ae67f71b63e9819",
+      "size_bytes": 179794
+    },
+    {
+      "kind": "xclbin",
+      "path": "/home/devsounio/u250-runs/vector-add-20260803T022116Z/build/vector_add.xclbin",
+      "sha256": "005145f4bf863237cab06398222910440e99bfee89d070d4862c3ba45d8ce3e0",
+      "size_bytes": 48731747
+    },
+    {
+      "kind": "host_binary",
+      "path": "/tmp/u250-repo/build/vector_add_host",
+      "sha256": "1dc30c61405ba2c921025f94fd7b9a9be86d4ef921e5523d4b30e4f4688a6a58",
+      "size_bytes": 23216
+    }
+  ],
+  "execution": {
+    "exit_code": 0,
+    "marker": "U250_HARDWARE_SMOKE_PASS",
+    "elements": 4096,
+    "log_sha256": "c7086f93f4ab103612be7d68e050003c95d41b7b671bd5fc02dfa32196961b25"
+  }
+}

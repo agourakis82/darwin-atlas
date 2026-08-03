@@ -1,0 +1,17 @@
+AMD U250 development-platform package verification
+captured_utc=2026-08-03T04:10:35Z
+manifest_filename=xilinx-u250-gen3x16-xdma-4.1-202210-1-dev_1-3512975_all.deb
+transported_filename=xilinx-u250-gen3x16-xdma-4.1-202210-1-dev_1-3512975_all (1).deb
+
+The clear-signed AMD digest manifest was verified with the downloaded Xilinx
+master signing key in a fresh temporary GnuPG home.
+
+[GNUPG:] GOODSIG 5DB253CE971AD24F Xilinx, Inc. (Xilinx Software signing key)
+[GNUPG:] VALIDSIG E5F24BD454F2C46DB4D669A55DB253CE971AD24F 2022-04-26 1650986813 0 4 0 1 10 01 4D27DDF2A08955CE241B4304FD3DD2C355D2B701
+primary_key_fingerprint=4D27DDF2A08955CE241B4304FD3DD2C355D2B701
+manifest_sha256=3fb846e90e79997e5f0d96cfa060d7bd041fbd9fd5ed25432ba92ec0956dc62f
+package_sha256=3fb846e90e79997e5f0d96cfa060d7bd041fbd9fd5ed25432ba92ec0956dc62f
+
+GnuPG reported a cryptographically good signature. The key was not assigned
+an owner-trust level in the temporary keyring; the exact primary fingerprint
+is recorded above so the trust decision is not overstated.

@@ -1,0 +1,12 @@
+captured_utc=2026-08-03T04:14:42Z
+vitis-u250-builder.lab.sounio
+os=Ubuntu 22.04
+
+****** v++ v2025.1 (64-bit)
+  **** SW Build 6137779 on 2025-05-21-18:10:03
+  **** Start of session at: Mon Aug  3 04:14:44 2026
+     1098 /opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm
+100156687 /opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/hw/hw.xsa
+100157785 total
+7ece7bb344e67fb1fbb0a837daba2817de4935e187eeae0e43b82d776c6f9317  /opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm
+57e591b04dac337b860e3d5b0237ac6a2394c670208cbdc320428e8a351b489f  /opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/hw/hw.xsa

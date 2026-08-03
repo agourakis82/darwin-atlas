@@ -1,0 +1,25 @@
+U250 implementation notes
+
+Vivado implementation completed with 0 errors, 2 critical warnings, successful
+routing, and successful partial-bitstream generation. The complete source log
+is implementation-runme.log.
+
+Critical warning 1 (Constraints 18-952): three PLP clock-interface ports in the
+legacy reconfigurable shell module were not connected to the upper level.
+
+Critical warning 2 (Vivado 12-4430): the shell flow lowered HDPR-5 from ERROR,
+with Vivado's generic warning that doing so can lead to board damage or other
+functional issues.
+
+Observed closure after those warnings:
+- Router Completed Successfully.
+- DRC finished with 0 Errors.
+- Bitgen Completed Successfully.
+- requested and achieved kernel frequency: 300 MHz.
+- XRT reported Device Ready=Yes before execution.
+- vector addition returned U250_VECTOR_ADD_PASS for 4096 elements.
+- the wrapper returned U250_HARDWARE_SMOKE_PASS with exit code 0.
+
+This is engineering-path evidence only. It is not a scientific kernel,
+biological validation, benchmark speedup claim, or authorization to replace
+the persistent card shell.

@@ -1,0 +1,2 @@
+# Evidence is retained byte-for-byte; vendor logs may contain trailing spaces.
+receipts/** -whitespace
