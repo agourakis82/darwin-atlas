@@ -32,5 +32,6 @@ Thumbs.db
 *.tmp
 *.log
 fpga/u250-smoke/build/
+fpga/u250-null-model/build/
 # Receipt directories are immutable evidence: logs inside them are committed.
 !receipts/**/*.log

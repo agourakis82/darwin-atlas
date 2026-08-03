@@ -4,7 +4,7 @@
 	sounio-mini-pipeline mini-pipeline-differential-fixture \
 	cohort-smoke-differential \
 	cohort-products \
-	u250-smoke-contract \
+	u250-smoke-contract u250-null-contract \
 	cross-validate pipeline release-gate \
 	legacy-julia-pipeline legacy-export-knowledge legacy-verify-knowledge clean
 
@@ -35,6 +35,7 @@ help:
 	@echo "  cohort-smoke-differential  Complete-replicon engineering smoke + Julia byte-exact check"
 	@echo "  cohort-products         Engineering canonical products + Julia byte-exact checks"
 	@echo "  u250-smoke-contract     Validate the engineering U250 hardware-smoke scaffold"
+	@echo "  u250-null-contract      Validate Julia/HLS exact null-draw fixtures"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"
 	@echo "  release-gate            Full publication gate (red until pipeline is ready)"
@@ -62,6 +63,9 @@ contract:
 	@test -s schemas/run_receipt.schema.json
 	@test -s schemas/u250_hardware_smoke_receipt.schema.json
 	@test -s receipts/u250-smoke-659ab549-20260803T022116Z/u250_smoke_receipt.json
+	@test -s fpga/u250-null-model/src/null_draws.cpp
+	@test -s fpga/u250-null-model/generated_fixture.hpp
+	@test -x fpga/u250-null-model/verify-fixture.sh
 	@test -s toolchains/sounio.lock.json
 	@test -s fpga/u250-smoke/src/vector_add.cpp
 	@test -s fpga/u250-smoke/src/host.cpp
@@ -118,6 +122,7 @@ contract:
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "schema_version must be 0.3.0" unless s.dig("properties","schema_version","const")=="0.3.0"; abort "kmer policy must be masked" unless s.dig("properties","kmer_ambiguity_policy","const")=="masked"; abort "kmer min effective count must be an integer >= 1" unless s.dig("properties","kmer_min_effective_count","type")=="integer" && s.dig("properties","kmer_min_effective_count","minimum")==1; abort "parameters_sha256 must be a lowercase hex sha256" unless s.dig("properties","parameters_sha256","pattern")=="^[0-9a-f]{64}$$"; abort "required must cover k=1..8 with reasons, null summaries and 183 fields" unless s.fetch("required").size==183 && s.fetch("required").include?("rc_kmer_imbalance_8") && s.fetch("required").include?("kmer_8_unavailable_reason") && s.fetch("required").include?("parameters_sha256") && s.fetch("required").include?("null_model") && s.fetch("required").include?("null_replicates") && s.fetch("required").include?("null_seed_derivation") && s.fetch("required").include?("delta_R_null_mean") && s.fetch("required").include?("rc_kmer_imbalance_8_null_q975"); abort "additionalProperties must stay false" unless s.fetch("additionalProperties")==false'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/run_receipt.schema.json")); abort "producer must be Sounio" unless s.dig("properties","producer","properties","language","const")=="Sounio"; abort "validator must be Julia" unless s.dig("properties","validator","oneOf",1,"properties","language","const")=="Julia"'
 	@$(MAKE) --no-print-directory u250-smoke-contract
+	@$(MAKE) --no-print-directory u250-null-contract
 	@ruby -rjson -rdigest -e 'id="engineering-products-b3682abb-20260801T203932Z"; r=JSON.parse(File.read("receipts/#{id}/run_receipt.json")); abort "engineering receipt must be validated" unless r["state"]=="validated"; v=r["validator"]; abort "receipt validator drift" unless v["language"]=="Julia" && v["status"]=="pass" && v["absolute_tolerance"]==0; abort "receipt commit must be a 40-hex sha" unless r.dig("atlas_source","commit").to_s.match?(/\A[0-9a-f]{40}\z/); abort "receipt must come from a clean tree" unless r.dig("atlas_source","dirty")==false; r["artifacts"].each{|a| p=a["path"].to_s; next unless p.include?("receipts/#{id}/"); f="receipts/#{id}/#{File.basename(p)}"; abort "receipt artifact missing #{f}" unless File.file?(f); abort "receipt sha256 mismatch #{f}" unless Digest::SHA256.file(f).hexdigest==a["sha256"] }'
 	@ruby -rjson -rdigest -e 'id="engineering-products-8bbe89fd-20260802T144440Z"; r=JSON.parse(File.read("receipts/#{id}/run_receipt.json")); abort "release-tree engineering receipt must be validated" unless r["state"]=="validated"; v=r["validator"]; abort "release-tree receipt validator drift" unless v["language"]=="Julia" && v["status"]=="pass" && v["absolute_tolerance"]==0; abort "release-tree receipt commit must be a 40-hex sha" unless r.dig("atlas_source","commit").to_s.match?(/\A[0-9a-f]{40}\z/); abort "release-tree receipt must come from a clean tree" unless r.dig("atlas_source","dirty")==false; r["artifacts"].each{|a| p=a["path"].to_s; next unless p.include?("receipts/#{id}/"); f="receipts/#{id}/#{File.basename(p)}"; abort "release-tree receipt artifact missing #{f}" unless File.file?(f); abort "release-tree receipt sha256 mismatch #{f}" unless Digest::SHA256.file(f).hexdigest==a["sha256"] }'
 	@ruby -rjson -rdigest -e 'dir="release/darwin-atlas-0.1.0-engineering-b04fdefd"; r=JSON.parse(File.read("#{dir}/release_receipt.json")); abort "release kind drift" unless r["receipt_kind"]=="engineering_release"; abort "release must stay engineering scope" unless r["engineering_scope"]==true && r["release_eligible"]==false; abort "DOI must stay an explicit placeholder" unless r["doi"]=="pending"; abort "release commit must be a 40-hex sha" unless r["source_commit"].to_s.match?(/\A[0-9a-f]{40}\z/); abort "release must come from a clean tree" unless r["source_dirty"]==false; abort "battery marker drift" unless r.dig("battery","final_marker")=="BATTERY_ALL_GREEN"; abort "battery evidence hash drift" unless Digest::SHA256.file("#{dir}/battery_evidence.txt").hexdigest==r.dig("battery","evidence_sha256"); abort "tarball hash drift" unless Digest::SHA256.file("#{dir}/#{r.dig("bundle_files","tarball")}").hexdigest==r.dig("bundle_files","tarball_sha256"); abort "products receipt hash drift" unless Digest::SHA256.file("receipts/#{r.dig("products_receipt","run_id")}/run_receipt.json").hexdigest==r.dig("products_receipt","receipt_sha256"); abort "benchmark receipt hash drift" unless Digest::SHA256.file("receipts/#{r.dig("benchmark_receipt","run_id")}/benchmark_receipt.json").hexdigest==r.dig("benchmark_receipt","receipt_sha256")'
@@ -141,6 +146,14 @@ u250-smoke-contract:
 	@ruby -rjson -rdigest -e 'dir="receipts/u250-smoke-659ab549-20260803T022116Z"; r=JSON.parse(File.read("#{dir}/u250_smoke_receipt.json")); abort "U250 receipt kind/state drift" unless r["receipt_kind"]=="u250_hardware_smoke" && r["state"]=="validated"; abort "U250 receipt scope drift" unless r["engineering_scope"]==true && r["scientific_claim"]==false; abort "U250 source receipt drift" unless r.dig("atlas_source","commit")=="659ab54985edc17efaabaad9e3320e0ab92b1275" && r.dig("atlas_source","dirty")==false; kinds=r["artifacts"].map{|a|a["kind"]}; expected=%w[kernel_source host_source connectivity xo xclbin host_binary]; abort "U250 artifact set drift" unless kinds.sort==expected.sort && kinds.uniq.size==6; r["artifacts"].first(3).each{|a| f=a["path"]; abort "U250 source artifact missing #{f}" unless File.file?(f); abort "U250 source artifact hash drift #{f}" unless Digest::SHA256.file(f).hexdigest==a["sha256"]; abort "U250 source artifact size drift #{f}" unless File.size(f)==a["size_bytes"]}; builder=File.read("#{dir}/builder-SHA256SUMS"); %w[xo xclbin].each{|kind| a=r["artifacts"].find{|x|x["kind"]==kind}; abort "U250 builder hash evidence missing #{kind}" unless builder.include?("#{a["sha256"]}  #{a["path"]}")}; env=File.read("#{dir}/builder-environment.txt"); abort "U250 builder environment drift" unless env.include?(r.dig("builder","host")) && env.include?("v++ v#{r.dig("builder","vitis_version")}") && env.include?("SW Build #{r.dig("builder","vitis_build")}"); %w[xpfm_sha256 xsa_sha256].each{|key| abort "U250 platform hash evidence missing #{key}" unless env.include?(r.dig("platform",key))}; runtime=File.read("#{dir}/runtime-artifacts.txt"); %w[xclbin host_binary].each{|kind| a=r["artifacts"].find{|x|x["kind"]==kind}; abort "U250 runtime hash evidence missing #{kind}" unless runtime.include?(a["sha256"])}; log="#{dir}/hardware-run.log"; abort "U250 hardware log hash drift" unless Digest::SHA256.file(log).hexdigest==r.dig("execution","log_sha256"); text=File.read(log); abort "U250 vector marker missing" unless text.include?("U250_VECTOR_ADD_PASS elements=4096"); abort "U250 wrapper marker missing" unless text.include?("U250_HARDWARE_SMOKE_PASS"); abort "U250 execution receipt drift" unless r.dig("execution","exit_code")==0 && r.dig("execution","elements")==4096'
 	@cd receipts/u250-smoke-659ab549-20260803T022116Z && (sha256sum -c evidence-SHA256SUMS 2>/dev/null || shasum -a 256 -c evidence-SHA256SUMS)
 	@echo "U250 smoke contract checks passed"
+
+u250-null-contract:
+	@bash -n fpga/u250-null-model/build.sh fpga/u250-null-model/compile-host.sh fpga/u250-null-model/run-hardware.sh fpga/u250-null-model/verify-fixture.sh
+	@rg -q 'lcg31_sha8_fixture_v1' fpga/u250-null-model/README.md
+	@rg -q 'U250_NULL_HARDWARE_PASS' fpga/u250-null-model/run-hardware.sh
+	@rg -q 'null_draws_1.windows:DDR\[0\]' fpga/u250-null-model/null_draws.cfg
+	@fpga/u250-null-model/verify-fixture.sh
+	@echo "U250 null-model contract checks passed"
 
 setup-julia:
 	$(JULIA) -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
