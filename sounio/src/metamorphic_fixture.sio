@@ -1,0 +1,266 @@
+//@ run-pass
+//@ expect-stdout: DOSA_SOUNIO_METAMORPHIC_FIXTURE_OK observations=18
+
+// Darwin Atlas metamorphic fixture.
+// Normative reference: docs/SCIENTIFIC_SPEC.md 0.1.0, section 12.1.
+//
+// Base encoding matches stdlib/genomics/core.sio: A=0, C=1, G=2, T=3.
+// All fixtures are short, canonical, and intentionally independent of the
+// streaming/pipeline implementation.
+
+struct Dna256 {
+    data: [i32; 256],
+    len: i32,
+}
+
+fn base_complement(base: i32) -> i32 {
+    if base == 0 { return 3 }
+    if base == 1 { return 2 }
+    if base == 2 { return 1 }
+    if base == 3 { return 0 }
+    -1
+}
+
+fn canonical_bases_are_not_self_complementary() -> bool with Mut, Div {
+    var base: i32 = 0
+    while base < 4 {
+        if base == base_complement(base) { return false }
+        base = base + 1
+    }
+    true
+}
+
+fn dna3(b0: i32, b1: i32, b2: i32) -> Dna256 with Mut, Panic {
+    var seq = Dna256 { data: [-1; 256], len: 3 }
+    seq.data[0] = b0
+    seq.data[1] = b1
+    seq.data[2] = b2
+    seq
+}
+
+fn dna8(
+    b0: i32, b1: i32, b2: i32, b3: i32,
+    b4: i32, b5: i32, b6: i32, b7: i32,
+) -> Dna256 with Mut, Panic {
+    var seq = Dna256 { data: [-1; 256], len: 8 }
+    seq.data[0] = b0
+    seq.data[1] = b1
+    seq.data[2] = b2
+    seq.data[3] = b3
+    seq.data[4] = b4
+    seq.data[5] = b5
+    seq.data[6] = b6
+    seq.data[7] = b7
+    seq
+}
+
+fn dna_equal(a: Dna256, b: Dna256) -> bool with Mut, Panic, Div {
+    if a.len != b.len { return false }
+    var i: i32 = 0
+    while i < a.len {
+        if a.data[i] != b.data[i] { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn dna_reverse(seq: Dna256) -> Dna256 with Mut, Panic, Div {
+    var out = Dna256 { data: [-1; 256], len: seq.len }
+    var i: i32 = 0
+    while i < seq.len {
+        out.data[i] = seq.data[seq.len - 1 - i]
+        i = i + 1
+    }
+    out
+}
+
+fn dna_complement(seq: Dna256) -> Dna256 with Mut, Panic, Div {
+    var out = Dna256 { data: [-1; 256], len: seq.len }
+    var i: i32 = 0
+    while i < seq.len {
+        out.data[i] = base_complement(seq.data[i])
+        i = i + 1
+    }
+    out
+}
+
+fn dna_reverse_complement(seq: Dna256) -> Dna256 with Mut, Panic, Div {
+    dna_complement(dna_reverse(seq))
+}
+
+fn dna_shift_left(seq: Dna256, steps: i32) -> Dna256 with Mut, Panic, Div {
+    var out = Dna256 { data: [-1; 256], len: seq.len }
+    var i: i32 = 0
+    while i < seq.len {
+        out.data[i] = seq.data[(i + steps) % seq.len]
+        i = i + 1
+    }
+    out
+}
+
+fn dna_code(seq: Dna256) -> i32 with Mut, Panic, Div {
+    var code: i32 = 0
+    var i: i32 = 0
+    while i < seq.len {
+        code = code * 4 + seq.data[i]
+        i = i + 1
+    }
+    code
+}
+
+fn gc_count(seq: Dna256) -> i32 with Mut, Panic, Div {
+    var count: i32 = 0
+    var i: i32 = 0
+    while i < seq.len {
+        if seq.data[i] == 1 || seq.data[i] == 2 { count = count + 1 }
+        i = i + 1
+    }
+    count
+}
+
+fn minimal_period(seq: Dna256) -> i32 with Mut, Panic, Div {
+    var period: i32 = 1
+    while period <= seq.len {
+        if seq.len % period == 0 && dna_equal(dna_shift_left(seq, period), seq) {
+            return period
+        }
+        period = period + 1
+    }
+    seq.len
+}
+
+// Canonical representative of the circular double-stranded orbit:
+// minimum base-4 code over every rotation of w and RC(w).
+fn circular_canonical_code(seq: Dna256) -> i32 with Mut, Panic, Div {
+    let rc = dna_reverse_complement(seq)
+    var best: i32 = dna_code(seq)
+    var shift: i32 = 0
+    while shift < seq.len {
+        let forward_code = dna_code(dna_shift_left(seq, shift))
+        let reverse_code = dna_code(dna_shift_left(rc, shift))
+        if forward_code < best { best = forward_code }
+        if reverse_code < best { best = reverse_code }
+        shift = shift + 1
+    }
+    best
+}
+
+fn record_value(id: i32) -> i32 {
+    if id == 11 { return 37 }
+    if id == 23 { return 19 }
+    if id == 47 { return 53 }
+    -1
+}
+
+// Encode the canonical sorted (id,value) rows. This is a fixture digest, not
+// a cryptographic hash and never used as a provenance checksum.
+fn canonical_sorted_output_digest(permuted: bool) -> i32 with Mut, Panic, Div {
+    var ids: [i32; 3] = [0; 3]
+    if permuted {
+        ids[0] = 47
+        ids[1] = 11
+        ids[2] = 23
+    } else {
+        ids[0] = 11
+        ids[1] = 23
+        ids[2] = 47
+    }
+
+    var i: i32 = 0
+    while i < 3 {
+        var j: i32 = i + 1
+        while j < 3 {
+            if ids[j] < ids[i] {
+                let tmp = ids[i]
+                ids[i] = ids[j]
+                ids[j] = tmp
+            }
+            j = j + 1
+        }
+        i = i + 1
+    }
+
+    var digest: i32 = 0
+    i = 0
+    while i < 3 {
+        digest = digest * 97 + ids[i] * 7 + record_value(ids[i])
+        i = i + 1
+    }
+    digest
+}
+
+// Order-insensitive digest of the same record content. Deliberately simple and
+// named as a fixture digest rather than SHA-256.
+fn record_content_digest(permuted: bool) -> i32 with Mut, Panic, Div {
+    var ids: [i32; 3] = [0; 3]
+    if permuted {
+        ids[0] = 23
+        ids[1] = 47
+        ids[2] = 11
+    } else {
+        ids[0] = 11
+        ids[1] = 23
+        ids[2] = 47
+    }
+    var digest: i32 = 0
+    var i: i32 = 0
+    while i < 3 {
+        let id = ids[i]
+        digest = digest + (id * 31 + record_value(id) * 17) * (id + 11)
+        i = i + 1
+    }
+    digest
+}
+
+fn emit(property: string, lhs: i32, rhs: i32) with IO {
+    print("DOSA_METAMORPHIC property=")
+    print(property)
+    print(" lhs=")
+    print_int(lhs as i64)
+    print(" rhs=")
+    print_int(rhs as i64)
+    print("\n")
+}
+
+fn observe(property: string, lhs: i32, rhs: i32) with IO, Panic {
+    assert(lhs == rhs)
+    emit(property, lhs, rhs)
+}
+
+fn main() -> i64 with Mut, Panic, Div, IO {
+    // ACGTACCA, aperiodic over length 8.
+    let w = dna8(0, 1, 2, 3, 0, 1, 1, 0)
+    let shifted = dna_shift_left(w, 3)
+    let rc = dna_reverse_complement(w)
+    let odd = dna3(0, 1, 2)
+    let tiled2 = dna8(0, 1, 0, 1, 0, 1, 0, 1)
+    let tiled4 = dna8(0, 1, 2, 3, 0, 1, 2, 3)
+
+    observe("reverse_involution", dna_code(dna_reverse(dna_reverse(w))), dna_code(w))
+    observe("complement_involution", dna_code(dna_complement(dna_complement(w))), dna_code(w))
+    observe("rc_involution", dna_code(dna_reverse_complement(dna_reverse_complement(w))), dna_code(w))
+    observe("reverse_complement_commutation", dna_code(dna_reverse(dna_complement(w))), dna_code(dna_complement(dna_reverse(w))))
+    observe("shift_cycle", dna_code(dna_shift_left(w, w.len)), dna_code(w))
+    observe("rc_shift_conjugacy", dna_code(dna_reverse_complement(dna_shift_left(dna_reverse_complement(w), 1))), dna_code(dna_shift_left(w, w.len - 1)))
+    observe("gc_rc", gc_count(w), gc_count(rc))
+
+    observe("circular_code_origin", circular_canonical_code(w), circular_canonical_code(shifted))
+    observe("circular_code_strand", circular_canonical_code(w), circular_canonical_code(rc))
+    observe("circular_gc_origin", gc_count(w), gc_count(shifted))
+    observe("circular_gc_strand", gc_count(w), gc_count(rc))
+    observe("circular_period_origin", minimal_period(w), minimal_period(shifted))
+    observe("circular_period_strand", minimal_period(w), minimal_period(rc))
+
+    // For every odd length, an RC fixed point would require its central base
+    // to be self-complementary. Exhaust the canonical alphabet and retain an
+    // explicit odd sequence as a fixture witness.
+    let odd_violation = if !canonical_bases_are_not_self_complementary() || dna_equal(odd, dna_reverse_complement(odd)) { 1 } else { 0 }
+    observe("odd_not_rc_fixed", odd_violation, 0)
+    observe("tiled_minimal_period_2", minimal_period(tiled2), 2)
+    observe("tiled_minimal_period_4", minimal_period(tiled4), 4)
+    observe("record_order_sorted_output", canonical_sorted_output_digest(false), canonical_sorted_output_digest(true))
+    observe("record_order_content_digest", record_content_digest(false), record_content_digest(true))
+
+    println("DOSA_SOUNIO_METAMORPHIC_FIXTURE_OK observations=18")
+    return 0
+}

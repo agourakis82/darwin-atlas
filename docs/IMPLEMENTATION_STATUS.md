@@ -1,9 +1,10 @@
 # Implementation status snapshot
 
-**Observed:** 2026-08-03
+**Observed:** 2026-08-04
 
-**Base commit:** Fase M0-M2 work on branch `codex/dinucleotide-window-null`,
-based on the published Fase L integration tree `1fecb379125dcbafdec197c1cfc60fa2bf2d1482`.
+**Base commit:** Fase M3 work on branch `codex/dinucleotide-window-null`,
+based on the published Fase M0-M2 commit `5e360ec` (itself on the Fase L
+integration tree `1fecb379125dcbafdec197c1cfc60fa2bf2d1482`).
 Receipt-bound hashes below identify the exact produced tree and artifacts.
 
 **Specification:** 0.1.0 normative draft
@@ -27,6 +28,7 @@ from older pins or older source hashes is stale and was regenerated.
 | Base-only Julia operator differential fixture | PASS | Four Sounio observations recomputed independently; exact agreement, tolerance 0 |
 | Streaming multi-record IUPAC FASTA fixture | PASS | 81 bytes processed in five 17-byte reads; two records; ambiguity preserved |
 | Base-only Julia FASTA differential fixture | PASS | Six valid/error cases, two records, counts/hash/offsets exact at tolerance 0 |
+| Spec §12.1 metamorphic fixture (Fase M3) | PASS | Executable Sounio fixture emits one integer observation per property (18/18): R/K/RC involutions, R–K commutation, shift cycle and RC–shift conjugacy, GC under RC, circular code/GC/period invariance to origin and strand, odd sequences not RC-fixed, declared minimal tiled periods, and record-order invariance of sorted output and content digests; independent Base-only Julia oracle (string/collection implementation, not the fixed-array base-code path) recomputes every pair at tolerance 0; wired into `make contract` and `make metamorphic-differential-fixture` |
 | Frozen mini-pipeline through Sounio | PASS | Parameterized FASTA streaming + metadata TSV association + strict flat parameter validation + non-overlapping windows + `delta_R`/`delta_RC` + masked k-mer composition k=1..8 + explicit exclusions + deterministic JSONL schema 0.3.0; 12 lines (4/4) and 84 lines (16/16), with additive mononucleotide and exact dinucleotide engineering-null cases |
 | Masked k-mer composition (fixture scope, k=1..8) | PASS | Orbit-paired `reverse_kmer_imbalance_<k>`/`rc_kmer_imbalance_<k>` for k=1..8; explicit `K_OUT_OF_CONFIGURED_RANGE` and `INSUFFICIENT_EFFECTIVE_KMERS` reasons; unavailable combinations null, never zero-filled; k-mer fields independent of positional `status` |
 | Dual k-mer kernel equivalence | PASS | Scale-oriented rolling-table kernel (`--pipeline`, one fixed 512 KiB 4^8 table, orbits evaluated over observed codes only — including zero-representative orbits) and simple reference kernel (`--pipeline-reference`) required byte-identical on every valid fixture; two optimized runs + one reference run agree on 12/12 (k4) and 84/84 (k8) lines |
@@ -88,6 +90,16 @@ FASTA fixture evidence identifiers:
 - compiled FASTA ELF SHA256: `61b3e65a98e4232dea0204a8164b425ac359a497dc95d7d41011ea00464f1c92`;
 - valid multi-record input SHA256: `a43937529b927c0346b30c0e1c2c01647f73b609773678fd08b91ddc9fe4ad46`;
 - Sounio FASTA stdout artifact SHA256: `7be46efdb7968e79551a6157bcce904e91d9e246ae8e3ccf036806fc52948015`.
+
+Metamorphic fixture evidence identifiers (Fase M3, spec §12.1):
+
+- metamorphic source SHA256: `47a36b923211076bded580c55d5af416f085e6c304642d467c6ec7fae07501ee`;
+- compiled metamorphic ELF SHA256: `8f2bbdf95c16b27a3b47f565d86b0baa32f5255b341553aec87a15d6eb762279`;
+- Sounio stdout artifact SHA256: `c30830d27b1f1bc7e9401a24c1662518db55fb1fa8e650f2a1c6c91b76f945f3`
+  (18 `DOSA_METAMORPHIC` observation lines plus the
+  `DOSA_SOUNIO_METAMORPHIC_FIXTURE_OK observations=18` marker);
+- Julia oracle output: `DOSA_JULIA_METAMORPHIC_FIXTURE_OK`,
+  `validated_properties=18 tolerance=0`.
 
 Mini-pipeline evidence identifiers:
 
@@ -240,16 +252,18 @@ labeled as SHA-256, 256-character analysis cap).
 | Gate | State | Missing evidence |
 |---|---|---|
 | G0 source/compiler binding | PASS (engineering scope) | official compiler/source/executable hashes recorded; validated two-stage engineering receipts bound to clean published commits (`b3682abb`, `8bbe89fd`); engineering release tag `v0.1.0-engineering` published on the release commit; pilot-scale release binding pending (ADR-0002 proposed) |
-| G1 Sounio executable fixtures | PARTIAL | positional, streaming FASTA, and parameterized mini-pipeline fixtures execute; both the mononucleotide sensitivity engine and ADR-0003 exact dinucleotide-preserving engine now execute inside persisted window summaries under independent differentials; complete-replicon smoke and product modes execute on the frozen cohort; the metamorphic suite of spec §12.1 remains absent |
+| G1 Sounio executable fixtures | PARTIAL | positional, streaming FASTA, and parameterized mini-pipeline fixtures execute; both the mononucleotide sensitivity engine and ADR-0003 exact dinucleotide-preserving engine now execute inside persisted window summaries under independent differentials; complete-replicon smoke and product modes execute on the frozen cohort; the spec §12.1 metamorphic fixture suite executes with an independent Julia oracle (18/18 properties, tolerance 0); metamorphic coverage around the null engines remains open |
 | G2 miniature NCBI end-to-end fixture | PASS (fixture scope + engineering products) | frozen NCBI-prefix + synthetic fixtures run end to end through Sounio to deterministic JSONL at the full predeclared k=1..8 pilot range; the frozen cohort additionally yields byte-validated engineering products: replicon profiles and exclusions for all four replicons, window products for both plasmids, and chromosome-scale window products for both chromosomes (Fase I benchmark); the canonical pilot run is pending |
 | G3 independent Julia differential validation | PARTIAL | operator, six FASTA cases, all six mini-pipeline JSONL artifacts (288/288 windows, including both mononucleotide and exact dinucleotide null cases), and all 64 Fase L standalone exact dinucleotide-preserving sequence draws are reproduced byte-exact at tolerance 0; complete-replicon smoke, 6,003 plasmid windows, non-window products, and deterministic samples of both chromosome products also agree. Full non-sampled chromosome-scale recomputation and pilot-null product validation remain open. |
 | G4 schema/provenance/checksum closure | PARTIAL | receipt, window JSONL 0.3.0 (183 fields with the additive null block), pipeline parameter (including exact dinucleotide option), and the three product schemas exist; mini-pipeline checksum closure includes all six parameter artifacts plus both regenerated seed sidecars; frozen cohort checksum closure verified against official NCBI MD5s; validated two-stage products and U250 dinucleotide engineering receipts are hash-closed and structurally re-checked in `make contract`; release-scope canonical pilot artifacts and receipt pending |
 | G5 scale benchmark | PASS (engineering scope) | chromosome-scale window products for both frozen-cohort chromosomes with timing and memory receipts: NC_000913.3 290,104 windows in 4,588 s wall and NC_002695.2 343,662 windows in 4,943 s wall on the Lima x86-64 guest, both at a flat 6,804 kB peak RSS, recorded in `receipts/chromosome-benchmark-53ccaccb-20260801T225452Z/`; the pilot-scale executable and pilot parameters remain undecided (ADR-0002 proposed) |
-| G6 DOI-ready immutable bundle | PARTIAL (engineering scope) | engineering-scope immutable bundle exists (`release/darwin-atlas-0.1.0-engineering-b04fdefd/`) with a release receipt hash-closing the tarball, the battery evidence, and both receipts; DOI assignment pending (explicit `pending` placeholder, no deposit); pilot-grade release still blocked on the G1 metamorphic suite (spec §12.1), full (non-sampled) chromosome-scale Julia recomputation (G3), and the ADR-0002 pilot decisions |
+| G6 DOI-ready immutable bundle | PARTIAL (engineering scope) | engineering-scope immutable bundle exists (`release/darwin-atlas-0.1.0-engineering-b04fdefd/`) with a release receipt hash-closing the tarball, the battery evidence, and both receipts; DOI assignment pending (explicit `pending` placeholder, no deposit); pilot-grade release still blocked on metamorphic coverage around the null engines (beyond the §12.1 base suite), full (non-sampled) chromosome-scale Julia recomputation (G3), and the ADR-0002 pilot decisions |
 
 ## Next implementation slice
 
-1. Add the spec §12.1 metamorphic fixture suite around both null engines.
+1. Extend the §12.1 metamorphic suite (now covering the transform, circular,
+   and record-order properties) with metamorphic relations around both null
+   engines.
 2. Repair or replace the local Julia 1.12.2 project environment so the
    validator-development test suite can run.
 3. Validate generator quality and pilot-scale runtime, then set the final

@@ -2,6 +2,7 @@
 	sounio sounio-fixture operator-differential-fixture compile-sounio-fixture \
 	sounio-fasta-fixture fasta-differential-fixture \
 	sounio-mini-pipeline mini-pipeline-differential-fixture \
+	metamorphic-differential-fixture \
 	cohort-smoke-differential \
 	cohort-products \
 	u250-smoke-contract u250-null-contract u250-dinucleotide-contract \
@@ -32,6 +33,7 @@ help:
 	@echo "  fasta-differential-fixture  Sounio FASTA artifact + independent Base-only Julia check"
 	@echo "  sounio-mini-pipeline    Run frozen FASTA+metadata mini-pipeline in pinned Sounio"
 	@echo "  mini-pipeline-differential-fixture  Sounio JSONL (including engineering nulls) + Base-only Julia check"
+	@echo "  metamorphic-differential-fixture  Spec 12.1 metamorphic properties in Sounio + independent Julia oracle"
 	@echo "  cohort-smoke-differential  Complete-replicon engineering smoke + Julia byte-exact check"
 	@echo "  cohort-products         Engineering canonical products + Julia byte-exact checks"
 	@echo "  u250-smoke-contract     Validate the engineering U250 hardware-smoke scaffold"
@@ -97,6 +99,10 @@ contract:
 	@test -x scripts/run_fasta_differential_fixture.sh
 	@test -x scripts/run_sounio_mini_pipeline.sh
 	@test -x scripts/run_mini_pipeline_differential.sh
+	@test -s sounio/src/metamorphic_fixture.sio
+	@test -x scripts/run_sounio_metamorphic_fixture.sh
+	@test -x scripts/run_metamorphic_differential_fixture.sh
+	@test -s julia/scripts/validate_metamorphic_fixture.jl
 	@test -x scripts/generate_dinucleotide_seed_sidecar.rb
 	@for f in valid_multi_record invalid_symbol sequence_before_header empty_header empty_sequence no_records; do test -s "data/fixtures/fasta/$$f.fa"; done
 	@test "$$(wc -c < data/fixtures/fasta/valid_multi_record.fa)" -gt 17
@@ -235,6 +241,13 @@ sounio-mini-pipeline:
 mini-pipeline-differential-fixture:
 	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
 		bash scripts/run_mini_pipeline_differential.sh
+
+# Spec section 12.1 metamorphic properties: executable Sounio fixture emitting
+# one integer observation per property, plus an independent Base-only Julia
+# oracle recomputing every pair at tolerance zero.
+metamorphic-differential-fixture:
+	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
+		bash scripts/run_metamorphic_differential_fixture.sh
 
 # Complete-replicon engineering smoke (NC_002127.1, 207 windows): optimized
 # kernel twice for determinism + independent Julia byte-exact recomputation.
