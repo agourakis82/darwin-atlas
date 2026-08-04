@@ -1,0 +1,8 @@
+>synthetic_homopolymer_a synthetic homopolymer control
+AAAAAAAAAAAAAAAA
+>synthetic_homopolymer_c synthetic homopolymer control
+CCCCCCCCCCCCCCCC
+>synthetic_alternating_ac synthetic strictly alternating control
+ACACACACACACACAC
+>synthetic_general_control synthetic branching-dinucleotide control
+ACAGTCAGACAGTCAG

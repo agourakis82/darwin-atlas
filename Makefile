@@ -2,7 +2,7 @@
 	sounio sounio-fixture operator-differential-fixture compile-sounio-fixture \
 	sounio-fasta-fixture fasta-differential-fixture \
 	sounio-mini-pipeline mini-pipeline-differential-fixture \
-	metamorphic-differential-fixture \
+	metamorphic-differential-fixture null-metamorphic-differential-fixture \
 	cohort-smoke-differential \
 	cohort-products \
 	u250-smoke-contract u250-null-contract u250-dinucleotide-contract \
@@ -34,6 +34,7 @@ help:
 	@echo "  sounio-mini-pipeline    Run frozen FASTA+metadata mini-pipeline in pinned Sounio"
 	@echo "  mini-pipeline-differential-fixture  Sounio JSONL (including engineering nulls) + Base-only Julia check"
 	@echo "  metamorphic-differential-fixture  Spec 12.1 metamorphic properties in Sounio + independent Julia oracle"
+	@echo "  null-metamorphic-differential-fixture  Metamorphic relations MR1-MR4 around both null engines + Julia byte-exact check"
 	@echo "  cohort-smoke-differential  Complete-replicon engineering smoke + Julia byte-exact check"
 	@echo "  cohort-products         Engineering canonical products + Julia byte-exact checks"
 	@echo "  u250-smoke-contract     Validate the engineering U250 hardware-smoke scaffold"
@@ -103,6 +104,15 @@ contract:
 	@test -x scripts/run_sounio_metamorphic_fixture.sh
 	@test -x scripts/run_metamorphic_differential_fixture.sh
 	@test -s julia/scripts/validate_metamorphic_fixture.jl
+	@test -x scripts/run_sounio_null_metamorphic.sh
+	@test -x scripts/run_null_metamorphic_differential.sh
+	@test -s julia/scripts/validate_null_metamorphic.jl
+	@test -s data/fixtures/null_metamorphic/README.md
+	@test -s data/fixtures/null_metamorphic/SHA256SUMS
+	@for f in nullmeta_fixture.fa nullmeta_metadata.tsv dinucleotide_seeds_nullmeta_k8.tsv; do test -s "data/fixtures/null_metamorphic/$$f"; done
+	@for f in parameters_nullmeta_mono_k8 parameters_nullmeta_dinuc_k8; do test -s "data/fixtures/null_metamorphic/$$f.json"; done
+	@cd data/fixtures/null_metamorphic && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
+	@tmp=$$(mktemp); trap 'rm -f "$$tmp"' EXIT; ruby scripts/generate_dinucleotide_seed_sidecar.rb data/fixtures/null_metamorphic/parameters_nullmeta_dinuc_k8.json data/fixtures/null_metamorphic/nullmeta_fixture.fa data/fixtures/null_metamorphic/nullmeta_metadata.tsv "$$tmp"; cmp "$$tmp" data/fixtures/null_metamorphic/dinucleotide_seeds_nullmeta_k8.tsv
 	@test -x scripts/generate_dinucleotide_seed_sidecar.rb
 	@for f in valid_multi_record invalid_symbol sequence_before_header empty_header empty_sequence no_records; do test -s "data/fixtures/fasta/$$f.fa"; done
 	@test "$$(wc -c < data/fixtures/fasta/valid_multi_record.fa)" -gt 17
@@ -248,6 +258,16 @@ mini-pipeline-differential-fixture:
 metamorphic-differential-fixture:
 	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
 		bash scripts/run_metamorphic_differential_fixture.sh
+
+# Spec 12.1 extension around both null engines (Fase M4): engineered
+# homopolymer/alternating/branching synthetic controls run through both null
+# engines as optimized/optimized/reference triples (required byte-identical),
+# then an independent Base-only Julia validator recomputes every line byte for
+# byte and asserts the metamorphic relations MR1-MR4 over the persisted
+# producer output.
+null-metamorphic-differential-fixture:
+	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
+		bash scripts/run_null_metamorphic_differential.sh
 
 # Complete-replicon engineering smoke (NC_002127.1, 207 windows): optimized
 # kernel twice for determinism + independent Julia byte-exact recomputation.

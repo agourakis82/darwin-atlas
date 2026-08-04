@@ -1,0 +1,5 @@
+record_index	sequence_accession_version	assembly_accession_version	replicon_class	declared_topology	source_scope
+1	synthetic_homopolymer_a	synthetic	synthetic	linear	synthetic_control
+2	synthetic_homopolymer_c	synthetic	synthetic	linear	synthetic_control
+3	synthetic_alternating_ac	synthetic	synthetic	linear	synthetic_control
+4	synthetic_general_control	synthetic	synthetic	linear	synthetic_control
