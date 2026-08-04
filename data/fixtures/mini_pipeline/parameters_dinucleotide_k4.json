@@ -11,6 +11,6 @@
   "coordinate_system": "zero_based_half_open",
   "window_wraparound": false,
   "output_order": "manifest_record_then_window_start",
-  "null_model": "trinucleotide_shuffle",
+  "null_model": "dinucleotide_shuffle",
   "null_replicates": 8
 }

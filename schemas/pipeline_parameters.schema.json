@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/agourakis82/darwin-atlas/schemas/pipeline_parameters.schema.json",
   "title": "DOSA mini-pipeline parameters",
-  "description": "Versioned parameter contract for the Sounio mini-pipeline. The canonical artifact is this JSON; the runner validates it (including cross-field constraints), hashes it with SHA-256, and renders a strict fixed-order key=value file for the executable. Cross-field rules for this phase: stride == window_size and k_max <= window_size. min_kmer_effective_count=1 is an executable-fixture parameter, not a pilot decision. null_model/null_replicates are OPTIONAL additive keys: when both are absent the executable behaves exactly as before (13-line flat rendering); when present they append two lines to the flat rendering and null_model=none requires null_replicates=0. mononucleotide_shuffle with the fixture replicate ceiling 64 is an executable-fixture null, not the ADR-0002 pilot null (primary model, replicate count, and seed derivation remain proposed).",
+  "description": "Versioned parameter contract for the Sounio mini-pipeline. The canonical artifact is this JSON; the runner validates it (including cross-field constraints), hashes it with SHA-256, and renders a strict fixed-order key=value file for the executable. Cross-field rules for this phase: stride == window_size and k_max <= window_size. min_kmer_effective_count=1 is an executable-fixture parameter, not a pilot decision. null_model/null_replicates are OPTIONAL additive keys: when both are absent the executable behaves exactly as before (13-line flat rendering); when present they append two lines to the flat rendering and null_model=none requires null_replicates=0. mononucleotide_shuffle and dinucleotide_shuffle use the fixture replicate ceiling 64. The dinucleotide engineering path additionally requires the frozen SHA-256 seed sidecar consumed by Sounio and independently checked by Julia. Neither fixture fixes the ADR-0002 pilot replicate count or promotes a pilot primary null.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -66,7 +66,8 @@
     "null_model": {
       "enum": [
         "none",
-        "mononucleotide_shuffle"
+        "mononucleotide_shuffle",
+        "dinucleotide_shuffle"
       ]
     },
     "null_replicates": {
@@ -93,6 +94,29 @@
             "const": 0
           }
         }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "null_model"
+        ],
+        "properties": {
+          "null_model": {
+            "const": "dinucleotide_shuffle"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "null_replicates": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "null_replicates"
+        ]
       }
     },
     {

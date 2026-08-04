@@ -58,9 +58,10 @@ anexado na Fase D.
 - O schema de parâmetros (`pipeline_parameters.schema.json`) admite os valores
   acima sem alteração estrutural; o artefato canônico do piloto será um novo
   `parameters_pilot.json` referenciado pelo manifesto do coorte.
-- `window_operator_profile.schema.json` 0.2.0 já cobre a faixa k=1..8 e os
-  reason codes; campos de null model exigirão uma revisão 0.3.0 (adição de
-  campos, sem reinterpretar os existentes).
+- `window_operator_profile.schema.json` 0.3.0 já cobre a faixa k=1..8, os
+  reason codes e o bloco aditivo de null model. Os fixtures mononucleotídeo e
+  dinucleotídeo exercitam esse contrato sem decidir qual será o null primário
+  do piloto nem reinterpretar os campos 0.2.0.
 - A derivação de seed proposta torna os nulls auditáveis byte a byte pelo
   validador independente.
 - Enquanto este ADR estiver *proposed*, nenhum artefato com estes parâmetros é

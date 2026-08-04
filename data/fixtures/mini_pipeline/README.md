@@ -46,13 +46,25 @@ record, in record order). The remaining TSVs are negative fixtures:
   `schemas/pipeline_parameters.schema.json`.
 - `parameters_k8.json` — canonical parameter artifact for the 16/16 window
   pipeline (`k_max=8`).
-- `params_invalid/*.json` — eight negative parameter fixtures. The runner
+- `parameters_null_k4.json` / `parameters_null_k8.json` — the additive
+  mononucleotide engineering null used by the schema 0.3.0 fixture.
+- `parameters_dinucleotide_k4.json` / `parameters_dinucleotide_k8.json` — the
+  additive ADR-0003 exact dinucleotide-preserving engineering null, fixed at
+  eight replicates. These artifacts do not accept or promote ADR-0002.
+- `dinucleotide_seeds_k4.tsv` / `dinucleotide_seeds_k8.tsv` — frozen seed
+  sidecars, one row per positional window. Each seed is the first 64 bits of
+  `SHA256(parameters_sha256:accession.version:window_start)`, written as 16
+  lowercase hexadecimal characters. `scripts/generate_dinucleotide_seed_sidecar.rb`
+  regenerates both files deterministically and `make contract` requires exact
+  byte equality.
+- `params_invalid/*.json` — ten negative parameter fixtures. The runner
   renders each one to the flat `key=value` form and the Sounio executable must
   reject every one with `PARAM_INVALID` (exit 11): `window_size_zero`,
   `stride_zero`, `stride_mismatch` (stride != window_size),
   `k_min_two` (k_min != 1), `k_max_nine` (k_max > 8),
   `k_max_above_window` (k_max > window_size), `unknown_policy` (policy string
-  outside the controlled vocabulary), `extra_field` (unknown top-level key).
+  outside the controlled vocabulary), `extra_field` (unknown top-level key),
+  `null_model_unknown`, and `null_replicates_mismatch`.
 
 The executable never parses JSON. The runner hashes the canonical JSON
 (`parameters_sha256`), renders the flat form in a fixed 13-line order, and the
@@ -92,5 +104,6 @@ reproducible:
 
 ## Integrity
 
-`SHA256SUMS` pins the bytes of every file above. Any change to an input
+`SHA256SUMS` pins the bytes of every file above, including all four null-model
+parameter artifacts and both seed sidecars. Any change to an input
 invalidates the recorded evidence hashes in `docs/IMPLEMENTATION_STATUS.md`.

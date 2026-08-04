@@ -26,7 +26,7 @@ end
 
 const LOG_PATH = only(ARGS[1:1])
 const FIXTURE_DIRECTORY = only(ARGS[2:2])
-# Case sets: "fixture" is the frozen mini-pipeline battery (17 cases);
+# Case sets: "fixture" is the frozen mini-pipeline battery (19 cases);
 # "cohort_smoke" is the complete-replicon engineering smoke (1 case).
 const CASE_SET = length(ARGS) == 3 ? ARGS[3] : "fixture"
 include(joinpath(@__DIR__, "window_pipeline_core.jl"))
@@ -37,6 +37,8 @@ const CASE_SPECS = if CASE_SET == "fixture"
     (name="k8", fasta="pipeline_k8_fixture.fa", metadata="pipeline_k8_metadata.tsv", params="k8", rc=0),
     (name="null_k4", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="null_k4", rc=0),
     (name="null_k8", fasta="pipeline_k8_fixture.fa", metadata="pipeline_k8_metadata.tsv", params="null_k8", rc=0),
+    (name="dinucleotide_k4", fasta="pipeline_fixture.fa", metadata="pipeline_metadata.tsv", params="dinucleotide_k4", rc=0),
+    (name="dinucleotide_k8", fasta="pipeline_k8_fixture.fa", metadata="pipeline_k8_metadata.tsv", params="dinucleotide_k8", rc=0),
     (name="metadata_invalid", fasta="pipeline_fixture.fa", metadata="metadata_invalid.tsv", params="main", rc=9),
     (name="metadata_mismatch", fasta="pipeline_fixture.fa", metadata="metadata_mismatch.tsv", params="main", rc=10),
     (name="metadata_short", fasta="pipeline_fixture.fa", metadata="metadata_short.tsv", params="main", rc=10),
@@ -61,6 +63,11 @@ elseif CASE_SET == "cohort_plasmids"
 else
     error("unknown case set: $CASE_SET")
 end
+
+const DINUCLEOTIDE_SEED_FILES = Dict(
+    "dinucleotide_k4" => "dinucleotide_seeds_k4.tsv",
+    "dinucleotide_k8" => "dinucleotide_seeds_k8.tsv",
+)
 
 
 
@@ -199,7 +206,15 @@ for spec in CASE_SPECS
         expected = rows_or_error
         expected_lines = String[]
     else
-        expected_lines, error_or_nothing = simulate_pipeline(fasta_bytes, rows_or_error, params)
+        seed_file = get(DINUCLEOTIDE_SEED_FILES, spec.name, nothing)
+        dinucleotide_seeds = if params.null_model == "dinucleotide_shuffle"
+            isnothing(seed_file) && error("missing seed-sidecar declaration for $(spec.name)")
+            load_dinucleotide_seeds(joinpath(FIXTURE_DIRECTORY, seed_file), params.sha256)
+        else
+            Dict{Tuple{String,Int},String}()
+        end
+        expected_lines, error_or_nothing =
+            simulate_pipeline(fasta_bytes, rows_or_error, params, dinucleotide_seeds)
         expected = error_or_nothing
     end
 

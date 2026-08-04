@@ -29,6 +29,13 @@ const NULL_MAX_REPLICATES: i64 = 64
 const NULL_METRIC_COUNT: i64 = 18
 const NULL_MODEL_NONE: i64 = 0
 const NULL_MODEL_MONONUCLEOTIDE_SHUFFLE: i64 = 1
+const NULL_MODEL_DINUCLEOTIDE_SHUFFLE: i64 = 2
+const DINUC_RNG_M1: i64 = 2147483563
+const DINUC_RNG_M2: i64 = 2147483399
+const DINUC_RNG_A1: i64 = 40014
+const DINUC_RNG_A2: i64 = 40692
+const DINUC_RNG_JUMP1: i64 = 993186111
+const DINUC_RNG_JUMP2: i64 = 1744472178
 
 fn fasta_ok() -> i64 { 0 }
 fn fasta_err_open_failed() -> i64 { 1 }
@@ -52,6 +59,15 @@ var OBSERVED_CODES: [i64; 64] = [0; 64]
 var SAVED_BASES: [i64; 16] = [0; 16]
 var NULL_VALS: [i64; 1152] = [0; 1152]
 var NULL_AVAILABLE: [i64; 18] = [0; 18]
+var DINUC_EDGE_SRC: [i64; 15] = [0; 15]
+var DINUC_EDGE_DST: [i64; 15] = [0; 15]
+var DINUC_OUT_DEGREE: [i64; 4] = [0; 4]
+var DINUC_ORDERED_EDGES: [i64; 64] = [0; 64]
+var DINUC_ORDER_CURSOR: [i64; 4] = [0; 4]
+var DINUC_TREE_EDGE: [i64; 4] = [-1; 4]
+var DINUC_NEXT_EDGE: [i64; 4] = [-1; 4]
+var DINUC_IN_TREE: [bool; 4] = [false; 4]
+var DINUC_ACTIVE_VERTEX: [bool; 4] = [false; 4]
 
 var G_ERROR_CODE: i64 = 0
 var G_ERROR_OFFSET: i64 = 0
@@ -83,6 +99,10 @@ var G_NULL_MODEL: i64 = 0
 var G_NULL_REPLICATES: i64 = 0
 var G_NULL_STATE: i64 = 0
 var G_NULL_SEED_BASE: i64 = 0
+var G_DINUC_RNG1: i64 = 1
+var G_DINUC_RNG2: i64 = 1
+var G_DINUC_SEED_HI: i64 = 0
+var G_DINUC_SEED_LO: i64 = 0
 var G_HAVE_HEADER: bool = false
 var G_IN_HEADER: bool = false
 var G_AT_LINE_START: bool = true
@@ -93,6 +113,7 @@ var G_REPLICON_PROFILE_MODE: bool = false
 var G_EXCLUSIONS_MODE: bool = false
 var G_INPUT_SHA: string = ""
 var G_METADATA_TEXT: string = ""
+var G_DINUC_SEED_TEXT: string = ""
 var G_META_SEQUENCE: string = ""
 var G_META_ASSEMBLY: string = ""
 var G_META_CLASS: string = ""
@@ -424,6 +445,115 @@ fn metadata_row_at(target_index: i64) -> MetadataRow with Mut, Panic, Div {
     empty_metadata_row()
 }
 
+// Frozen seed sidecar for the exact dinucleotide engineering null. The
+// runner computes seed64 = first64be(SHA-256(parameters_sha256 || ":" ||
+// accession_version || ":" || window_start)); Sounio validates and consumes
+// those bytes, while Julia independently recomputes them from the canonical
+// parameter artifact. This keeps SHA-256 outside the pinned compiler without
+// weakening the canonical-producer boundary.
+fn dinucleotide_seed_is_valid(value: string) -> bool with Mut, Panic, Div {
+    if str_len(value) != 16 { return false }
+    var i: i64 = 0
+    while i < 16 {
+        if hex_digit_value(str_char_at(value, i)) < 0 { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn dinucleotide_parse_hex8(value: string, start: i64) -> i64 with Mut, Panic, Div {
+    var parsed: i64 = 0
+    var i: i64 = 0
+    while i < 8 {
+        let digit = hex_digit_value(str_char_at(value, start + i))
+        if digit < 0 { return -1 }
+        parsed = parsed * 16 + digit
+        i = i + 1
+    }
+    parsed
+}
+
+fn dinucleotide_seed_header_ok(line: string) -> bool with Mut, Panic, Div {
+    tsv_field_count(line) == 3
+        && str_eq(tsv_get_field(line, 0), "sequence_accession_version")
+        && str_eq(tsv_get_field(line, 1), "window_start")
+        && str_eq(tsv_get_field(line, 2), "seed64")
+}
+
+fn dinucleotide_seed_line_ok(line: string) -> bool with Mut, Panic, Div {
+    if tsv_field_count(line) != 3 { return false }
+    if !metadata_value_is_json_safe(tsv_get_field(line, 0)) { return false }
+    if parse_nonnegative_i64(tsv_get_field(line, 1)) < 0 { return false }
+    dinucleotide_seed_is_valid(tsv_get_field(line, 2))
+}
+
+fn load_dinucleotide_seeds(path: string) -> bool with IO, Mut, Panic, Div {
+    let text = read_file(path)
+    let n = str_len(text)
+    if n <= 0 {
+        set_error(fasta_err_param_invalid(), 0, -1)
+        return false
+    }
+    var start: i64 = 0
+    var logical_line: i64 = 0
+    while start <= n {
+        var end = start
+        while end < n && str_char_at(text, end) != 10 { end = end + 1 }
+        var line_end = end
+        if line_end > start && str_char_at(text, line_end - 1) == 13 { line_end = line_end - 1 }
+        let line = str_span(text, start, line_end)
+        if str_len(line) > 0 {
+            if logical_line == 0 {
+                if !dinucleotide_seed_header_ok(line) {
+                    set_error(fasta_err_param_invalid(), start, -1)
+                    return false
+                }
+            } else {
+                if !dinucleotide_seed_line_ok(line) {
+                    set_error(fasta_err_param_invalid(), start, -1)
+                    return false
+                }
+            }
+            logical_line = logical_line + 1
+        }
+        if end >= n { break }
+        start = end + 1
+    }
+    if logical_line <= 1 {
+        set_error(fasta_err_param_invalid(), n, -1)
+        return false
+    }
+    G_DINUC_SEED_TEXT = text
+    true
+}
+
+fn resolve_dinucleotide_seed() -> bool with Mut, Panic, Div {
+    let n = str_len(G_DINUC_SEED_TEXT)
+    var start: i64 = 0
+    var logical_line: i64 = 0
+    while start <= n {
+        var end = start
+        while end < n && str_char_at(G_DINUC_SEED_TEXT, end) != 10 { end = end + 1 }
+        var line_end = end
+        if line_end > start && str_char_at(G_DINUC_SEED_TEXT, line_end - 1) == 13 { line_end = line_end - 1 }
+        let line = str_span(G_DINUC_SEED_TEXT, start, line_end)
+        if str_len(line) > 0 {
+            if logical_line > 0
+                && str_eq(tsv_get_field(line, 0), G_META_SEQUENCE)
+                && parse_nonnegative_i64(tsv_get_field(line, 1)) == G_WINDOW_START {
+                let seed = tsv_get_field(line, 2)
+                G_DINUC_SEED_HI = dinucleotide_parse_hex8(seed, 0)
+                G_DINUC_SEED_LO = dinucleotide_parse_hex8(seed, 8)
+                return G_DINUC_SEED_HI >= 0 && G_DINUC_SEED_LO >= 0
+            }
+            logical_line = logical_line + 1
+        }
+        if end >= n { break }
+        start = end + 1
+    }
+    false
+}
+
 // ---------------------------------------------------------------------------
 // Pipeline parameters (strict flat rendering of the canonical JSON artifact)
 //
@@ -513,6 +643,10 @@ fn validate_param_line(text: string, start: i64, end: i64, line_index: i64) -> b
             G_NULL_MODEL = NULL_MODEL_MONONUCLEOTIDE_SHUFFLE
             return true
         }
+        if str_eq(model, "dinucleotide_shuffle") {
+            G_NULL_MODEL = NULL_MODEL_DINUCLEOTIDE_SHUFFLE
+            return true
+        }
         return false
     }
     if line_index == 13 {
@@ -578,6 +712,10 @@ fn load_parameters(path: string) -> bool with IO, Mut, Panic, Div {
         return false
     }
     if G_NULL_MODEL == NULL_MODEL_MONONUCLEOTIDE_SHUFFLE && G_NULL_REPLICATES < 1 {
+        set_error(fasta_err_param_invalid(), n, -1)
+        return false
+    }
+    if G_NULL_MODEL == NULL_MODEL_DINUCLEOTIDE_SHUFFLE && G_NULL_REPLICATES < 1 {
         set_error(fasta_err_param_invalid(), n, -1)
         return false
     }
@@ -1055,6 +1193,172 @@ fn window_effective_kmer_count(k: i64) -> i64 with Mut, Panic, Div {
 // remains proposed and is not fixed here.
 // ---------------------------------------------------------------------------
 
+fn dinuc_rng_step() -> i64 with Mut, Div {
+    G_DINUC_RNG1 = (DINUC_RNG_A1 * G_DINUC_RNG1) % DINUC_RNG_M1
+    G_DINUC_RNG2 = (DINUC_RNG_A2 * G_DINUC_RNG2) % DINUC_RNG_M2
+    var value = G_DINUC_RNG1 - G_DINUC_RNG2
+    if value < 1 { value = value + DINUC_RNG_M1 - 1 }
+    value - 1
+}
+
+fn dinuc_rng_bounded(bound: i64) -> i64 with Mut, Div {
+    if bound <= 1 { return 0 }
+    let range = DINUC_RNG_M1 - 1
+    let limit = range - (range % bound)
+    while true {
+        let value = dinuc_rng_step()
+        if value < limit { return value % bound }
+    }
+    0
+}
+
+fn dinuc_seed_replicate(replicate: i64) with Mut, Div {
+    G_DINUC_RNG1 = 1 + (G_DINUC_SEED_HI % (DINUC_RNG_M1 - 1))
+    G_DINUC_RNG2 = 1 + (G_DINUC_SEED_LO % (DINUC_RNG_M2 - 1))
+    var i: i64 = 1
+    while i < replicate {
+        G_DINUC_RNG1 = (G_DINUC_RNG1 * DINUC_RNG_JUMP1) % DINUC_RNG_M1
+        G_DINUC_RNG2 = (G_DINUC_RNG2 * DINUC_RNG_JUMP2) % DINUC_RNG_M2
+        i = i + 1
+    }
+}
+
+fn dinuc_random_out_edge(vertex: i64) -> i64 with Mut, Panic, Div {
+    let rank = dinuc_rng_bounded(DINUC_OUT_DEGREE[vertex as usize])
+    var seen: i64 = 0
+    var edge: i64 = 0
+    while edge < G_WINDOW_LEN - 1 {
+        if DINUC_EDGE_SRC[edge as usize] == vertex {
+            if seen == rank { return edge }
+            seen = seen + 1
+        }
+        edge = edge + 1
+    }
+    -1
+}
+
+// Exact fixed-endpoint Euler/Wilson draw. SAVED_BASES is the immutable
+// original window and WINDOW_BASES receives the draw. All scratch storage is
+// global because local arrays in this hot path leak from the pinned native
+// backend arena.
+fn dinuc_shuffle_window(replicate: i64) -> bool with Mut, Panic, Div {
+    let edge_count = G_WINDOW_LEN - 1
+    let root = SAVED_BASES[(G_WINDOW_LEN - 1) as usize]
+    var vertex: i64 = 0
+    while vertex < 4 {
+        DINUC_OUT_DEGREE[vertex as usize] = 0
+        DINUC_ORDER_CURSOR[vertex as usize] = 0
+        DINUC_TREE_EDGE[vertex as usize] = -1
+        DINUC_NEXT_EDGE[vertex as usize] = -1
+        DINUC_IN_TREE[vertex as usize] = false
+        DINUC_ACTIVE_VERTEX[vertex as usize] = false
+        vertex = vertex + 1
+    }
+    var edge: i64 = 0
+    while edge < 15 {
+        DINUC_EDGE_SRC[edge as usize] = -1
+        DINUC_EDGE_DST[edge as usize] = -1
+        edge = edge + 1
+    }
+    edge = 0
+    while edge < edge_count {
+        let source = SAVED_BASES[edge as usize]
+        let target = SAVED_BASES[(edge + 1) as usize]
+        DINUC_EDGE_SRC[edge as usize] = source
+        DINUC_EDGE_DST[edge as usize] = target
+        DINUC_OUT_DEGREE[source as usize] = DINUC_OUT_DEGREE[source as usize] + 1
+        DINUC_ACTIVE_VERTEX[source as usize] = true
+        DINUC_ACTIVE_VERTEX[target as usize] = true
+        edge = edge + 1
+    }
+
+    dinuc_seed_replicate(replicate)
+    vertex = 0
+    while vertex < 4 {
+        if !DINUC_ACTIVE_VERTEX[vertex as usize] { DINUC_IN_TREE[vertex as usize] = true }
+        vertex = vertex + 1
+    }
+    DINUC_IN_TREE[root as usize] = true
+
+    vertex = 0
+    while vertex < 4 {
+        var current = vertex
+        var safety: i64 = 0
+        while !DINUC_IN_TREE[current as usize] {
+            if DINUC_OUT_DEGREE[current as usize] <= 0 { return false }
+            let chosen = dinuc_random_out_edge(current)
+            if chosen < 0 { return false }
+            DINUC_NEXT_EDGE[current as usize] = chosen
+            current = DINUC_EDGE_DST[chosen as usize]
+            safety = safety + 1
+            if safety > 4096 { return false }
+        }
+        current = vertex
+        while !DINUC_IN_TREE[current as usize] {
+            let chosen = DINUC_NEXT_EDGE[current as usize]
+            if chosen < 0 { return false }
+            DINUC_IN_TREE[current as usize] = true
+            DINUC_TREE_EDGE[current as usize] = chosen
+            current = DINUC_EDGE_DST[chosen as usize]
+        }
+        vertex = vertex + 1
+    }
+
+    vertex = 0
+    while vertex < 4 {
+        var count: i64 = 0
+        edge = 0
+        while edge < edge_count {
+            if DINUC_EDGE_SRC[edge as usize] == vertex {
+                DINUC_ORDERED_EDGES[(vertex * 16 + count) as usize] = edge
+                count = count + 1
+            }
+            edge = edge + 1
+        }
+        var i = count - 1
+        while i > 0 {
+            let j = dinuc_rng_bounded(i + 1)
+            let left = (vertex * 16 + i) as usize
+            let right = (vertex * 16 + j) as usize
+            let temporary = DINUC_ORDERED_EDGES[left]
+            DINUC_ORDERED_EDGES[left] = DINUC_ORDERED_EDGES[right]
+            DINUC_ORDERED_EDGES[right] = temporary
+            i = i - 1
+        }
+        if vertex != root && DINUC_ACTIVE_VERTEX[vertex as usize] {
+            let tree = DINUC_TREE_EDGE[vertex as usize]
+            var position: i64 = -1
+            i = 0
+            while i < count {
+                if DINUC_ORDERED_EDGES[(vertex * 16 + i) as usize] == tree { position = i }
+                i = i + 1
+            }
+            if position < 0 { return false }
+            let at = (vertex * 16 + position) as usize
+            let last = (vertex * 16 + count - 1) as usize
+            let temporary = DINUC_ORDERED_EDGES[at]
+            DINUC_ORDERED_EDGES[at] = DINUC_ORDERED_EDGES[last]
+            DINUC_ORDERED_EDGES[last] = temporary
+        }
+        vertex = vertex + 1
+    }
+
+    var current = SAVED_BASES[0]
+    WINDOW_BASES[0] = current
+    edge = 0
+    while edge < edge_count {
+        let cursor = DINUC_ORDER_CURSOR[current as usize]
+        if cursor >= DINUC_OUT_DEGREE[current as usize] { return false }
+        let chosen = DINUC_ORDERED_EDGES[(current * 16 + cursor) as usize]
+        if DINUC_EDGE_SRC[chosen as usize] != current { return false }
+        DINUC_ORDER_CURSOR[current as usize] = cursor + 1
+        current = DINUC_EDGE_DST[chosen as usize]
+        WINDOW_BASES[(edge + 1) as usize] = current
+        edge = edge + 1
+    }
+    current == root
+}
+
 fn null_lcg_step() with Mut, Div {
     G_NULL_STATE = (G_NULL_STATE * NULL_LCG_MULTIPLIER + NULL_LCG_INCREMENT) % NULL_LCG_MODULUS
 }
@@ -1130,10 +1434,17 @@ fn run_null_replicates(metric_index: i64) with Mut, Panic, Div {
     var replicate: i64 = 1
     while replicate <= G_NULL_REPLICATES {
         restore_window_bases()
-        null_seed_state(metric_index, replicate)
-        null_shuffle_window()
+        var draw_ok: bool = true
+        if G_NULL_MODEL == NULL_MODEL_DINUCLEOTIDE_SHUFFLE {
+            draw_ok = dinuc_shuffle_window(replicate)
+        } else {
+            null_seed_state(metric_index, replicate)
+            null_shuffle_window()
+        }
         var scaled: i64 = 0
-        if metric_index < 2 {
+        if !draw_ok {
+            scaled = -1
+        } else if metric_index < 2 {
             scaled = null_positional_draw(metric_index)
         } else {
             scaled = null_kmer_draw(metric_index)
@@ -1243,11 +1554,30 @@ fn print_null_metric_fields(metric_index: i64) with IO, Mut, Panic, Div {
 }
 
 fn print_null_fields(excluded: bool) with IO, Mut, Panic, Div {
-    if G_NULL_MODEL == NULL_MODEL_MONONUCLEOTIDE_SHUFFLE && G_NULL_REPLICATES > 0 {
-        print(",\"null_model\":\"mononucleotide_shuffle\",\"null_replicates\":")
+    let mono = G_NULL_MODEL == NULL_MODEL_MONONUCLEOTIDE_SHUFFLE
+    let dinuc = G_NULL_MODEL == NULL_MODEL_DINUCLEOTIDE_SHUFFLE
+    if (mono || dinuc) && G_NULL_REPLICATES > 0 {
+        if mono {
+            print(",\"null_model\":\"mononucleotide_shuffle\",\"null_replicates\":")
+        } else {
+            print(",\"null_model\":\"dinucleotide_shuffle\",\"null_replicates\":")
+        }
         print_int(G_NULL_REPLICATES)
-        print(",\"null_seed_derivation\":\"lcg31_sha8_fixture_v1\"")
+        if mono {
+            print(",\"null_seed_derivation\":\"lcg31_sha8_fixture_v1\"")
+        } else {
+            print(",\"null_seed_derivation\":\"sha256_parameters_accession_window_first64be_v1\"")
+        }
         save_window_bases()
+        if dinuc && excluded {
+            var unavailable_metric: i64 = 0
+            while unavailable_metric < NULL_METRIC_COUNT {
+                print_null_metric_unavailable(unavailable_metric)
+                unavailable_metric = unavailable_metric + 1
+            }
+            restore_window_bases()
+            return
+        }
         if excluded {
             print_null_metric_unavailable(0)
             print_null_metric_unavailable(1)
@@ -1293,6 +1623,13 @@ fn emit_pipeline_window() with IO, Mut, Panic, Div {
     let canonical = window_is_canonical()
     let excluded = partial || !canonical
     let window_end = G_WINDOW_START + G_WINDOW_LEN
+
+    if G_PIPELINE_MODE && G_NULL_MODEL == NULL_MODEL_DINUCLEOTIDE_SHUFFLE {
+        if !resolve_dinucleotide_seed() {
+            set_error(fasta_err_param_invalid(), G_WINDOW_START, -1)
+            return
+        }
+    }
 
     if G_EXCLUSIONS_MODE {
         if partial {
@@ -1606,11 +1943,12 @@ fn print_error() with IO {
 fn main() -> i64 with IO, Mut, Panic, Div {
     let argc = arg_count()
     let summary_mode = argc == 1
-    let pipeline_mode = argc == 4 && (str_eq(get_arg(0), "--pipeline") || str_eq(get_arg(0), "--pipeline-reference"))
+    let pipeline_command = argc > 0 && (str_eq(get_arg(0), "--pipeline") || str_eq(get_arg(0), "--pipeline-reference"))
+    let pipeline_mode = (argc == 4 || argc == 5) && pipeline_command
     let exclusions_mode = argc == 4 && str_eq(get_arg(0), "--exclusions")
     let profile_mode = argc == 5 && str_eq(get_arg(0), "--replicon-profile")
     if !summary_mode && !pipeline_mode && !exclusions_mode && !profile_mode {
-        print("usage: fasta_stream_fixture <input.fa> | --pipeline <input.fa> <metadata.tsv> <parameters.flat> | --pipeline-reference <input.fa> <metadata.tsv> <parameters.flat> | --exclusions <input.fa> <metadata.tsv> <parameters.flat> | --replicon-profile <input.fa> <metadata.tsv> <parameters.flat> input_sha256=<64-hex>\n")
+        print("usage: fasta_stream_fixture <input.fa> | --pipeline <input.fa> <metadata.tsv> <parameters.flat> [dinucleotide-seeds.tsv] | --pipeline-reference <input.fa> <metadata.tsv> <parameters.flat> [dinucleotide-seeds.tsv] | --exclusions <input.fa> <metadata.tsv> <parameters.flat> | --replicon-profile <input.fa> <metadata.tsv> <parameters.flat> input_sha256=<64-hex>\n")
         return 64
     }
 
@@ -1623,6 +1961,17 @@ fn main() -> i64 with IO, Mut, Panic, Div {
         G_SIMPLE_KERNEL = str_eq(get_arg(0), "--pipeline-reference")
         input_path = get_arg(1)
         if !load_parameters(get_arg(3)) {
+            print_error()
+            return G_ERROR_CODE
+        }
+        if pipeline_mode && G_NULL_MODEL == NULL_MODEL_DINUCLEOTIDE_SHUFFLE {
+            if argc != 5 || !load_dinucleotide_seeds(get_arg(4)) {
+                if G_ERROR_CODE == fasta_ok() { set_error(fasta_err_param_invalid(), 0, -1) }
+                print_error()
+                return G_ERROR_CODE
+            }
+        } else if pipeline_mode && argc != 4 {
+            set_error(fasta_err_param_invalid(), 0, -1)
             print_error()
             return G_ERROR_CODE
         }

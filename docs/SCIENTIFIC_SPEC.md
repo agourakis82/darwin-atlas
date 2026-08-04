@@ -323,15 +323,16 @@ windowed without overlap, scored with `delta_R`/`delta_RC`, with explicit
 `AMBIGUOUS_WINDOW` and `PARTIAL_WINDOW` exclusions, and with masked k-mer
 composition (`reverse_kmer_imbalance_k`/`rc_kmer_imbalance_k` as defined in
 §7.2) for the full predeclared pilot range `k=1..8` with explicit per-k
-unavailable reasons — reaches `EXECUTES` with deterministic JSONL (schema
-0.2.0) and byte-exact Base-only Julia agreement, including negative metadata
+unavailable reasons — reaches `EXECUTES` with deterministic JSONL (additive
+schema 0.3.0) and byte-exact Base-only Julia agreement, including negative metadata
 and negative parameter fixtures, under two independently written k-mer kernels
 (simple reference and scale-oriented rolling table) required to agree byte for
 byte. `min_kmer_effective_count=1` remains an executable-fixture parameter,
 not the pilot threshold. The mononucleotide sensitivity fixture and the
-ADR-0003 exact dinucleotide-preserving candidate now execute under independent
-Julia differential checks, and both have engineering U250 accelerator
-surfaces; neither is integrated into canonical pilot products. The pilot
+ADR-0003 exact dinucleotide-preserving candidate now execute inside the frozen
+window fixture under independent Julia differential checks, and both have
+engineering U250 accelerator surfaces; neither is integrated into canonical
+pilot products. The pilot
 minimum expected count and final null parameters remain open under proposed
 ADR-0002. These executable specifications do not elevate the absent full
 cohort pipeline to `SCIENTIFICALLY_VALIDATED`. Successful parsing/code

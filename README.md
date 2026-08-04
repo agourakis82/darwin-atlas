@@ -8,7 +8,10 @@ bacterial RefSeq replicons.
 > executable operator, streaming FASTA, and parameterized frozen mini-pipeline
 > fixtures (positional metrics plus masked k-mer composition for the
 > predeclared pilot range k=1..8, under two byte-equivalent kernels) now pass
-> independent Julia checks. A frozen miniature cohort of four complete
+> independent Julia checks. The ADR-0003 exact dinucleotide-preserving
+> engineering null is integrated additively into the frozen window fixture
+> with SHA-derived per-window seeds and eight replicates; ADR-0002 remains
+> proposed. A frozen miniature cohort of four complete
 > circular RefSeq replicons (two assemblies, official NCBI checksum closure)
 > is pinned in [`data/cohort/mini/`](data/cohort/mini/README.md); engineering
 > canonical products (cohort/replicons/exclusions for all four replicons,
@@ -126,9 +129,9 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
 # validation -> FASTA + metadata -> windows -> delta_R/delta_RC -> masked
 # k-mer imbalance k=1..8 -> exclusions -> deterministic JSONL 0.3.0), with
 # byte-equivalent optimized and reference kernels, the fixture null-model
-# cases (mononucleotide-preserving shuffle null summaries, an executable
-# specification; the ADR-0002 pilot null remains proposed), and recompute it
-# byte-exact in Julia
+# cases (mononucleotide-preserving and exact dinucleotide-preserving shuffle
+# summaries, both executable engineering specifications; the ADR-0002 pilot
+# null remains proposed), and recompute them byte-exact in Julia
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make mini-pipeline-differential-fixture
 
@@ -188,6 +191,13 @@ make u250-dinucleotide-contract
 # receipts/dinucleotide-null-556ac81-20260803T171300Z/. It records the real
 # U250 execution, official pinned-Sounio differential, and the two inherited
 # shell/DFX critical warnings; it does not promote the ADR-0002 pilot null.
+
+# Fase M0-M2 window integration: the same mini-pipeline command now exercises
+# parameters_dinucleotide_{k4,k8}.json plus frozen per-window seed sidecars.
+# Sounio remains the sole producer; Julia independently regenerates every
+# Euler/Wilson draw and every 183-field JSONL line at tolerance zero. This is
+# fixture-scope engineering evidence, not pilot selection, biology, or a
+# performance claim.
 
 # Must fail unless both implementations are actually available
 make cross-validate

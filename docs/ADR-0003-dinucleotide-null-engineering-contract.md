@@ -56,7 +56,9 @@ The Fase L engineering fixture uses
 
 ## Boundary
 
-Acceptance of this ADR fixes only the engineering fixture semantics. It does
+Acceptance of this ADR fixes only the engineering fixture semantics. Fase M
+integrates those semantics additively into the frozen 12- and 84-window
+mini-pipeline cases with eight explicitly engineering-only replicates. It does
 not accept ADR-0002, set the pilot replicate count, validate pseudorandom
 quality, integrate the model into chromosome-scale products, establish a
 performance result, or support a biological claim. Those remain separate

@@ -14,6 +14,11 @@ const NULL_LCG_MULTIPLIER = 1_103_515_245
 const NULL_LCG_INCREMENT = 12_345
 const NULL_MAX_REPLICATES = 64
 const NULL_SEED_DERIVATION = "lcg31_sha8_fixture_v1"
+const DINUCLEOTIDE_SEED_DERIVATION = "sha256_parameters_accession_window_first64be_v1"
+
+# Reuse the already independent, fixture-validated Julia graph
+# representation of ADR-0003. Its guarded main does not run when included.
+include(joinpath(@__DIR__, "validate_dinucleotide_null.jl"))
 
 const IUPAC_INDEX = let mapping = Dict{UInt8, Int}()
     for (index, symbol) in enumerate(codeunits("ACGTRYSWKMBDHVN"))
@@ -127,7 +132,7 @@ function validate_param_line(line::AbstractString, line_index::Int, state::Ref{I
         value = flat_value(line, "parameters_sha256")
         (value !== nothing && match(r"^[0-9a-f]{64}$", value) !== nothing) && return true
         model = flat_value(line, "null_model")
-        return model in ("none", "mononucleotide_shuffle")
+        return model in ("none", "mononucleotide_shuffle", "dinucleotide_shuffle")
     elseif line_index == 13
         value = parse_nonnegative(something(flat_value(line, "null_replicates"), ""))
         return value >= 0 && value <= NULL_MAX_REPLICATES
@@ -193,6 +198,8 @@ function load_parameters(text::String)
     (null_model == "none" && null_replicates != 0) &&
         return PipelineError("PARAM_INVALID", 0, n, -1)
     (null_model == "mononucleotide_shuffle" && null_replicates < 1) &&
+        return PipelineError("PARAM_INVALID", 0, n, -1)
+    (null_model == "dinucleotide_shuffle" && null_replicates < 1) &&
         return PipelineError("PARAM_INVALID", 0, n, -1)
 
     PipelineParams(
@@ -401,6 +408,65 @@ function run_null_replicates(window::Vector{Int}, params::PipelineParams, seed_b
     return values
 end
 
+"""Parse and independently validate a frozen dinucleotide seed sidecar.
+Every seed is recomputed from the canonical parameter hash, accession, and
+window start; duplicate coordinates are rejected."""
+function load_dinucleotide_seeds(path::String, parameters_sha::String)
+    rows = readlines(path)
+    isempty(rows) && error("empty dinucleotide seed sidecar")
+    rows[1] == "sequence_accession_version\twindow_start\tseed64" ||
+        error("dinucleotide seed header drift")
+    seeds = Dict{Tuple{String,Int},String}()
+    for row in rows[2:end]
+        fields = split(row, '\t'; keepempty=true)
+        length(fields) == 3 || error("dinucleotide seed field-count drift")
+        accession, start_raw, seed64 = fields
+        json_safe(accession) || error("unsafe dinucleotide seed accession")
+        start = parse(Int, start_raw)
+        start >= 0 || error("negative dinucleotide seed window start")
+        expected = bytes2hex(sha256("$parameters_sha:$accession:$start"))[1:16]
+        seed64 == expected || error("dinucleotide seed derivation drift at $accession:$start")
+        key = (accession, start)
+        haskey(seeds, key) && error("duplicate dinucleotide seed coordinate $key")
+        seeds[key] = seed64
+    end
+    isempty(seeds) && error("dinucleotide seed sidecar has no data")
+    seeds
+end
+
+function integer_window(sequence::AbstractString)
+    mapping = Dict('A'=>0, 'C'=>1, 'G'=>2, 'T'=>3)
+    [mapping[base] for base in sequence]
+end
+
+"""Available scaled draws for one metric under ADR-0003. The same
+window/replicate sequence draw is reused for every metric; only the metric
+projection changes."""
+function run_dinucleotide_replicates(window::Vector{Int}, params::PipelineParams,
+                                     accession::String, window_start::Int,
+                                     metric_index::Int,
+                                     seeds::Dict{Tuple{String,Int},String})
+    seed64 = get(seeds, (accession, window_start), nothing)
+    isnothing(seed64) && error("missing dinucleotide seed for $accession:$window_start")
+    alphabet = ['A', 'C', 'G', 'T']
+    original = String([alphabet[base + 1] for base in window])
+    original_counts = dinucleotide_counts(original)
+    values = Int[]
+    for replicate in 1:params.null_replicates
+        shuffled = shuffled_sequence(original, seed64, replicate)
+        length(shuffled) == length(original) || error("dinucleotide draw length drift")
+        first(shuffled) == first(original) || error("dinucleotide first endpoint drift")
+        last(shuffled) == last(original) || error("dinucleotide last endpoint drift")
+        dinucleotide_counts(shuffled) == original_counts || error("dinucleotide count drift")
+        sort(collect(shuffled)) == sort(collect(original)) || error("mononucleotide count drift")
+        draw = integer_window(shuffled)
+        scaled = metric_index < 2 ? null_positional_draw(draw, metric_index) :
+            null_kmer_draw(draw, metric_index, params.min_kmer_effective_count)
+        scaled >= 0 && push!(values, scaled)
+    end
+    values
+end
+
 const NULL_METRIC_NAMES = let names = String["delta_R", "delta_RC"]
     for k in 1:KMER_ABS_MAX_K
         push!(names, "reverse_kmer_imbalance_$k", "rc_kmer_imbalance_$k")
@@ -446,17 +512,32 @@ end
 order. Observed k-mer availability is decided by the effective count alone,
 proven equivalent to the orbit denominator rule."""
 function print_null_fields(io::IOBuffer, window::Vector{Int}, params::PipelineParams,
-                           record_index::Int, window_start::Int, excluded::Bool)
-    if params.null_model == "mononucleotide_shuffle" && params.null_replicates > 0
-        print(io, ",\"null_model\":\"mononucleotide_shuffle\",\"null_replicates\":",
-            params.null_replicates, ",\"null_seed_derivation\":\"", NULL_SEED_DERIVATION, "\"")
+                           record_index::Int, window_start::Int, excluded::Bool,
+                           accession::String,
+                           dinucleotide_seeds::Dict{Tuple{String,Int},String})
+    enabled = params.null_model in ("mononucleotide_shuffle", "dinucleotide_shuffle") &&
+        params.null_replicates > 0
+    if enabled
+        print(io, ",\"null_model\":\"", params.null_model, "\",\"null_replicates\":",
+            params.null_replicates, ",\"null_seed_derivation\":\"",
+            params.null_model == "mononucleotide_shuffle" ? NULL_SEED_DERIVATION :
+                DINUCLEOTIDE_SEED_DERIVATION, "\"")
+        if params.null_model == "dinucleotide_shuffle" && excluded
+            for metric_index in 0:17
+                print_null_metric_unavailable(io, metric_index)
+            end
+            return
+        end
         seed_base = parse(Int, params.sha256[1:8], base=16)
+        values_for(metric_index) = params.null_model == "mononucleotide_shuffle" ?
+            run_null_replicates(window, params, seed_base, window_start, record_index, metric_index) :
+            run_dinucleotide_replicates(window, params, accession, window_start,
+                                        metric_index, dinucleotide_seeds)
         for metric_index in 0:1
             if excluded
                 print_null_metric_unavailable(io, metric_index)
             else
-                print_null_metric_fields(io, metric_index,
-                    run_null_replicates(window, params, seed_base, window_start, record_index, metric_index))
+                print_null_metric_fields(io, metric_index, values_for(metric_index))
             end
         end
         for k in 1:KMER_ABS_MAX_K
@@ -466,8 +547,7 @@ function print_null_fields(io::IOBuffer, window::Vector{Int}, params::PipelinePa
                 if k > params.k_max || effective < params.min_kmer_effective_count
                     print_null_metric_unavailable(io, metric_index)
                 else
-                    print_null_metric_fields(io, metric_index,
-                        run_null_replicates(window, params, seed_base, window_start, record_index, metric_index))
+                    print_null_metric_fields(io, metric_index, values_for(metric_index))
                 end
             end
         end
@@ -544,7 +624,8 @@ end
 
 """Build one JSONL line with the exact Sounio field order and formatting."""
 function emit_window(row::MetadataRow, record_index::Int, window_index::Int,
-                     window_start::Int, window::Vector{Int}, params::PipelineParams)
+                     window_start::Int, window::Vector{Int}, params::PipelineParams,
+                     dinucleotide_seeds::Dict{Tuple{String,Int},String})
     window_length = length(window)
     window_end = window_start + window_length
     partial = window_length < params.window_size
@@ -592,7 +673,8 @@ function emit_window(row::MetadataRow, record_index::Int, window_index::Int,
     print(io, ",\"fixed_R\":", excluded ? "null" : string(reverse_mismatches == 0))
     print(io, ",\"fixed_RC\":", excluded ? "null" : string(rc_mismatches == 0))
     print_kmer_fields(io, window, params)
-    print_null_fields(io, window, params, record_index, window_start, excluded)
+    print_null_fields(io, window, params, record_index, window_start, excluded,
+                      row.sequence_accession_version, dinucleotide_seeds)
     print(io, "}")
     return String(take!(io))
 end
@@ -602,7 +684,8 @@ Replicate the Sounio --pipeline driver: stream the FASTA bytes, associate
 each record with its metadata row, and either emit every JSONL line or return
 the first PipelineError with Sounio's precedence. Returns (lines, error).
 """
-function simulate_pipeline(fasta::Vector{UInt8}, rows::Vector{MetadataRow}, params::PipelineParams)
+function simulate_pipeline(fasta::Vector{UInt8}, rows::Vector{MetadataRow}, params::PipelineParams,
+                           dinucleotide_seeds::Dict{Tuple{String,Int},String}=Dict{Tuple{String,Int},String}())
     lines = String[]
     record_index = 0
     have_header = false
@@ -620,7 +703,8 @@ function simulate_pipeline(fasta::Vector{UInt8}, rows::Vector{MetadataRow}, para
     function finish_record(offset, byte)
         sequence_length <= 0 && return PipelineError("EMPTY_SEQUENCE", record_index, offset, byte)
         if !isempty(window)
-            push!(lines, emit_window(rows[record_index], record_index, window_count, window_start, window, params))
+            push!(lines, emit_window(rows[record_index], record_index, window_count,
+                                     window_start, window, params, dinucleotide_seeds))
             empty!(window)
             window_count += 1
         end
@@ -694,7 +778,8 @@ function simulate_pipeline(fasta::Vector{UInt8}, rows::Vector{MetadataRow}, para
         sequence_length += 1
         push!(window, index)
         if length(window) == params.window_size
-            push!(lines, emit_window(rows[record_index], record_index, window_count, window_start, window, params))
+            push!(lines, emit_window(rows[record_index], record_index, window_count,
+                                     window_start, window, params, dinucleotide_seeds))
             window_start += params.window_size
             empty!(window)
             window_count += 1

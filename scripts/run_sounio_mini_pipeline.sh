@@ -23,6 +23,8 @@ valid_cases=(
   "k8 pipeline_k8_fixture.fa pipeline_k8_metadata.tsv parameters_k8.json 84"
   "null_k4 pipeline_fixture.fa pipeline_metadata.tsv parameters_null_k4.json 12"
   "null_k8 pipeline_k8_fixture.fa pipeline_k8_metadata.tsv parameters_null_k8.json 84"
+  "dinucleotide_k4 pipeline_fixture.fa pipeline_metadata.tsv parameters_dinucleotide_k4.json 12"
+  "dinucleotide_k8 pipeline_k8_fixture.fa pipeline_k8_metadata.tsv parameters_dinucleotide_k8.json 84"
 )
 # Negative cases: name metadata params_json expected_rc expected_error
 # (all run against pipeline_fixture.fa; parameters are validated first)
@@ -123,7 +125,9 @@ for input in pipeline_fixture.fa pipeline_k8_fixture.fa \
     pipeline_metadata.tsv pipeline_k8_metadata.tsv \
     metadata_invalid.tsv metadata_mismatch.tsv metadata_short.tsv \
     parameters_k4.json parameters_k8.json \
-    parameters_null_k4.json parameters_null_k8.json; do
+    parameters_null_k4.json parameters_null_k8.json \
+    parameters_dinucleotide_k4.json parameters_dinucleotide_k8.json \
+    dinucleotide_seeds_k4.tsv dinucleotide_seeds_k8.tsv; do
   echo "sounio_pipeline_input name=$input sha256=$(sha256_file "$fixture_dir/$input")"
 done
 for invalid in "$fixture_dir"/params_invalid/*.json; do
@@ -213,6 +217,8 @@ valid_cases=(
   "k8 pipeline_k8_fixture.fa pipeline_k8_metadata.tsv k8 84"
   "null_k4 pipeline_fixture.fa pipeline_metadata.tsv null_k4 12"
   "null_k8 pipeline_k8_fixture.fa pipeline_k8_metadata.tsv null_k8 84"
+  "dinucleotide_k4 pipeline_fixture.fa pipeline_metadata.tsv dinucleotide_k4 12"
+  "dinucleotide_k8 pipeline_k8_fixture.fa pipeline_k8_metadata.tsv dinucleotide_k8 84"
 )
 negative_cases=(
   "metadata_invalid metadata_invalid.tsv main 9 METADATA_INVALID"
@@ -239,12 +245,15 @@ echo "mini_pipeline_executable_sha256=$(sha256sum "$output" | awk '{print $1}')"
 
 for spec in "${valid_cases[@]}"; do
   read -r name fasta meta params expected_lines <<<"$spec"
+  seed_args=()
+  if [[ "$name" == "dinucleotide_k4" ]]; then seed_args=("$inputs/dinucleotide_seeds_k4.tsv"); fi
+  if [[ "$name" == "dinucleotide_k8" ]]; then seed_args=("$inputs/dinucleotide_seeds_k8.tsv"); fi
   opt1="$work/$name.opt1.jsonl"
   opt2="$work/$name.opt2.jsonl"
   ref="$work/$name.ref.jsonl"
-  "$output" --pipeline "$inputs/$fasta" "$inputs/$meta" "$inputs/$params.flat" > "$opt1"
-  "$output" --pipeline "$inputs/$fasta" "$inputs/$meta" "$inputs/$params.flat" > "$opt2"
-  "$output" --pipeline-reference "$inputs/$fasta" "$inputs/$meta" "$inputs/$params.flat" > "$ref"
+  "$output" --pipeline "$inputs/$fasta" "$inputs/$meta" "$inputs/$params.flat" "${seed_args[@]}" > "$opt1"
+  "$output" --pipeline "$inputs/$fasta" "$inputs/$meta" "$inputs/$params.flat" "${seed_args[@]}" > "$opt2"
+  "$output" --pipeline-reference "$inputs/$fasta" "$inputs/$meta" "$inputs/$params.flat" "${seed_args[@]}" > "$ref"
   sha1="$(sha256sum "$opt1" | awk '{print $1}')"
   sha2="$(sha256sum "$opt2" | awk '{print $1}')"
   sha3="$(sha256sum "$ref" | awk '{print $1}')"
@@ -265,6 +274,23 @@ for spec in "${valid_cases[@]}"; do
   fi
   echo "DOSA_PIPELINE_CASE name=$name expected_rc=0 actual_rc=0"
 done
+
+# A dinucleotide parameter artifact without its frozen seed sidecar must fail
+# before any JSONL is emitted. Keep this marker separate from DOSA_PIPELINE_CASE
+# so the independent 19-case parameter/metadata oracle remains stable.
+set +e
+missing_seed_output="$("$output" --pipeline "$inputs/pipeline_fixture.fa" \
+  "$inputs/pipeline_metadata.tsv" "$inputs/dinucleotide_k4.flat" 2>&1)"
+missing_seed_rc=$?
+set -e
+echo "DOSA_DINUCLEOTIDE_SEED_CASE name=missing_sidecar expected_rc=11 actual_rc=$missing_seed_rc"
+if [[ "$missing_seed_rc" -ne 11 ]] || \
+   ! grep -q '^DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=0 byte=-1$' <<<"$missing_seed_output" || \
+   grep -q '^{' <<<"$missing_seed_output"; then
+  printf '%s\n' "$missing_seed_output" >&2
+  echo "dinucleotide missing-sidecar case did not fail closed" >&2
+  exit 1
+fi
 
 for spec in "${negative_cases[@]}"; do
   read -r name meta params expected expected_error <<<"$spec"
@@ -312,9 +338,12 @@ run_native() {
     local opt1="$work_dir/$name.opt1.jsonl"
     local opt2="$work_dir/$name.opt2.jsonl"
     local ref="$work_dir/$name.ref.jsonl"
-    "$output" --pipeline "$fixture_dir/$fasta" "$fixture_dir/$meta" "$flat_dir/$params.flat" > "$opt1"
-    "$output" --pipeline "$fixture_dir/$fasta" "$fixture_dir/$meta" "$flat_dir/$params.flat" > "$opt2"
-    "$output" --pipeline-reference "$fixture_dir/$fasta" "$fixture_dir/$meta" "$flat_dir/$params.flat" > "$ref"
+    local -a seed_args=()
+    if [[ "$name" == "dinucleotide_k4" ]]; then seed_args=("$fixture_dir/dinucleotide_seeds_k4.tsv"); fi
+    if [[ "$name" == "dinucleotide_k8" ]]; then seed_args=("$fixture_dir/dinucleotide_seeds_k8.tsv"); fi
+    "$output" --pipeline "$fixture_dir/$fasta" "$fixture_dir/$meta" "$flat_dir/$params.flat" "${seed_args[@]}" > "$opt1"
+    "$output" --pipeline "$fixture_dir/$fasta" "$fixture_dir/$meta" "$flat_dir/$params.flat" "${seed_args[@]}" > "$opt2"
+    "$output" --pipeline-reference "$fixture_dir/$fasta" "$fixture_dir/$meta" "$flat_dir/$params.flat" "${seed_args[@]}" > "$ref"
     local sha1 sha2 sha3
     sha1="$(sha256_file "$opt1")"
     sha2="$(sha256_file "$opt2")"
@@ -328,6 +357,21 @@ run_native() {
     check_artifact "$work_dir/$name.jsonl" "$expected_lines"
     echo "DOSA_PIPELINE_CASE name=$name expected_rc=0 actual_rc=0"
   done
+
+  local missing_seed_output missing_seed_rc
+  set +e
+  missing_seed_output="$("$output" --pipeline "$fixture_dir/pipeline_fixture.fa" \
+    "$fixture_dir/pipeline_metadata.tsv" "$flat_dir/dinucleotide_k4.flat" 2>&1)"
+  missing_seed_rc=$?
+  set -e
+  echo "DOSA_DINUCLEOTIDE_SEED_CASE name=missing_sidecar expected_rc=11 actual_rc=$missing_seed_rc"
+  if [[ "$missing_seed_rc" -ne 11 ]] || \
+     ! grep -q '^DOSA_FASTA_ERROR code=PARAM_INVALID record=0 offset=0 byte=-1$' <<<"$missing_seed_output" || \
+     grep -q '^{' <<<"$missing_seed_output"; then
+    printf '%s\n' "$missing_seed_output" >&2
+    echo "dinucleotide missing-sidecar case did not fail closed" >&2
+    return 1
+  fi
 
   for spec in "${negative_cases[@]}"; do
     read -r name meta params expected expected_error <<<"$spec"
@@ -375,3 +419,9 @@ echo "sounio_pipeline_jsonl_sha256_null_k4=$(sha256_file "$work_dir/null_k4.json
 echo "sounio_pipeline_jsonl_artifact_null_k8=$work_dir/null_k8.jsonl"
 echo "sounio_pipeline_jsonl_lines_null_k8=$(wc -l < "$work_dir/null_k8.jsonl" | tr -d ' ')"
 echo "sounio_pipeline_jsonl_sha256_null_k8=$(sha256_file "$work_dir/null_k8.jsonl")"
+echo "sounio_pipeline_jsonl_artifact_dinucleotide_k4=$work_dir/dinucleotide_k4.jsonl"
+echo "sounio_pipeline_jsonl_lines_dinucleotide_k4=$(wc -l < "$work_dir/dinucleotide_k4.jsonl" | tr -d ' ')"
+echo "sounio_pipeline_jsonl_sha256_dinucleotide_k4=$(sha256_file "$work_dir/dinucleotide_k4.jsonl")"
+echo "sounio_pipeline_jsonl_artifact_dinucleotide_k8=$work_dir/dinucleotide_k8.jsonl"
+echo "sounio_pipeline_jsonl_lines_dinucleotide_k8=$(wc -l < "$work_dir/dinucleotide_k8.jsonl" | tr -d ' ')"
+echo "sounio_pipeline_jsonl_sha256_dinucleotide_k8=$(sha256_file "$work_dir/dinucleotide_k8.jsonl")"

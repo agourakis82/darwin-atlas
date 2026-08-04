@@ -32,7 +32,7 @@ each FASTA record is associated with a metadata TSV row, split into
 non-overlapping windows (size and stride bound by the parameter artifact,
 zero-based half-open coordinates, no wraparound), scored with
 `delta_R`/`delta_RC` under the `canonical_only` ambiguity policy, and emitted
-as deterministic JSONL (schema version `0.2.0`). Windows containing
+as deterministic JSONL (schema version `0.3.0`). Windows containing
 non-canonical IUPAC symbols are excluded with `AMBIGUOUS_WINDOW`; a trailing
 short window is excluded with `PARTIAL_WINDOW`; excluded windows carry null
 positional metrics. The frozen inputs live in `data/fixtures/mini_pipeline/`
@@ -41,16 +41,29 @@ two synthetic controls, plus a 16/16 fixture with three synthetic records)
 with SHA-256 checksums in `SHA256SUMS`; each JSONL line is specified by
 `schemas/window_operator_profile.schema.json`.
 
-Pipeline parameters are a versioned, checksummed artifact
-(`parameters_k4.json`, `parameters_k8.json`), specified by
+Pipeline parameters are versioned, checksummed artifacts (null-free,
+mononucleotide-null, and exact dinucleotide-null k4/k8 pairs), specified by
 `schemas/pipeline_parameters.schema.json`. The executable never parses JSON:
-the runner hashes the canonical JSON and renders a strict 13-line flat
+the runner hashes the canonical JSON and renders a strict 13/15-line flat
 `key=value` form; the executable re-validates every key, order, and domain
 and rejects any deviation with `PARAM_INVALID` (exit 11). Every emitted JSONL
 line repeats the canonical `parameters_sha256`, binding output to an exact
-parameter instance. Eight frozen negative parameter fixtures
+parameter instance. Ten frozen negative parameter fixtures
 (`params_invalid/`) must each fail with exact byte offsets, reproduced
 independently by the Julia validator.
+
+Schema 0.3.0 adds an optional engineering null block. The original
+`mononucleotide_shuffle` remains byte-identical. Fase M adds
+`dinucleotide_shuffle`, the exact ADR-0003 Euler/Wilson generator, at eight
+fixture replicates. A frozen sidecar supplies one 64-bit seed per positional
+window; Sounio re-validates its grammar and coordinate coverage, while Julia
+independently recomputes each seed as the first 64 bits of
+`SHA256(parameters_sha256:accession.version:window_start)`. Every available
+draw preserves length, fixed endpoints, base counts, and all 16 directed
+dinucleotide counts. Excluded positional windows emit null summary fields,
+never fabricated values. The same sequence draw is reused across all metrics
+for a given window/replicate. This is fixture-scope engineering evidence:
+ADR-0002 remains proposed and there is no biological or performance claim.
 
 Each window is additionally scored with masked k-mer composition for the full
 predeclared pilot range `k=1..8`: canonical k-mers are encoded in base 4,
@@ -94,8 +107,9 @@ make mini-pipeline-differential-fixture
 ```
 
 Passing the mini-pipeline fixture establishes an executable end-to-end slice
-at the predeclared pilot range k=1..8 over fixture-scale inputs only. It does
-not establish null models, run receipts, NCBI cohort acquisition, or scale.
+at the predeclared pilot range k=1..8 over fixture-scale inputs, including the
+two engineering null specifications. It does not select a pilot null, establish
+inferential validity, create a release receipt, or establish scale.
 
 Run against an official pinned Sounio checkout:
 

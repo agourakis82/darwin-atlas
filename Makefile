@@ -31,7 +31,7 @@ help:
 	@echo "  sounio-fasta-fixture    Execute streaming/IUPAC FASTA fixtures in pinned Sounio"
 	@echo "  fasta-differential-fixture  Sounio FASTA artifact + independent Base-only Julia check"
 	@echo "  sounio-mini-pipeline    Run frozen FASTA+metadata mini-pipeline in pinned Sounio"
-	@echo "  mini-pipeline-differential-fixture  Sounio JSONL + independent Base-only Julia check"
+	@echo "  mini-pipeline-differential-fixture  Sounio JSONL (including engineering nulls) + Base-only Julia check"
 	@echo "  cohort-smoke-differential  Complete-replicon engineering smoke + Julia byte-exact check"
 	@echo "  cohort-products         Engineering canonical products + Julia byte-exact checks"
 	@echo "  u250-smoke-contract     Validate the engineering U250 hardware-smoke scaffold"
@@ -97,15 +97,16 @@ contract:
 	@test -x scripts/run_fasta_differential_fixture.sh
 	@test -x scripts/run_sounio_mini_pipeline.sh
 	@test -x scripts/run_mini_pipeline_differential.sh
+	@test -x scripts/generate_dinucleotide_seed_sidecar.rb
 	@for f in valid_multi_record invalid_symbol sequence_before_header empty_header empty_sequence no_records; do test -s "data/fixtures/fasta/$$f.fa"; done
 	@test "$$(wc -c < data/fixtures/fasta/valid_multi_record.fa)" -gt 17
 	@test -s data/fixtures/mini_pipeline/pipeline_fixture.fa
 	@test -s data/fixtures/mini_pipeline/pipeline_k8_fixture.fa
 	@test -s data/fixtures/mini_pipeline/SHA256SUMS
 	@for f in pipeline_metadata pipeline_k8_metadata metadata_invalid metadata_mismatch metadata_short; do test -s "data/fixtures/mini_pipeline/$$f.tsv"; done
-	@test -s data/fixtures/mini_pipeline/parameters_k4.json
-	@test -s data/fixtures/mini_pipeline/parameters_k8.json
-	@for f in window_size_zero stride_zero stride_mismatch k_min_two k_max_nine k_max_above_window unknown_policy extra_field; do test -s "data/fixtures/mini_pipeline/params_invalid/$$f.json"; done
+	@for f in parameters_k4 parameters_k8 parameters_null_k4 parameters_null_k8 parameters_dinucleotide_k4 parameters_dinucleotide_k8; do test -s "data/fixtures/mini_pipeline/$$f.json"; done
+	@for f in dinucleotide_seeds_k4 dinucleotide_seeds_k8; do test -s "data/fixtures/mini_pipeline/$$f.tsv"; done
+	@for f in window_size_zero stride_zero stride_mismatch k_min_two k_max_nine k_max_above_window unknown_policy extra_field null_model_unknown null_replicates_mismatch; do test -s "data/fixtures/mini_pipeline/params_invalid/$$f.json"; done
 	@test -s schemas/pipeline_parameters.schema.json
 	@test -s data/cohort/mini/cohort_manifest.jsonl
 	@test -s data/cohort/mini/replicons.tsv
@@ -119,6 +120,7 @@ contract:
 	@ruby -e 'rows=File.readlines("data/cohort/mini/replicons.tsv",chomp:true); abort "replicons.tsv must have header + 4 rows" unless rows.size==5; abort "all mini replicons must be declared circular" unless rows.drop(1).all?{|l| l.split("\t")[4]=="circular"}; abort "replicon scope must be ncbi_complete_replicon" unless rows.drop(1).all?{|l| l.split("\t")[5]=="ncbi_complete_replicon"}'
 	@cd data/cohort/mini && ruby -rdigest -e 'md5s=File.readlines("ncbi_md5sum.txt",chomp:true).map{|l| l.split}; md5s.each{|md5,rel| p=rel.sub(%r{\Ancbi_dataset/data/},""); parts=p.split("/"); target = if parts[0].start_with?("GCF_") then (parts[1].end_with?(".fna") ? "assemblies/#{parts[0]}/#{parts[1]}" : "sequence_report.#{parts[0]}.jsonl") else parts[-1] end; actual=Digest::MD5.file(target).hexdigest; abort "NCBI md5 mismatch: #{target}" unless actual==md5 }'
 	@cd data/fixtures/mini_pipeline && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; ruby scripts/generate_dinucleotide_seed_sidecar.rb data/fixtures/mini_pipeline/parameters_dinucleotide_k4.json data/fixtures/mini_pipeline/pipeline_fixture.fa data/fixtures/mini_pipeline/pipeline_metadata.tsv "$$tmp/k4.tsv"; ruby scripts/generate_dinucleotide_seed_sidecar.rb data/fixtures/mini_pipeline/parameters_dinucleotide_k8.json data/fixtures/mini_pipeline/pipeline_k8_fixture.fa data/fixtures/mini_pipeline/pipeline_k8_metadata.tsv "$$tmp/k8.tsv"; cmp "$$tmp/k4.tsv" data/fixtures/mini_pipeline/dinucleotide_seeds_k4.tsv; cmp "$$tmp/k8.tsv" data/fixtures/mini_pipeline/dinucleotide_seeds_k8.tsv
 	@test -s data/fixtures/cohort_smoke/nc_002127_1.fa
 	@test -s data/fixtures/cohort_smoke/nc_002127_1_metadata.tsv
 	@test -s data/fixtures/cohort_smoke/parameters_k8.json
@@ -130,9 +132,10 @@ contract:
 	@ruby -rjson -e 'p=JSON.parse(File.read("data/fixtures/mini_pipeline/parameters_k4.json")); abort "k4 fixture drifted" unless p["window_size"]==4 && p["stride"]==4 && p["k_min"]==1 && p["k_max"]==4 && p["min_kmer_effective_count"]==1'
 	@ruby -rjson -e 'p=JSON.parse(File.read("data/fixtures/mini_pipeline/parameters_k8.json")); abort "k8 fixture drifted" unless p["window_size"]==16 && p["stride"]==16 && p["k_min"]==1 && p["k_max"]==8 && p["min_kmer_effective_count"]==1'
 	@ruby -rjson -e 'p=JSON.parse(File.read("data/fixtures/mini_pipeline/parameters_null_k8.json")); abort "null k8 fixture drifted" unless p["window_size"]==16 && p["k_max"]==8 && p["null_model"]=="mononucleotide_shuffle" && p["null_replicates"]==8'
-	@ruby -rjson -e 's=JSON.parse(File.read("schemas/pipeline_parameters.schema.json")); abort "null_model must be an optional enum" unless s.dig("properties","null_model","enum")==["none","mononucleotide_shuffle"] && !s.fetch("required").include?("null_model"); abort "null_replicates ceiling drifted" unless s.dig("properties","null_replicates","maximum")==64'
+	@ruby -rjson -e '%w[k4 k8].each{|k| p=JSON.parse(File.read("data/fixtures/mini_pipeline/parameters_dinucleotide_#{k}.json")); abort "dinucleotide #{k} fixture drifted" unless p["null_model"]=="dinucleotide_shuffle" && p["null_replicates"]==8}; s=JSON.parse(File.read("schemas/pipeline_parameters.schema.json")); abort "null_model must be an optional enum" unless s.dig("properties","null_model","enum")==["none","mononucleotide_shuffle","dinucleotide_shuffle"] && !s.fetch("required").include?("null_model"); abort "null_replicates ceiling drifted" unless s.dig("properties","null_replicates","maximum")==64'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "schema must fix canonical_only" unless s.dig("properties","ambiguity_policy","const")=="canonical_only"; abort "schema must fix window fields" unless s.fetch("required").include?("delta_RC") && s.fetch("additionalProperties")==false'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "schema_version must be 0.3.0" unless s.dig("properties","schema_version","const")=="0.3.0"; abort "kmer policy must be masked" unless s.dig("properties","kmer_ambiguity_policy","const")=="masked"; abort "kmer min effective count must be an integer >= 1" unless s.dig("properties","kmer_min_effective_count","type")=="integer" && s.dig("properties","kmer_min_effective_count","minimum")==1; abort "parameters_sha256 must be a lowercase hex sha256" unless s.dig("properties","parameters_sha256","pattern")=="^[0-9a-f]{64}$$"; abort "required must cover k=1..8 with reasons, null summaries and 183 fields" unless s.fetch("required").size==183 && s.fetch("required").include?("rc_kmer_imbalance_8") && s.fetch("required").include?("kmer_8_unavailable_reason") && s.fetch("required").include?("parameters_sha256") && s.fetch("required").include?("null_model") && s.fetch("required").include?("null_replicates") && s.fetch("required").include?("null_seed_derivation") && s.fetch("required").include?("delta_R_null_mean") && s.fetch("required").include?("rc_kmer_imbalance_8_null_q975"); abort "additionalProperties must stay false" unless s.fetch("additionalProperties")==false'
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "dinucleotide model missing from output schema" unless s.dig("properties","null_model","enum").include?("dinucleotide_shuffle"); abort "dinucleotide seed derivation missing from output schema" unless s.dig("properties","null_seed_derivation","enum").include?("sha256_parameters_accession_window_first64be_v1")'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/run_receipt.schema.json")); abort "producer must be Sounio" unless s.dig("properties","producer","properties","language","const")=="Sounio"; abort "validator must be Julia" unless s.dig("properties","validator","oneOf",1,"properties","language","const")=="Julia"'
 	@$(MAKE) --no-print-directory u250-smoke-contract
 	@$(MAKE) --no-print-directory u250-null-contract
@@ -221,8 +224,9 @@ fasta-differential-fixture:
 	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
 		bash scripts/run_fasta_differential_fixture.sh
 
-# Frozen FASTA + metadata -> positional windows -> delta_R/delta_RC -> explicit
-# exclusions -> deterministic JSONL, produced by pinned official Sounio.
+# Frozen FASTA + metadata -> positional windows -> delta_R/delta_RC -> masked
+# k-mers + additive engineering nulls -> deterministic JSONL, produced by
+# pinned official Sounio.
 sounio-mini-pipeline:
 	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
 		bash scripts/run_sounio_mini_pipeline.sh

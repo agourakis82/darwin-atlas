@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/agourakis82/darwin-atlas/schemas/window_operator_profile.schema.json",
   "title": "DOSA window operator profile (mini-pipeline JSONL line)",
-  "description": "One line of the deterministic JSONL emitted by the Sounio mini-pipeline (sounio/src/fasta_stream_fixture.sio --pipeline). Serialization constraints that JSON Schema cannot express are normative text: object members MUST appear in the order listed in 'required', numbers delta_R/delta_RC and the k-mer imbalance ratios MUST serialize with exactly six fractional digits, integers without padding, strings are restricted to [A-Za-z0-9._-] so no JSON escaping ever occurs, and each line is terminated by a single LF. Excluded windows (status=excluded) MUST carry null for every POSITIONAL metric field and effective_count 0; the positional status never forces k-mer fields to null. K-mer fields use the masked policy: for each k in 1..8 the triple (kmer_<k>_effective_count, kmer_<k>_unavailable_reason, six reverse/rc imbalance fields) is either fully null (k above the configured k_max), reason INSUFFICIENT_EFFECTIVE_KMERS with an integer count and six nulls (count below kmer_min_effective_count), or reason null with integer numerator/denominator fields where denominator == kmer_<k>_effective_count. When status=ok, effective_count and denominator equal window_length. Schema 0.2.0 supersedes 0.1.0 by adding parameters_sha256, the unavailable-reason fields, and k=5..8; 0.1.0 field interpretations are unchanged. Schema 0.3.0 supersedes 0.2.0 by appending the null-model block (null_model, null_replicates, null_seed_derivation, and per-metric null_replicates_available/null_mean/null_mad/null_q025/null_q975 in the metric order delta_R, delta_RC, then reverse/rc k-mer imbalance k=1..8): all 93 additive fields are null when the parameter artifact configures no null model, and per-metric summaries are null whenever the observed metric itself is null; 0.2.0 field interpretations are unchanged. Summary values serialize as six-fractional-digit numbers over the exact integer scaled ratios floor(x*1e6/den) of the available replicate draws: floored mean, exact mean absolute deviation from the rational mean, and nearest-rank q025/q975. The fixture null engine (mononucleotide-preserving Fisher-Yates shuffle driven by an LCG mod 2^31 seeded from the parameters_sha256 prefix, window_start, record_index, metric index, and replicate index, derivation id lcg31_sha8_fixture_v1) is an executable specification, not the ADR-0002 pilot null: the primary null model, pilot replicate count, and pilot seed derivation remain proposed.",
+  "description": "One line of the deterministic JSONL emitted by the Sounio mini-pipeline (sounio/src/fasta_stream_fixture.sio --pipeline). Serialization constraints that JSON Schema cannot express are normative text: object members MUST appear in the order listed in 'required', numbers delta_R/delta_RC and the k-mer imbalance ratios MUST serialize with exactly six fractional digits, integers without padding, strings are restricted to [A-Za-z0-9._-] so no JSON escaping ever occurs, and each line is terminated by a single LF. Excluded windows (status=excluded) MUST carry null for every POSITIONAL metric field and effective_count 0; the positional status never forces k-mer fields to null. K-mer fields use the masked policy: for each k in 1..8 the triple (kmer_<k>_effective_count, kmer_<k>_unavailable_reason, six reverse/rc imbalance fields) is either fully null (k above the configured k_max), reason INSUFFICIENT_EFFECTIVE_KMERS with an integer count and six nulls (count below kmer_min_effective_count), or reason null with integer numerator/denominator fields where denominator == kmer_<k>_effective_count. Schema 0.3.0 appends a 93-field null block. It supports the mononucleotide sensitivity fixture (lcg31_sha8_fixture_v1) and the ADR-0003 exact fixed-endpoint Euler/Wilson engineering candidate (sha256_parameters_accession_window_first64be_v1). The latter consumes a frozen seed sidecar and makes every null summary unavailable for partial or non-ACGT windows. Summary values serialize from exact integer scaled ratios. Neither executable fixture accepts ADR-0002 or fixes the pilot replicate count.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -1121,6 +1121,7 @@
       ],
       "enum": [
         "mononucleotide_shuffle",
+        "dinucleotide_shuffle",
         null
       ]
     },
@@ -1139,6 +1140,7 @@
       ],
       "enum": [
         "lcg31_sha8_fixture_v1",
+        "sha256_parameters_accession_window_first64be_v1",
         null
       ]
     },
