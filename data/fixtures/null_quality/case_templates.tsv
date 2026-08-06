@@ -1,0 +1,4 @@
+case_id	engine	accession_version	window_start	bases	draws
+mono_blocks	mono	QMONO.1	0	AAAACCCC	140000
+dinuc_parallel	dinuc	QDINUCPAR.1	0	ACAGTGCATC	72000
+dinuc_distinct	dinuc	QDINUCDIST.1	0	AGCATCGTAC	72000

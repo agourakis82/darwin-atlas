@@ -1,0 +1,4 @@
+case_id	engine	accession_version	window_start	seed_material	bases	draws
+mono_blocks	mono	QMONO.1	0	bca791af50f207ce	AAAACCCC	140000
+dinuc_parallel	dinuc	QDINUCPAR.1	0	f8ac808a50135af1	ACAGTGCATC	72000
+dinuc_distinct	dinuc	QDINUCDIST.1	0	44ff8f9c9d0a2dbe	AGCATCGTAC	72000

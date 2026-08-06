@@ -1,0 +1,1 @@
+{"schema_version":"0.1.0","fixture":"null_generator_quality","alpha":0.001,"mono_seed_mix":"lcg31_sha8_fixture_v1","mono_fixed_record_index":1,"mono_fixed_metric_index":0,"dinuc_seed_derivation":"sha256_parameters_accession_window_first64be_v1","dinuc_rng":"lecuyer_combined31_substream20_sha64_v1","dinuc_shuffle":"euler_wilson_fixed_endpoints_v1"}

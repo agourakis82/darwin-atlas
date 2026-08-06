@@ -3,6 +3,7 @@
 	sounio-fasta-fixture fasta-differential-fixture \
 	sounio-mini-pipeline mini-pipeline-differential-fixture \
 	metamorphic-differential-fixture null-metamorphic-differential-fixture \
+	null-quality-differential-fixture \
 	cohort-smoke-differential \
 	cohort-products \
 	u250-smoke-contract u250-null-contract u250-dinucleotide-contract \
@@ -35,6 +36,7 @@ help:
 	@echo "  mini-pipeline-differential-fixture  Sounio JSONL (including engineering nulls) + Base-only Julia check"
 	@echo "  metamorphic-differential-fixture  Spec 12.1 metamorphic properties in Sounio + independent Julia oracle"
 	@echo "  null-metamorphic-differential-fixture  Metamorphic relations MR1-MR4 around both null engines + Julia byte-exact check"
+	@echo "  null-quality-differential-fixture  Null-generator quality: exact support + chi-square uniformity (alpha=1e-3) for both engines"
 	@echo "  cohort-smoke-differential  Complete-replicon engineering smoke + Julia byte-exact check"
 	@echo "  cohort-products         Engineering canonical products + Julia byte-exact checks"
 	@echo "  u250-smoke-contract     Validate the engineering U250 hardware-smoke scaffold"
@@ -82,6 +84,18 @@ contract:
 	@test -x fpga/u250-dinucleotide-null/verify-fixture.sh
 	@test -s data/fixtures/dinucleotide_null/SHA256SUMS
 	@cd data/fixtures/dinucleotide_null && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
+	@test -s sounio/src/null_quality_fixture.sio
+	@test -x scripts/generate_null_quality_cases.rb
+	@test -x scripts/run_null_quality_differential.sh
+	@test -x julia/scripts/validate_null_quality.jl
+	@rg -q 'NULL_QUALITY_DIFFERENTIAL_PASS' scripts/run_null_quality_differential.sh
+	@test -s data/fixtures/null_quality/parameters.json
+	@test -s data/fixtures/null_quality/case_templates.tsv
+	@test -s data/fixtures/null_quality/cases.tsv
+	@test -s data/fixtures/null_quality/README.md
+	@test -s data/fixtures/null_quality/SHA256SUMS
+	@cd data/fixtures/null_quality && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
+	@tmp=$$(mktemp); trap 'rm -f "$$tmp"' EXIT; ruby scripts/generate_null_quality_cases.rb data/fixtures/null_quality/parameters.json data/fixtures/null_quality/case_templates.tsv "$$tmp"; cmp "$$tmp" data/fixtures/null_quality/cases.tsv
 	@test -s toolchains/sounio.lock.json
 	@test -s fpga/u250-smoke/src/vector_add.cpp
 	@test -s fpga/u250-smoke/src/host.cpp
@@ -268,6 +282,15 @@ metamorphic-differential-fixture:
 null-metamorphic-differential-fixture:
 	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
 		bash scripts/run_null_metamorphic_differential.sh
+
+# Fase N null-generator quality gate: both engines replicated exactly in a
+# standalone Sounio fixture (284000 frozen draws, twice, byte-identical),
+# then an independent standard-library-only Julia validator re-enumerates
+# each exact null support, requires containment plus full coverage, and
+# applies a chi-square uniformity test with pre-declared alpha=1e-3 per case.
+null-quality-differential-fixture:
+	SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
+		bash scripts/run_null_quality_differential.sh
 
 # Complete-replicon engineering smoke (NC_002127.1, 207 windows): optimized
 # kernel twice for determinism + independent Julia byte-exact recomputation.
