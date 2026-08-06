@@ -78,3 +78,83 @@ anexado na Fase D.
 - **Null mononucleotídeo como primário:** não preserva estrutura de
   dinucleotídeos, que é o primeiro confundidor composicional esperado em
   escala genômica.
+
+## Evidence annex (Fase N–O1, 2026-08-06)
+
+Este anexo registra evidência de engenharia; o ADR permanece **proposed** e
+nenhum item acima vira decisão por este anexo.
+
+### N1. Gate de qualidade dos geradores (uniformidade estatística)
+
+Suíte nova (`sounio/src/null_quality_fixture.sio`, réplica exata dos dois
+motores; `julia/scripts/validate_null_quality.jl`, validador independente
+stdlib-only; `data/fixtures/null_quality/`). Para cada caso o validador
+re-enumera o suporte nulo exato (permutações distintas do multiset; trilhas
+de Euler com arestas paralelas distintas — ambos uniformes por construção,
+com multiplicidade constante `prod n_c!` / `prod m_vw!`), exige contenção e
+cobertura total, e aplica qui-quadrado com α = 1e-3 pré-declarado (p-valores
+via gama incompleta regularizada Base-only com self-tests de forma fechada).
+Execução dupla byte-idêntica (determinismo ✓) no Sounio pinado `37de2c9`.
+
+| caso | motor | draws | suporte | χ² (df) | p | veredito |
+|---|---|---|---|---|---|---|
+| `dinuc_parallel` (ACAGTGCATC) | dinuc | 72.000 | 18/18 | 18,27 (17) | 0,372 | PASS |
+| `dinuc_distinct` (AGCATCGTAC) | dinuc | 72.000 | 36/36 | 37,35 (35) | 0,362 | PASS |
+| `mono_blocks` (AAAACCCC) | mono | 140.000 | **55/70** | 111.045 (69) | ≈0 | **FAIL** |
+
+O motor mono (`lcg31_sha8_fixture_v1`) falha de forma estrutural: a família de
+seeds aritmética (`+1009·r`) composta com o LCG glibc e o Fisher-Yates com
+`state mod (i+1)` alcança apenas **2.520 de 40.320 permutações de posição
+(6,25%)** — defeito de reticulado (Marsaglia). Verificado com réplica Python
+byte-exata contra o artefato Sounio; o suporte alcançável é 55/70 para
+**qualquer** seed_base/window_start/record_index/metric_index (6
+configurações testadas), com razões de frequência de 0,17× a 5,33×, e o
+defeito persiste na geometria piloto 16 bp (9.711/12.870 sequências
+alcançáveis em 200.000 réplicas consecutivas).
+
+**Consequência para o item 5:** o null primário dinucleotídeo (ADR-0003) é
+estatisticamente validado nos dois casos do gate; o null mononucleotídeo,
+como engenhado, **não pode servir de sensibilidade** — ou é re-engenhado
+(derivação de seed por réplica via SHA-256, como o dinuc, ou gerador mais
+forte; novo engine versionado com re-gate completo) ou o papel de
+sensibilidade é removido deste ADR. Nenhum artefato anterior é invalidado:
+os gates anteriores provavam byte-exatidão/determinismo/invariantes, não
+uniformidade, e nenhum carrega afirmação científica.
+
+### N2. Runtime dos motores e projeção para o item 4
+
+Sonda (`scripts/run_null_runtime_probe.sh`) sobre o replicon de smoke
+NC_002127.1 (207 janelas, 16/16, 18 métricas), Sounio pinado, ELF canônico
+`f0595e60...`, VM Lima x86_64 single-thread, mesma sessão:
+
+| motor | r=8 | r=16 | r=32 | r=64 | ajuste linear |
+|---|---|---|---|---|---|
+| mono | 56,2 s | 101,5 s | 198,7 s | 387,9 s | 7,9 s + 5,94 s/réplica (R²=0,99995) |
+| dinuc | 63,2 s | 126,3 s | 231,7 s | 430,2 s | 18,3 s + 6,48 s/réplica (R²=0,99856) |
+
+Custos unitários: ~1,6 ms (mono) e ~1,7 ms (dinuc) por janela/métrica/
+réplica. Projeção para o cromossomo NC_000913.3 (290.104 janelas × 18
+métricas): n=64 → ~6–7 dias; **n=1000 → ~97 dias (mono) e ~106 dias (dinuc,
+subestimado)**. O dinuc ainda agrava em n grande: o seeding por réplica é
+O(r) — Σ(r−1) ≈ n²/2 jumps por janela/métrica (~500k em n=1000; ~7 dias
+adicionais na taxa medida de ~4,4M jumps/s) — e o mesmo shuffle é
+recomputado 18× (uma por métrica). **Consequência para o item 4:** n=1000 em
+escala cromossômica é inviável no engine CPU atual; antes da Fase F é
+preciso jump-ahead O(log r) via exponenciação modular, compartilhamento do
+shuffle entre métricas, e/ou o caminho U250. O teto `null_replicates=64` do
+schema também precisará de revisão para n=1000.
+
+### O1. Correção do crash de arena na resolução de seeds dinuc
+
+A sonda revelou que a integração dinuc do pipeline morria deterministicamente
+com rc=181 após 20.448 shuffles (janela 142/207, r=8): `resolve_dinucleotide_seed`
+alocava ~2 strings por linha varrida por janela (varredura linear por janela
+→ vazamento quadrático na arena de strings, que o backend nativo não reclama
+em loops). Fixtures anteriores nunca excederam 12.096 shuffles por processo,
+então o defeito era latente. A correção reescreve a resolução com aritmética
+de índices pura (zero alocação, mesma semântica first-match). Fonte nova
+`06b8890e...`, ELF `f0595e60...`. Re-bateria completa **byte-idêntica**:
+mini-pipeline 6/6 artefatos (`e5564ea3`, `f87bd3f6`, `4997efed`, `d53de8b3`,
+`839fa985`, `086f585b`) com tripla de kernels equivalente, null-metamórfico
+(`c37d56ad`, `33135ce3`), cohort smoke (207 janelas, Julia byte-exato), e a
+sonda 8/8 configs completa 207/207 linhas (dinuc r=64 incluído).

@@ -527,8 +527,31 @@ fn load_dinucleotide_seeds(path: string) -> bool with IO, Mut, Panic, Div {
     true
 }
 
+// Allocation-free hex parse over the frozen sidecar text (Fase O1).
+fn dinucleotide_parse_hex8_at(pos: i64) -> i64 with Mut, Panic, Div {
+    var parsed: i64 = 0
+    var i: i64 = 0
+    while i < 8 {
+        let digit = hex_digit_value(str_char_at(G_DINUC_SEED_TEXT, pos + i))
+        if digit < 0 { return -1 }
+        parsed = parsed * 16 + digit
+        i = i + 1
+    }
+    parsed
+}
+
+// Allocation-free sidecar resolution (Fase O1). The previous implementation
+// built a fresh string per scanned line via str_span/tsv_get_field; the
+// native backend never reclaims string constructions inside loops, so
+// resolution leaked ~2 strings per sidecar line per window (quadratic in
+// window count) and the process died with rc=181 after ~20k constructions
+// (window 142 of the 207-window cohort smoke, r=8). The scan below performs
+// the identical first-match semantics with pure index arithmetic: same
+// inputs, same outputs, zero string allocations. The per-window linear scan
+// is kept deliberately for semantic identity with the published fixtures.
 fn resolve_dinucleotide_seed() -> bool with Mut, Panic, Div {
     let n = str_len(G_DINUC_SEED_TEXT)
+    let accession_len = str_len(G_META_SEQUENCE)
     var start: i64 = 0
     var logical_line: i64 = 0
     while start <= n {
@@ -536,15 +559,38 @@ fn resolve_dinucleotide_seed() -> bool with Mut, Panic, Div {
         while end < n && str_char_at(G_DINUC_SEED_TEXT, end) != 10 { end = end + 1 }
         var line_end = end
         if line_end > start && str_char_at(G_DINUC_SEED_TEXT, line_end - 1) == 13 { line_end = line_end - 1 }
-        let line = str_span(G_DINUC_SEED_TEXT, start, line_end)
-        if str_len(line) > 0 {
-            if logical_line > 0
-                && str_eq(tsv_get_field(line, 0), G_META_SEQUENCE)
-                && parse_nonnegative_i64(tsv_get_field(line, 1)) == G_WINDOW_START {
-                let seed = tsv_get_field(line, 2)
-                G_DINUC_SEED_HI = dinucleotide_parse_hex8(seed, 0)
-                G_DINUC_SEED_LO = dinucleotide_parse_hex8(seed, 8)
-                return G_DINUC_SEED_HI >= 0 && G_DINUC_SEED_LO >= 0
+        if line_end > start {
+            if logical_line > 0 {
+                var tab1 = start
+                while tab1 < line_end && str_char_at(G_DINUC_SEED_TEXT, tab1) != 9 { tab1 = tab1 + 1 }
+                if tab1 - start == accession_len {
+                    var same: bool = true
+                    var k: i64 = 0
+                    while k < accession_len {
+                        if str_char_at(G_DINUC_SEED_TEXT, start + k) != str_char_at(G_META_SEQUENCE, k) { same = false }
+                        k = k + 1
+                    }
+                    if same {
+                        var tab2 = tab1 + 1
+                        while tab2 < line_end && str_char_at(G_DINUC_SEED_TEXT, tab2) != 9 { tab2 = tab2 + 1 }
+                        var window_value: i64 = 0
+                        var digits: i64 = 0
+                        var digits_ok: bool = true
+                        var i: i64 = tab1 + 1
+                        while i < tab2 {
+                            let ch = str_char_at(G_DINUC_SEED_TEXT, i)
+                            if ch < 48 || ch > 57 { digits_ok = false }
+                            window_value = window_value * 10 + ch - 48
+                            digits = digits + 1
+                            i = i + 1
+                        }
+                        if digits_ok && digits > 0 && window_value == G_WINDOW_START && tab2 + 17 <= line_end {
+                            G_DINUC_SEED_HI = dinucleotide_parse_hex8_at(tab2 + 1)
+                            G_DINUC_SEED_LO = dinucleotide_parse_hex8_at(tab2 + 9)
+                            return G_DINUC_SEED_HI >= 0 && G_DINUC_SEED_LO >= 0
+                        }
+                    }
+                }
             }
             logical_line = logical_line + 1
         }
