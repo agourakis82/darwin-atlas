@@ -82,6 +82,9 @@ contract:
 	@test -x scripts/run_dinucleotide_null_differential.sh
 	@test -x julia/scripts/validate_dinucleotide_null.jl
 	@test -x fpga/u250-dinucleotide-null/verify-fixture.sh
+	@test -s fpga/u250-dinucleotide-null/src/host_throughput.cpp
+	@test -s fpga/u250-dinucleotide-null/kubernetes/throughput-pod.yaml
+	@test -s fpga/u250-dinucleotide-null/THROUGHPUT_PROBE.md
 	@test -s data/fixtures/dinucleotide_null/SHA256SUMS
 	@cd data/fixtures/dinucleotide_null && (sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS)
 	@test -s sounio/src/null_quality_fixture.sio
