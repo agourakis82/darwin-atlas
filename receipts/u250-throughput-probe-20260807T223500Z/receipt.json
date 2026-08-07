@@ -1,0 +1,21 @@
+{
+  "receipt_type": "u250_throughput_probe",
+  "phase": "P1",
+  "timestamp_utc": "2026-08-07T22:35:00Z",
+  "node": "dl380-proxmox",
+  "device_bdf": "0000:d8:00.1",
+  "shell": "xilinx_u250_gen3x16_xdma_shell_4_1",
+  "xrt_version": "2.23.0",
+  "xclbin_sha256": "b123ea0cfba5284e16e457bc1326435864ef50123e0ec2208666a741b888c9be",
+  "host_binary_sha256": "987ca5bdbcd58b2f4be729f0444932f30e82d356b9fb64324f9c21b3b9d1e170",
+  "execution_path": "ctr-run gcc:15-trixie container on dl380 host (kubelet pod-create path wedged by hung systemd/D-Bus; runtime bypass via privileged hostPID pod + nsenter)",
+  "anchor": {"cases": 8, "replicates": 8, "slots": 1024, "tolerance": 0, "result": "pass"},
+  "integrity": {"cases": 1024, "replicates": 8, "slots_ok": 131072, "result": "pass"},
+  "sweep": [
+    {"cases": 1024, "replicates": 8,    "draws": 8192,    "wall_ms": 75,     "draws_per_second": 108038},
+    {"cases": 1024, "replicates": 64,   "draws": 65536,   "wall_ms": 1019,   "draws_per_second": 64287},
+    {"cases": 1024, "replicates": 256,  "draws": 262144,  "wall_ms": 9780,   "draws_per_second": 26802},
+    {"cases": 1024, "replicates": 1024, "draws": 1048576, "wall_ms": 130390, "draws_per_second": 8041}
+  ],
+  "result": "pass"
+}

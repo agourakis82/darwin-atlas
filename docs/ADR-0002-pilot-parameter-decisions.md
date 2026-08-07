@@ -79,7 +79,7 @@ anexado na Fase D.
   dinucleotídeos, que é o primeiro confundidor composicional esperado em
   escala genômica.
 
-## Evidence annex (Fase N–O1, 2026-08-06)
+## Evidence annex (Fase N–O1, 2026-08-06; Fase P1, 2026-08-07)
 
 Este anexo registra evidência de engenharia; o ADR permanece **proposed** e
 nenhum item acima vira decisão por este anexo.
@@ -158,3 +158,46 @@ mini-pipeline 6/6 artefatos (`e5564ea3`, `f87bd3f6`, `4997efed`, `d53de8b3`,
 `839fa985`, `086f585b`) com tripla de kernels equivalente, null-metamórfico
 (`c37d56ad`, `33135ce3`), cohort smoke (207 janelas, Julia byte-exato), e a
 sonda 8/8 configs completa 207/207 linhas (dinuc r=64 incluído).
+
+### P1. Throughput medido do kernel U250 (sonda, hardware real)
+
+Sonda `fpga/u250-dinucleotide-null/src/host_throughput.cpp` executada em
+2026-08-07 no node `dl380-proxmox` (BDF `0000:d8:00.1`, shell
+`xdma_4_1`, XRT 2.23.0), reusando o xclbin da Fase L byte-idêntico
+(`b123ea0c...`; a interface aceita `case_count`/`replicates` em runtime, sem
+rebuild Vitis). Âncora de corretude no fixture congelado 8×8 com tolerância 0
+(bit-exata) e varredura de integridade 131.072/131.072 slots (sentinela, faixa,
+endpoints). Receipt completo em
+`receipts/u250-throughput-probe-20260807T223500Z/`.
+
+Sweep em 1.024 janelas sintéticas (4 famílias de grafos) por instância:
+
+| replicates | draws | wall | draws/s |
+|---|---|---|---|
+| 8 | 8.192 | 75 ms | **108.038** |
+| 64 | 65.536 | 1.019 ms | 64.287 |
+| 256 | 262.144 | 9.780 ms | 26.802 |
+| 1.024 | 1.048.576 | 130.390 ms | 8.041 |
+
+Leituras para os itens 4 e 6:
+
+1. **O envelope pré-hardware (~0,5–2M draws/s/instância) superestimou 1–2
+   ordens de grandeza.** No regime do piloto (n≈1000 réplicas por janela), a
+   instância única entrega ~8k draws/s; o melhor ponto medido (batches curtos,
+   R=8) é ~108k draws/s.
+2. **O custo por draw é superlinear em R** (~13,6× além do linear entre R=8 e
+   R=1024): o kernel repete trabalho por réplica (re-stream da janela e
+   derivação sequencial de seeds por réplica, sem jump-ahead). Batching
+   host-side com R pequeno mitiga parcialmente, a custo de overhead por
+   launch.
+3. **P2 (redesign do kernel) vira pré-requisito, não opção:** shuffle
+   compartilhado entre as 18 métricas, jump-ahead por tabela ROM
+   host-precomputada, sumários in-kernel (devolver estatísticas, não draws
+   brutos) e N instâncias. Mesmo escalando a estratégia R=8 (108k draws/s),
+   o piloto dinuc n=1000 cromossômico (~290M draws × 18 métricas se nada
+   mudar) ficaria na casa de dias; com sumário in-kernel e shuffle
+   compartilhado, o alvo de minutos/horas volta a ser plausível.
+4. Nota de execução: a sonda rodou via container `ctr` direto no host porque o
+   caminho kubelet→systemd do node estava temporariamente degradado; o
+   contrato do device plugin (`sounio.dev/u250`) e o pod manifest seguem o
+   caminho nominal para corridas futuras.

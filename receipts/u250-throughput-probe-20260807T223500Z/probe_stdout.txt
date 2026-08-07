@@ -1,0 +1,7 @@
+U250_DINUCLEOTIDE_THROUGHPUT_ANCHOR cases=8 replicates=8 slots=1024 tolerance=0
+U250_DINUCLEOTIDE_THROUGHPUT cases=1024 replicates=8 draws=8192 wall_ms=75 draws_per_second=108038
+U250_DINUCLEOTIDE_THROUGHPUT_INTEGRITY cases=1024 replicates=8 slots_ok=131072
+U250_DINUCLEOTIDE_THROUGHPUT cases=1024 replicates=64 draws=65536 wall_ms=1019 draws_per_second=64287
+U250_DINUCLEOTIDE_THROUGHPUT cases=1024 replicates=256 draws=262144 wall_ms=9780 draws_per_second=26802
+U250_DINUCLEOTIDE_THROUGHPUT cases=1024 replicates=1024 draws=1048576 wall_ms=130390 draws_per_second=8041
+U250_DINUCLEOTIDE_THROUGHPUT_PASS anchor=ok cases=1024 max_replicates=1024
