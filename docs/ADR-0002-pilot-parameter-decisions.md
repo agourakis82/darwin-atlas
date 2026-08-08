@@ -201,3 +201,56 @@ Leituras para os itens 4 e 6:
    caminho kubelet→systemd do node estava temporariamente degradado; o
    contrato do device plugin (`sounio.dev/u250`) e o pod manifest seguem o
    caminho nominal para corridas futuras.
+
+### P2 (implementação em andamento). Kernel `dinucleotide_summaries` + núcleo compartilhado
+
+O redesign seguiu a arquitetura do item 3 acima, com um núcleo de semântica
+único `fpga/u250-dinucleotide-null/src/null_core.hpp` (C++17 puro, sem
+alocação dinâmica, sem ponto flutuante) compilado por três backends: Vitis
+HLS (kernel U250), HIP (benchmark R9700) e g++ host (csim/âncoras).
+
+1. **Jump-ahead ROM.** `kJumpRom{1,2}[i] = kJump{1,2}^(2^i) mod m{1,2}`
+   (i=0..10), derivada por tabela de potências e provada equivalente à derivação
+   sequencial para toda réplica 1..1024; a derivação por réplica cai de O(R)
+   para O(log R). Âncora csim: os 1.024 slots do fixture Fase L (8×8) saem
+   bit-idênticos (`P2_CSIM_ANCHOR ... mismatches=0`).
+2. **Shuffle compartilhado.** Um único draw alimenta as 18 métricas no kernel
+   (0–1 posicionais; 2k/2k+1 = reverse/rc k-mer imbalance, k=1..8), espelhando
+   `window_pipeline_core.jl` — incluindo a política de indisponibilidade
+   (`min_effective`, denominador de órbita vazio, draw rejeitado fail-closed).
+3. **Sumários in-kernel.** Cinco campos inteiros exatos por (caso, métrica) —
+   count, mean piso, MAD exato da média racional, q025/q975 nearest-rank —
+   com ordenação bitônica on-chip; saída 18×5 int32 por caso (180× menor que
+   os draws brutos em R=1024). Âncora csim contra referência Python
+   independente (`scripts/null_summaries_reference.py`, reimplementação da
+   semântica Julia): 144/144 campos em `min_effective=1` e `=4`
+   (`P2_CSIM_DIFF checked=144 mismatches=0`).
+4. **N instâncias:** adiado para após a validação do xclbin v2 (medir primeiro
+   o teto de 1 CU com o novo formato de saída).
+
+### B3. Benchmark comparativo Radeon AI PRO R9700 (gfx1201, ROCm 7.2.4)
+
+O mesmo `null_core.hpp` compilado via HIP e executado no pod
+`beagle/rocm-r9700-compute` (dl380-proxmox, BDF `0000:88:00.0`, PCIe 32 GT/s
+x16, 34,2 GB VRAM). Âncoras no hardware: draws 1.024/1.024 bit-exatos e
+720/720 campos de sumário idênticos à recomputação host. Sweep nas mesmas
+1.024 janelas sintéticas da sonda P1 — **pipeline completo por draw** (draw +
+18 métricas + sumários), contra draws crus no U250:
+
+| replicates | U250 P1 (draws/s, só draws) | R9700 (draws/s, pipeline completo) |
+|---|---|---|
+| 8 | 108.038 | 198.351 |
+| 64 | 64.287 | 1.762.387 |
+| 256 | 26.802 | 7.352.308 |
+| 1.024 | 8.041 | **28.003.204** |
+
+Em R=1024 a R9700 entrega ~3.483× a vazão do U250 Fase L executando ~20× mais
+trabalho por draw; kernel1 isolado atinge ~166M draws/s. O gargalo medido é o
+kernel2 (sumários bitônicos single-thread por bloco, ~31–41 ms constantes no
+sweep) — headroom documentado no receipt
+`receipts/r9700-dinucleotide-benchmark-20260808T184342Z/`, não limite de
+semântica. Leitura para o piloto n=1000: ~290M draws com pipeline completo na
+faixa de dezenas de segundos por cromossomo nesta escala de janela (medida de
+engenharia no fixture L=16; janelas reais maiores movem a constante, não a
+ordem). O build Vitis do kernel v2 (`build-summaries.sh`) corre na VM
+`vitis-u250-builder`; o receipt P2 em hardware fecha a fase.

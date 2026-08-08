@@ -1,0 +1,43 @@
+{
+  "receipt_type": "r9700_dinucleotide_benchmark",
+  "phase": "B3",
+  "timestamp_utc": "2026-08-08T18:43:42Z",
+  "node": "dl380-proxmox",
+  "execution_path": "k8s pod beagle/rocm-r9700-compute (rocm/dev-ubuntu-24.04:7.2.4, privileged, /dev/kfd + /dev/dri hostPath), sources persisted on host /work/dinuc-null",
+  "device": {
+    "card": "AMD Radeon AI PRO R9700 (Navi 48, gfx1201)",
+    "pci_bdf": "0000:88:00.0",
+    "pcie_link": "32 GT/s x16 (cap = sta)",
+    "vram_bytes": 34208743424,
+    "rocm_version": "7.2.4",
+    "kernel_module": "amdgpu"
+  },
+  "semantics": {
+    "core_sha256": "d67f90eba67df5c4dc193851a95f224c80823f13421d73de096e0fc3e2df9597",
+    "benchmark_source_sha256": "7c3ef2a127112068017c65108fc49118c48b36e872732cd6ff1b9971629581a7",
+    "benchmark_binary_sha256": "59960817a7d3b4f17c5cf5be341d89b38346506b17c75f51ac157b00e4d74953",
+    "shared_with_u250_p2_kernel": true,
+    "pipeline_per_draw": "euler_wilson_fixed_endpoints_v1 draw + 18-metric projection + exact integer summaries (ADR-0003 / window schema 0.3.0)"
+  },
+  "anchor": {
+    "draws": {"cases": 8, "replicates": 8, "slots": 1024, "mismatches": 0, "result": "pass"},
+    "summaries": {"checked_fields": 720, "mismatches": 0, "reference": "host recompute through null_core.hpp over the frozen Fase L draws", "result": "pass"}
+  },
+  "sweep": [
+    {"cases": 1024, "replicates": 8, "draws": 8192, "kernel1_ms": 0.6, "kernel2_ms": 40.7, "total_ms": 41.3, "draws_per_second": 198351, "summaries_per_second": 24793},
+    {"cases": 1024, "replicates": 64, "draws": 65536, "kernel1_ms": 0.7, "kernel2_ms": 36.5, "total_ms": 37.2, "draws_per_second": 1762387, "summaries_per_second": 27537},
+    {"cases": 1024, "replicates": 256, "draws": 262144, "kernel1_ms": 2.2, "kernel2_ms": 33.5, "total_ms": 35.7, "draws_per_second": 7352308, "summaries_per_second": 28719},
+    {"cases": 1024, "replicates": 1024, "draws": 1048576, "kernel1_ms": 6.3, "kernel2_ms": 31.1, "total_ms": 37.4, "draws_per_second": 28003204, "summaries_per_second": 27346}
+  ],
+  "comparison_u250_p1": {
+    "u250_scope": "draws only (no metrics, no summaries), same 1024-case synthetic sweep, receipt u250-throughput-probe-20260807T223500Z",
+    "r1024": {"u250_draws_per_second": 8041, "r9700_draws_per_second": 28003204, "speedup": 3483},
+    "r8": {"u250_draws_per_second": 108038, "r9700_draws_per_second": 198351, "speedup": 1.84},
+    "note": "R9700 numbers include the full P2 pipeline (draw + 18 metrics + summaries); kernel2 (single-thread-per-block bitonic summaries, ~31-41 ms) is the bottleneck at every R and is documented headroom, not a semantics limit. kernel1 alone reaches 166M draws/s at R=1024."
+  },
+  "known_headroom": [
+    "summarize_kernel parallelization (block-cooperative compaction + bitonic sort) — est. kernel2 < 5 ms",
+    "larger probe_cases batches to amortize launch overhead at low R"
+  ],
+  "result": "pass"
+}

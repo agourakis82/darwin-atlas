@@ -1,0 +1,7 @@
+59960817a7d3b4f17c5cf5be341d89b38346506b17c75f51ac157b00e4d74953  /work/dinuc-null/null_benchmark_hip
+d67f90eba67df5c4dc193851a95f224c80823f13421d73de096e0fc3e2df9597  /work/dinuc-null/src/null_core.hpp
+7c3ef2a127112068017c65108fc49118c48b36e872732cd6ff1b9971629581a7  /work/dinuc-null/hip/null_benchmark_hip.cpp
+ebdb45bbca939c19df3cd59b9a8b12c961b046a73e007e7e41a3a0a85cb380c6  /work/dinuc-null/generated_fixture.hpp
+GPU[0]		: Card Series: 		AMD Radeon Graphics
+GPU[0]		: Card Model: 		0x7551
+7.2.4

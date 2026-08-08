@@ -1,0 +1,7 @@
+R9700_DINUCLEOTIDE_ANCHOR cases=8 replicates=8 slots=1024 mismatches=0 PASS
+R9700_DINUCLEOTIDE_SUMMARY_ANCHOR checked=720 mismatches=0 PASS
+R9700_DINUCLEOTIDE_THROUGHPUT cases=1024 replicates=8 draws=8192 kernel1_ms=0.6 kernel2_ms=40.7 total_ms=41.3 draws_per_second=198351 summaries_per_second=24793
+R9700_DINUCLEOTIDE_THROUGHPUT cases=1024 replicates=64 draws=65536 kernel1_ms=0.7 kernel2_ms=36.5 total_ms=37.2 draws_per_second=1762387 summaries_per_second=27537
+R9700_DINUCLEOTIDE_THROUGHPUT cases=1024 replicates=256 draws=262144 kernel1_ms=2.2 kernel2_ms=33.5 total_ms=35.7 draws_per_second=7352308 summaries_per_second=28719
+R9700_DINUCLEOTIDE_THROUGHPUT cases=1024 replicates=1024 draws=1048576 kernel1_ms=6.3 kernel2_ms=31.1 total_ms=37.4 draws_per_second=28003204 summaries_per_second=27346
+R9700_DINUCLEOTIDE_BENCHMARK_PASS anchor=ok cases=1024 max_replicates=1024
