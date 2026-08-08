@@ -252,5 +252,42 @@ sweep) — headroom documentado no receipt
 semântica. Leitura para o piloto n=1000: ~290M draws com pipeline completo na
 faixa de dezenas de segundos por cromossomo nesta escala de janela (medida de
 engenharia no fixture L=16; janelas reais maiores movem a constante, não a
-ordem). O build Vitis do kernel v2 (`build-summaries.sh`) corre na VM
-`vitis-u250-builder`; o receipt P2 em hardware fecha a fase.
+ordem).
+
+### P2 hardware. Sonda U250 do kernel `dinucleotide_summaries`
+
+xclbin v2 compilado com Vitis 2025.1 na VM `vitis-u250-builder` (alvo
+`xilinx_u250_gen3x16_xdma_4_1_202210_1`, link em 1h 47m 29s) e executado no
+U250 do dl380-proxmox (BDF `0000:d8:00.1`, shell
+`xilinx_u250_gen3x16_xdma_shell_4_1`, XRT 2.23.0). Âncora no hardware:
+720/720 campos de sumário do fixture 8×8 idênticos à referência com
+tolerância 0; integridade 18.432/18.432 blocos. Sweep nas mesmas 1.024
+janelas sintéticas da sonda P1, agora com **pipeline completo por draw**
+(draw + 18 métricas + sumários in-kernel):
+
+| replicates | U250 P1 (draws/s, só draws) | U250 P2 (draws/s, pipeline completo) | R9700 (draws/s, pipeline completo) |
+|---|---|---|---|
+| 8 | 108.038 | 576 | 198.351 |
+| 64 | 64.287 | 4.033 | 1.762.387 |
+| 256 | 26.802 | 11.278 | 7.352.308 |
+| 1.024 | 8.041 | **20.447** | **28.003.204** |
+
+P2 em cases/s e wall: 72 cases/s (14,2 s), 63 (16,2 s), 44 (23,2 s) e 19
+(51,3 s) para R=8/64/256/1.024. Leituras:
+
+1. **O custo superlinear em R inverteu-se.** Na Fase L a vazão caía com R
+   (re-stream da janela e derivação O(R) de seeds por réplica); com
+   jump-ahead ROM e shuffle compartilhado, draws/s *cresce* com R
+   (576 → 20.447) conforme o overhead por launch amortiza — o melhor ponto
+   passa a ser R=1.024, não R=8.
+2. **2,5× a Fase L em R=1.024 executando ~20× mais trabalho por draw.**
+   20.447 draws/s com pipeline completo contra 8.041 draws/s só de draws;
+   em vazão de casos (19 cases/s em R=1.024), o piloto n=1000 (~290M draws
+   × 18 métricas) sai da casa de dias para ~4 h por cromossomo nesta escala
+   de janela — a meta do redesign (minutos/horas) é atingida no hardware.
+3. **A R9700 segue ~1.370× à frente em R=1.024** (28,0M vs 20,4k draws/s no
+   mesmo pipeline completo; ~344× em R=8) — o U250 fecha a correção semântica
+   e a viabilidade, a GPU detém a vazão bruta nesta escala.
+
+Evidência completa em `receipts/u250-summaries-probe-20260808T204714Z/`
+(receipt.json, stdout da sonda, SHA256SUMS e logs do build Vitis).

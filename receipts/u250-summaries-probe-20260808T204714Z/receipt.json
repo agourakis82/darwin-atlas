@@ -1,0 +1,29 @@
+{
+  "receipt_type": "u250_summaries_probe",
+  "phase": "P2",
+  "timestamp_utc": "2026-08-08T20:47:14Z",
+  "node": "dl380-proxmox",
+  "device_bdf": "0000:d8:00.1",
+  "shell": "xilinx_u250_gen3x16_xdma_shell_4_1",
+  "xrt_version": "2.23.0",
+  "xclbin_sha256": "62a3acb5aed156eb13a3eaccd573f5a532df1555e57f99e1d78978495fbf3efc",
+  "host_binary_sha256": "9ac24c2abc4a20c10b966df60aaaeaf0f0ad066915ced65785af27845a3d5f93",
+  "build": {
+    "builder": "vitis-u250-builder",
+    "vpp_version": "v++ v2025.1 (SW Build 6137779, 2025-05-21)",
+    "platform": "xilinx_u250_gen3x16_xdma_4_1_202210_1",
+    "link_elapsed": "1h 47m 29s",
+    "marker": "U250_DINUCLEOTIDE_SUMMARIES_BUILD_PASS",
+    "evidence": ["compile.log", "link.log", "vpp-version.txt", "platforminfo.txt", "build-SHA256SUMS.txt"]
+  },
+  "execution_path": "kubectl exec into privileged hostPID pod beagle/node-ephemeral-governance-ztcg5 + nsenter -t 1 -m on dl380 host; host binary precompiled in /work/p2 (sha256 pinned)",
+  "anchor": {"cases": 8, "metrics": 18, "fields": 720, "tolerance": 0, "result": "pass"},
+  "integrity": {"cases": 1024, "replicates": 8, "blocks_ok": 18432, "result": "pass"},
+  "sweep": [
+    {"cases": 1024, "replicates": 8,    "wall_ms": 14208, "cases_per_second": 72, "draws_per_second": 576},
+    {"cases": 1024, "replicates": 64,   "wall_ms": 16248, "cases_per_second": 63, "draws_per_second": 4033},
+    {"cases": 1024, "replicates": 256,  "wall_ms": 23242, "cases_per_second": 44, "draws_per_second": 11278},
+    {"cases": 1024, "replicates": 1024, "wall_ms": 51281, "cases_per_second": 19, "draws_per_second": 20447}
+  ],
+  "result": "pass"
+}

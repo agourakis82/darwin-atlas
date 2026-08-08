@@ -1,0 +1,7 @@
+U250_SUMMARIES_ANCHOR cases=8 metrics=18 fields=720 tolerance=0
+U250_SUMMARIES_THROUGHPUT cases=1024 replicates=8 wall_ms=14208 cases_per_second=72 draws_per_second=576
+U250_SUMMARIES_INTEGRITY cases=1024 replicates=8 blocks_ok=18432
+U250_SUMMARIES_THROUGHPUT cases=1024 replicates=64 wall_ms=16248 cases_per_second=63 draws_per_second=4033
+U250_SUMMARIES_THROUGHPUT cases=1024 replicates=256 wall_ms=23242 cases_per_second=44 draws_per_second=11278
+U250_SUMMARIES_THROUGHPUT cases=1024 replicates=1024 wall_ms=51281 cases_per_second=19 draws_per_second=20447
+U250_SUMMARIES_PASS anchor=ok cases=1024 max_replicates=1024
