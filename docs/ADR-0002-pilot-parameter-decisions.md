@@ -78,6 +78,13 @@ anexado na Fase D.
 - **Null mononucleotídeo como primário:** não preserva estrutura de
   dinucleotídeos, que é o primeiro confundidor composicional esperado em
   escala genômica.
+- **Re-engenharia do null mono com seed SHA-256 por réplica (opção C, Fase
+  P3):** rejeitada em 2026-08-08 (decisão D1 no anexo). O engine mono já
+  falhou estruturalmente no gate de uniformidade da Fase N (defeito de
+  reticulado do LCG no suporte alcançável, independente da seed); trocar a
+  derivação da seed não corrige o suporte, e o ciclo de revalidação completo
+  (kernel + validador + re-congelamento) não se justifica para um null
+  legacy/sensitivity. O dinuc permanece o único null primário.
 
 ## Evidence annex (Fase N–O1, 2026-08-06; Fase P1, 2026-08-07)
 
@@ -326,6 +333,32 @@ Evidência (receipt `receipts/null-replicates-n1000-20260809T013016Z/`):
   novas de teto.
 
 Com P2+B3, o custo de n=1000 deixou de ser o limitante (R9700 executa o
-pipeline completo a 28,0M draws/s); o que permanece em aberto para o null
-mono é a decisão de provenance (seed LCG de engenharia vs derivação SHA-256
-por réplica do dinuc) — item C vs D a registrar neste ADR após decisão.
+pipeline completo a 28,0M draws/s); o que permanecia em aberto para o null
+mono era a decisão de provenance (seed LCG de engenharia vs derivação
+SHA-256 por réplica do dinuc).
+
+### D1 (decisão, 2026-08-08). Null mono aposentado como sensibilidade; dinuc é o null primário único
+
+Decidido pelo mantenedor: **opção D** — nenhuma re-engenharia do null
+mononucleotídeo. O `mononucleotide_shuffle` permanece no schema, nos
+fixtures e no contrato exatamente como está (LCG `lcg31_sha8_fixture_v1`,
+teto 1000 após a Fase P3), marcado como **legacy/sensitivity**, e o
+`dinucleotide_shuffle` (`euler_wilson_fixed_endpoints_v1`, derivação
+SHA-256 por réplica, ADR-0003) é o null primário único do piloto. A opção C
+(re-seeding SHA-256 do mono) fica registrada como rejeitada em
+*Alternatives rejected*. Justificativas, em ordem de peso:
+
+1. **O mono já falhou estruturalmente no gate de qualidade da Fase N**
+   (cobertura 55/70, chi2=111.045 df=69, razões 0,17×–5,33×; defeito de
+   reticulado do LCG persiste para qualquer família de seeds na geometria do
+   piloto) — re-seedar um engine cujo suporte alcançável é defeituoso não
+   corrige o defeito, só o re-etiqueta.
+2. O dinuc é o null biologicamente correto para escala genômica (preserva o
+   primeiro confundidor composicional) e passou no mesmo gate duas vezes.
+3. Custo de oportunidade: a opção C gastaria um ciclo completo de
+   validação (kernel Sounio + validador Julia + re-congelamento de hashes)
+   em um null coadjuvante.
+
+Sensibilidade mono vs dinuc permanece disponível para fins históricos nos
+artefatos congelados e executável sob demanda com o engine atual, sem
+garantia de uniformidade (documentada na Fase N).
