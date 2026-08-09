@@ -28,10 +28,16 @@ DOSA separates four concepts that must not be collapsed into one score:
 - sequence periodicity;
 - representation equivalence under origin/strand changes for circular dsDNA.
 
-The project does not claim to be the first database of palindromes or inverted
-repeats. The novelty target is the operator-resolved dataset, its explicitly
-controlled null models, and evidence bound to the producing compiler and
-artifacts.
+The project does not claim to be the first study of reverse-complement
+symmetry, the first windowed/operator comparison, or the inventor of exact
+dinucleotide shuffling. The falsifiable novelty target is narrower: test
+whether a joint, representation-aware decomposition of positional and
+compositional operators retains reproducible biological structure after exact
+dinucleotide-null calibration. A complete, reusable atlas remains a valid data
+contribution even if the biological hypotheses fail. The prior-art boundary,
+rejected claims, kill criteria and evidence gates are frozen in
+[`docs/NOVELTY_AUDIT.md`](docs/NOVELTY_AUDIT.md); no scientific novelty is
+currently established.
 
 The normative definitions, hypotheses, schemas, and release gates are in
 [`docs/SCIENTIFIC_SPEC.md`](docs/SCIENTIFIC_SPEC.md). Architecture decision

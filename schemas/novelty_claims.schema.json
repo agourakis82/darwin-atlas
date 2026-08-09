@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://darwin-atlas.example/schemas/novelty_claims.schema.json",
+  "title": "DOSA novelty and contribution claim registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "audit_date",
+    "literature_cutoff",
+    "scientific_novelty_established",
+    "canonical_producer",
+    "independent_validator",
+    "claims"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "audit_date": { "type": "string", "format": "date" },
+    "literature_cutoff": { "type": "string", "format": "date" },
+    "scientific_novelty_established": { "const": false },
+    "canonical_producer": { "const": "Sounio" },
+    "independent_validator": { "const": "Julia" },
+    "claims": {
+      "type": "array",
+      "minItems": 9,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claim_id",
+          "claim_type",
+          "status",
+          "claim",
+          "closest_prior_art",
+          "distinguishing_feature",
+          "required_evidence",
+          "falsifier",
+          "release_eligible"
+        ],
+        "properties": {
+          "claim_id": { "type": "string", "pattern": "^NC-[0-9]{2}$" },
+          "claim_type": {
+            "enum": ["scientific", "data_resource", "engineering"]
+          },
+          "status": {
+            "enum": [
+              "rejected_by_prior_art",
+              "target_unvalidated",
+              "engineering_validated_scope_limited"
+            ]
+          },
+          "claim": { "type": "string", "minLength": 20 },
+          "closest_prior_art": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["citation", "persistent_id", "overlap"],
+              "properties": {
+                "citation": { "type": "string", "minLength": 5 },
+                "persistent_id": { "type": "string", "minLength": 5 },
+                "overlap": { "type": "string", "minLength": 10 }
+              }
+            }
+          },
+          "distinguishing_feature": { "type": ["string", "null"] },
+          "required_evidence": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 5 }
+          },
+          "falsifier": { "type": "string", "minLength": 15 },
+          "release_eligible": { "const": false }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "status": { "const": "rejected_by_prior_art" } },
+              "required": ["status"]
+            },
+            "then": {
+              "properties": {
+                "closest_prior_art": { "minItems": 1 },
+                "distinguishing_feature": { "type": "null" },
+                "required_evidence": { "maxItems": 0 }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": { "const": "engineering_validated_scope_limited" }
+              },
+              "required": ["status"]
+            },
+            "then": {
+              "properties": { "claim_type": { "const": "engineering" } }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

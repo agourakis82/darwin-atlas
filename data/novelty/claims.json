@@ -1,0 +1,222 @@
+{
+  "schema_version": "0.1.0",
+  "audit_date": "2026-08-09",
+  "literature_cutoff": "2026-08-09",
+  "scientific_novelty_established": false,
+  "canonical_producer": "Sounio",
+  "independent_validator": "Julia",
+  "claims": [
+    {
+      "claim_id": "NC-01",
+      "claim_type": "scientific",
+      "status": "rejected_by_prior_art",
+      "claim": "DOSA is the first study of reverse-complement symmetry across multiple k-mer orders or taxa.",
+      "closest_prior_art": [
+        {
+          "citation": "Baisnee, Hampson and Baldi (2002), Why are complementary DNA strands symmetric?",
+          "persistent_id": "doi:10.1093/bioinformatics/18.8.1021",
+          "overlap": "Quantified complementary-strand symmetry for orders 1 through 9 across broad biological groups."
+        },
+        {
+          "citation": "Shporer et al. (2016), Inversion symmetry of DNA k-mer counts: validity and deviations",
+          "persistent_id": "doi:10.1186/s12864-016-3012-8",
+          "overlap": "Quantified reverse-complement k-mer imbalance and its k-limit across chromosomes and species."
+        }
+      ],
+      "distinguishing_feature": null,
+      "required_evidence": [],
+      "falsifier": "Already falsified as a novelty claim by the cited prior art.",
+      "release_eligible": false
+    },
+    {
+      "claim_id": "NC-02",
+      "claim_type": "scientific",
+      "status": "rejected_by_prior_art",
+      "claim": "DOSA is the first local or windowed analysis of reverse-complement word symmetry.",
+      "closest_prior_art": [
+        {
+          "citation": "Bastos et al. (2016), The exceptional genomic word symmetry along DNA sequences",
+          "persistent_id": "doi:10.1186/s12859-016-0905-0",
+          "overlap": "Performed local sliding-window analyses of exceptional word symmetry with structural controls."
+        },
+        {
+          "citation": "Shporer et al. (2016), Inversion symmetry of DNA k-mer counts: validity and deviations",
+          "persistent_id": "doi:10.1186/s12864-016-3012-8",
+          "overlap": "Used non-overlapping chromosomal windows when analyzing inversion-symmetry statistics."
+        }
+      ],
+      "distinguishing_feature": null,
+      "required_evidence": [],
+      "falsifier": "Already falsified as a novelty claim by published local and non-overlapping-window analyses.",
+      "release_eligible": false
+    },
+    {
+      "claim_id": "NC-03",
+      "claim_type": "scientific",
+      "status": "rejected_by_prior_art",
+      "claim": "DOSA is the first genomic study to distinguish reversal from reverse-complement symmetry.",
+      "closest_prior_art": [
+        {
+          "citation": "Kong et al. (2009), Inverse symmetry in complete genomes and whole-genome inverse duplication",
+          "persistent_id": "doi:10.1371/journal.pone.0007553",
+          "overlap": "Compared reverse, complement and reverse-complement symmetries globally and locally over 786 chromosomes."
+        },
+        {
+          "citation": "Shporer et al. (2016), Inversion symmetry of DNA k-mer counts: validity and deviations",
+          "persistent_id": "doi:10.1186/s12864-016-3012-8",
+          "overlap": "Explicitly contrasted inverse pairs with reverse, complement and random k-mer pairings."
+        }
+      ],
+      "distinguishing_feature": null,
+      "required_evidence": [],
+      "falsifier": "Already falsified at the broad operator-comparison level by the cited studies.",
+      "release_eligible": false
+    },
+    {
+      "claim_id": "NC-04",
+      "claim_type": "engineering",
+      "status": "rejected_by_prior_art",
+      "claim": "DOSA invents exact dinucleotide-preserving sequence randomization.",
+      "closest_prior_art": [
+        {
+          "citation": "Altschul and Erickson (1985), Significance of nucleotide sequence alignments",
+          "persistent_id": "doi:10.1093/oxfordjournals.molbev.a040370",
+          "overlap": "Introduced random sequence permutation preserving dinucleotide usage."
+        },
+        {
+          "citation": "Jiang et al. (2008), uShuffle: A useful tool for shuffling biological sequences while preserving the k-let counts",
+          "persistent_id": "doi:10.1186/1471-2105-9-192",
+          "overlap": "Implemented uniform exact k-let-preserving shuffling using Eulerian-walk machinery."
+        }
+      ],
+      "distinguishing_feature": null,
+      "required_evidence": [],
+      "falsifier": "Already falsified as an algorithm-invention claim by exact dinucleotide and k-let shuffling prior art.",
+      "release_eligible": false
+    },
+    {
+      "claim_id": "NC-05",
+      "claim_type": "data_resource",
+      "status": "rejected_by_prior_art",
+      "claim": "DOSA is the first genomic resource to bind reference versions, checksums and computational provenance.",
+      "closest_prior_art": [
+        {
+          "citation": "NCBI Datasets genome processing and version status policy",
+          "persistent_id": "https://www.ncbi.nlm.nih.gov/datasets/docs/v2/policies-annotation/genome-processing/version-status/",
+          "overlap": "Defines accession-version and assembly update semantics for reference genome resources."
+        },
+        {
+          "citation": "Wilkinson et al. (2016), The FAIR Guiding Principles for scientific data management and stewardship",
+          "persistent_id": "doi:10.1038/sdata.2016.18",
+          "overlap": "Established reusable provenance and identifier principles for scientific data resources."
+        }
+      ],
+      "distinguishing_feature": null,
+      "required_evidence": [],
+      "falsifier": "Already falsified as a general provenance-first claim by reference versioning and FAIR data practice.",
+      "release_eligible": false
+    },
+    {
+      "claim_id": "NC-06",
+      "claim_type": "scientific",
+      "status": "target_unvalidated",
+      "claim": "A joint, representation-aware operator profile reveals residual biological structure that is not explained by exact dinucleotide composition alone.",
+      "closest_prior_art": [
+        {
+          "citation": "Kong et al. (2009), Inverse symmetry in complete genomes and whole-genome inverse duplication",
+          "persistent_id": "doi:10.1371/journal.pone.0007553",
+          "overlap": "Provides the closest broad comparison of reverse, complement and reverse-complement genome symmetries."
+        },
+        {
+          "citation": "Fariselli et al. (2021), DNA sequence symmetries from randomness: the origin of Chargaff's second parity rule",
+          "persistent_id": "doi:10.1093/bib/bbaa041",
+          "overlap": "Provides a strong randomness and maximum-entropy explanation that any claimed residual must beat."
+        },
+        {
+          "citation": "Bastos et al. (2016), The exceptional genomic word symmetry along DNA sequences",
+          "persistent_id": "doi:10.1186/s12859-016-0905-0",
+          "overlap": "Provides the closest local symmetry analysis under simple structural controls."
+        }
+      ],
+      "distinguishing_feature": "DOSA jointly separates positional R and RC distances, compositional R and RC k-mer orbit imbalance, circular origin/strand equivalence and periodicity, then calibrates the same windows against an exact dinucleotide-preserving null.",
+      "required_evidence": [
+        "Freeze the pilot cohort and every parameter before examining outcomes.",
+        "Run the canonical Sounio producer with the exact dinucleotide primary null and publish exclusions.",
+        "Independently recompute the release-scope sample in Julia with the declared exact tolerances.",
+        "Quantify incremental information beyond GC, length, complexity, taxonomy and dinucleotide-null summaries.",
+        "Report effect sizes, uncertainty, multiplicity control, negative controls and sensitivity analyses.",
+        "Demonstrate out-of-sample or held-out-cohort stability of any retained residual pattern."
+      ],
+      "falsifier": "The claim fails if the joint profile adds no stable out-of-sample information beyond preregistered covariates and the exact dinucleotide null, or if an earlier study is found to implement the same complete design.",
+      "release_eligible": false
+    },
+    {
+      "claim_id": "NC-07",
+      "claim_type": "scientific",
+      "status": "target_unvalidated",
+      "claim": "Replication-relative coordinate or replicon class has a reproducible association with residual operator profiles after preregistered controls.",
+      "closest_prior_art": [
+        {
+          "citation": "Shporer et al. (2016), Inversion symmetry of DNA k-mer counts: validity and deviations",
+          "persistent_id": "doi:10.1186/s12864-016-3012-8",
+          "overlap": "Shows chromosome-wide and species-dependent deviations and documents known plasmid exceptions."
+        },
+        {
+          "citation": "Kong et al. (2009), Inverse symmetry in complete genomes and whole-genome inverse duplication",
+          "persistent_id": "doi:10.1371/journal.pone.0007553",
+          "overlap": "Connects inverse symmetry to genome-scale inversion mechanisms and local patterns."
+        }
+      ],
+      "distinguishing_feature": "The target is not a generic chromosome-plasmid difference: it is a preregistered effect on residual, operator-resolved profiles after exact dinucleotide null calibration and covariate control.",
+      "required_evidence": [
+        "Predeclare origin annotation quality, coordinate transform, covariates and exclusion policy.",
+        "Use taxonomy-aware and assembly-aware held-out evaluation rather than treating windows as independent replicates.",
+        "Report chromosome and plasmid results separately with matched or modeled length, GC and sampling multiplicity.",
+        "Replicate the direction and practically meaningful effect size in a held-out expansion cohort."
+      ],
+      "falsifier": "The claim fails if the association disappears after grouped validation, exact-null calibration or preregistered covariate control, reverses in the held-out cohort, or is driven by a few assemblies.",
+      "release_eligible": false
+    },
+    {
+      "claim_id": "NC-08",
+      "claim_type": "data_resource",
+      "status": "target_unvalidated",
+      "claim": "DOSA can contribute a reusable operator-resolved complete-replicon atlas even if no new universal biological law survives testing.",
+      "closest_prior_art": [
+        {
+          "citation": "Baisnee, Hampson and Baldi (2002), Why are complementary DNA strands symmetric?",
+          "persistent_id": "doi:10.1093/bioinformatics/18.8.1021",
+          "overlap": "Supplies broad multi-order comparative analyses but not DOSA's proposed versioned per-window product contract."
+        },
+        {
+          "citation": "Kong et al. (2009), Inverse symmetry in complete genomes and whole-genome inverse duplication",
+          "persistent_id": "doi:10.1371/journal.pone.0007553",
+          "overlap": "Supplies a large complete-genome survey against which atlas scope and utility must be compared."
+        }
+      ],
+      "distinguishing_feature": "The proposed resource exposes decomposed operator metrics, topology and representation domain, exact-null summaries, ambiguity and exclusion records, accession versions, input hashes and executable receipts at window and replicon levels.",
+      "required_evidence": [
+        "Release the frozen pilot and expansion manifests with accession versions and checksum closure.",
+        "Publish all canonical products, exclusions, schemas, parameters and validated run receipts.",
+        "Provide a stable DOI, license, data dictionary and documented example reuse analysis.",
+        "Compare coverage and field-level utility against the nearest existing datasets."
+      ],
+      "falsifier": "The contribution fails if the released resource is not materially more reusable or auditable than existing outputs, cannot be independently regenerated, or remains limited to engineering fixtures.",
+      "release_eligible": false
+    },
+    {
+      "claim_id": "NC-09",
+      "claim_type": "engineering",
+      "status": "engineering_validated_scope_limited",
+      "claim": "The current fixtures establish a dual-implementation scientific contract with Sounio as canonical producer and Julia as independent validator.",
+      "closest_prior_art": [],
+      "distinguishing_feature": "Persisted Sounio artifacts are independently recomputed by Julia with exact equality at the declared fixture scope; accelerators do not replace either authority.",
+      "required_evidence": [
+        "Extend independent Julia recomputation from deterministic samples to the full release-scope chromosome products.",
+        "Bind both implementations, inputs, parameters and outputs into the pilot release receipt."
+      ],
+      "falsifier": "This engineering claim fails outside its stated scope if either implementation is absent, if any required mismatch occurs, or if accelerator output becomes an unvalidated source of scientific authority.",
+      "release_eligible": false
+    }
+  ]
+}

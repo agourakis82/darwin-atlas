@@ -64,6 +64,7 @@ status:
 
 contract:
 	@test -s docs/SCIENTIFIC_SPEC.md
+	@test -s docs/NOVELTY_AUDIT.md
 	@test -s docs/ADR-0001-sounio-primary-julia-validator.md
 	@test -s docs/ADR-0002-pilot-parameter-decisions.md
 	@test -s docs/ADR-0003-dinucleotide-null-engineering-contract.md
@@ -72,6 +73,8 @@ contract:
 	@test -s schemas/u250_null_draw_receipt.schema.json
 	@test -s schemas/u250_dinucleotide_null_receipt.schema.json
 	@test -s schemas/dinucleotide_null_parameters.schema.json
+	@test -s schemas/novelty_claims.schema.json
+	@test -s data/novelty/claims.json
 	@test -s receipts/u250-smoke-659ab549-20260803T022116Z/u250_smoke_receipt.json
 	@test -s fpga/u250-null-model/src/null_draws.cpp
 	@test -s fpga/u250-null-model/generated_fixture.hpp
@@ -172,6 +175,9 @@ contract:
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "schema_version must be 0.3.0" unless s.dig("properties","schema_version","const")=="0.3.0"; abort "kmer policy must be masked" unless s.dig("properties","kmer_ambiguity_policy","const")=="masked"; abort "kmer min effective count must be an integer >= 1" unless s.dig("properties","kmer_min_effective_count","type")=="integer" && s.dig("properties","kmer_min_effective_count","minimum")==1; abort "parameters_sha256 must be a lowercase hex sha256" unless s.dig("properties","parameters_sha256","pattern")=="^[0-9a-f]{64}$$"; abort "required must cover k=1..8 with reasons, null summaries and 183 fields" unless s.fetch("required").size==183 && s.fetch("required").include?("rc_kmer_imbalance_8") && s.fetch("required").include?("kmer_8_unavailable_reason") && s.fetch("required").include?("parameters_sha256") && s.fetch("required").include?("null_model") && s.fetch("required").include?("null_replicates") && s.fetch("required").include?("null_seed_derivation") && s.fetch("required").include?("delta_R_null_mean") && s.fetch("required").include?("rc_kmer_imbalance_8_null_q975"); abort "additionalProperties must stay false" unless s.fetch("additionalProperties")==false'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/window_operator_profile.schema.json")); abort "dinucleotide model missing from output schema" unless s.dig("properties","null_model","enum").include?("dinucleotide_shuffle"); abort "dinucleotide seed derivation missing from output schema" unless s.dig("properties","null_seed_derivation","enum").include?("sha256_parameters_accession_window_first64be_v1")'
 	@ruby -rjson -e 's=JSON.parse(File.read("schemas/run_receipt.schema.json")); abort "producer must be Sounio" unless s.dig("properties","producer","properties","language","const")=="Sounio"; abort "validator must be Julia" unless s.dig("properties","validator","oneOf",1,"properties","language","const")=="Julia"'
+	@ruby -rjson -e 's=JSON.parse(File.read("schemas/novelty_claims.schema.json")); r=JSON.parse(File.read("data/novelty/claims.json")); abort "novelty registry version drift" unless r["schema_version"]=="0.1.0" && s.dig("properties","schema_version","const")=="0.1.0"; abort "scientific novelty must remain unestablished" unless r["scientific_novelty_established"]==false; abort "language authority drift" unless r["canonical_producer"]=="Sounio" && r["independent_validator"]=="Julia"; claims=r.fetch("claims"); abort "claim ids must be unique" unless claims.map{|c|c["claim_id"]}.uniq.size==claims.size; abort "claim registry must contain exactly NC-01..NC-09" unless claims.map{|c|c["claim_id"]}==(1..9).map{|i|"NC-%02d"%i}; abort "five rejected prior-art claims required" unless claims.count{|c|c["status"]=="rejected_by_prior_art"}==5; abort "no novelty claim is release eligible" unless claims.none?{|c|c["release_eligible"]}; abort "scientific targets must remain unvalidated" unless claims.select{|c|c["claim_type"]=="scientific" && c["status"]!="rejected_by_prior_art"}.all?{|c|c["status"]=="target_unvalidated"}; abort "engineering validation cannot imply scientific novelty" unless claims.select{|c|c["status"]=="engineering_validated_scope_limited"}.all?{|c|c["claim_type"]=="engineering"}; required=%w[doi:10.1093/bioinformatics/18.8.1021 doi:10.1371/journal.pone.0007553 doi:10.1186/s12864-016-3012-8 doi:10.1186/s12859-016-0905-0 doi:10.1093/oxfordjournals.molbev.a040370 doi:10.1186/1471-2105-9-192 doi:10.1093/bib/bbaa041]; ids=claims.flat_map{|c|c["closest_prior_art"].map{|p|p["persistent_id"]}}; abort "prior-art closure incomplete" unless (required-ids).empty?'
+	@rg -q '^Novelty is not established by the current engineering receipts\.' docs/NOVELTY_AUDIT.md
+	@rg -q 'Sounio-producer/Julia-validator contract' docs/NOVELTY_AUDIT.md
 	@$(MAKE) --no-print-directory u250-smoke-contract
 	@$(MAKE) --no-print-directory u250-null-contract
 	@$(MAKE) --no-print-directory u250-dinucleotide-contract

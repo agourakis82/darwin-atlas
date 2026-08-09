@@ -1,10 +1,10 @@
 # Implementation status snapshot
 
-**Observed:** 2026-08-06
+**Observed:** 2026-08-09
 
-**Base commit:** Fase N-O1 work on branch `codex/dinucleotide-window-null`,
-based on the published Fase M4 commit `a69c0e6` (itself on the Fase M3 tree
-`7463a50b4be1b7382797053e261e73a1a3fdd842`).
+**Base commit:** decision D1 on branch `codex/dinucleotide-window-null`, commit
+`f02038b65c94af5111e1d9921ce84fbb08205e19`, including the published Fase
+N-P3 evidence lineage.
 Receipt-bound hashes below identify the exact produced tree and artifacts.
 
 **Specification:** 0.1.0 normative draft
@@ -21,6 +21,7 @@ from older pins or older source hashes is stale and was regenerated.
 | Check | Result | Evidence boundary |
 |---|---|---|
 | Normative documents exist | PASS | `make contract` |
+| Novelty/contribution claim boundary | PASS (audit only) | `docs/NOVELTY_AUDIT.md` and schema-checked `data/novelty/claims.json` reject five overclaims, keep two scientific and one data-resource target unvalidated, and prohibit release eligibility; no biological novelty is established |
 | Receipt schema and window JSONL schema are valid JSON and fix producer/validator roles and `canonical_only` | PASS | Ruby JSON parse plus contract assertions |
 | README, CFF, and GitHub Actions YAML parse/format checks | PASS | Ruby YAML parse and `git diff --check` |
 | Frozen input checksum closure | PASS | `sha256sum -c data/fixtures/mini_pipeline/SHA256SUMS` inside `make contract` |
@@ -336,5 +337,10 @@ labeled as SHA-256, 256-character analysis cap).
 
 1. Repair or replace the local Julia 1.12.2 project environment so the
    validator-development test suite can run.
-2. Validate generator quality and pilot-scale runtime, then set the final
-   replicate count and threshold under ADR-0002 (still proposed).
+2. Freeze the pilot cohort, effective-count threshold, replicate count,
+   replication-origin annotation policy, covariates and held-out split before
+   inspecting biological outcomes.
+3. Execute the novelty gates in `docs/NOVELTY_AUDIT.md`: first establish whether
+   the joint operator profile adds information beyond the exact dinucleotide
+   null (NC1), then test grouped held-out biological utility (NC3). No
+   scientific claim is presently release-eligible.
