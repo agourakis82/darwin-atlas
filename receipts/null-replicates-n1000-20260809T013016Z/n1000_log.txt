@@ -1,0 +1,7 @@
+n1000_opt1_done 00:11:39
+n1000_opt2_done
+n1000_ref_done
+n1000 opt1==opt2 OK
+n1000 opt==ref OK
+n1000 sha256=b6f0d561db00439683197bb7352ad9707853789d8c849d74baa4647f6049ab14
+P3_N1000_DONE

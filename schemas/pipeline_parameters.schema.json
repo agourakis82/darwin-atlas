@@ -73,7 +73,7 @@
     "null_replicates": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 64
+      "maximum": 1000
     }
   },
   "allOf": [

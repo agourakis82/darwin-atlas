@@ -1,0 +1,62 @@
+{
+  "receipt_type": "null_replicates_ceiling_raise",
+  "phase": "P3",
+  "timestamp_utc": "2026-08-09T01:30:16Z",
+  "scope": "Raise the fixture null_replicates ceiling 64 -> 1000 across schema, Sounio executable spec, Julia independent validator and contract drift guards, with zero semantic change at r<=64 (proven by byte-identical re-battery) and an end-to-end n=1000 run validated byte-exact by Julia.",
+  "ceiling_changes": {
+    "schema": "schemas/pipeline_parameters.schema.json properties.null_replicates.maximum 64 -> 1000",
+    "sounio": "sounio/src/fasta_stream_fixture.sio const NULL_MAX_REPLICATES: i64 = 1000 (line 28); NULL_VALS buffer [i64; 1152] -> [i64; 18000] (line 60, 18 metrics x 1000)",
+    "julia": "julia/scripts/window_pipeline_core.jl const NULL_MAX_REPLICATES = 1000 (line 15)",
+    "contract_guards": "Makefile contract: schema maximum==1000 (pre-existing check updated), plus new grep guards pinning the Julia and Sounio constants at 1000",
+    "new_validator": "julia/scripts/validate_null_n1000.jl (Base-only, byte-exact differential, does not touch the frozen validate_mini_pipeline.jl)"
+  },
+  "semantics": {
+    "sounio_source_sha256": "d89a7066b0ca142a4bed5ef3d8ff098c8ddb9c52effff0209ba960a01107ceaa",
+    "sounio_elf_sha256": "b3b1ac08b0b2453bfddc758b267526fb95c86cab6c77a4cc382ec1a104b4a4f8",
+    "toolchain": "Madaros souc v0.80.0 standalone (toolchains/sounio.lock.json commit 37de2c9eefe68f3457a2c66004eff68bba5b4446)",
+    "null_engine": "unchanged: LCG mod 2^31 glibc constants, lcg31_sha8_fixture_v1 derivation, exact integer summaries schema 0.3.0"
+  },
+  "re_battery": {
+    "requirement": "r=8 outputs must be bit-identical to the frozen hashes (semantics unchanged, buffer only)",
+    "structure": "per case: --pipeline x2 + --pipeline-reference x1, cmp byte-exact, sha256",
+    "cases": {
+      "main": "e5564ea3843d433eed82fc15f9a5163fa5bb36e4e098e71ca9c659d83312e027",
+      "k8": "f87bd3f6b41e0f2508c629cf2b1ae1ed1bc058fe3d55b8180f5f02d1b848edd7",
+      "null_k4": "4997efede7e0ffa400b5d3179d5a67e933dd871fecb396d24c648728fb3a1dc4",
+      "null_k8": "d53de8b3063449fea58e7f51cb5e4d1b37c4f8569ff79f5b5b9cda0b62deda0e",
+      "dinucleotide_k4": "839fa985a2c54894428f4826441c06d9c92726bf2ec9f2eefc86f90f1101788c",
+      "dinucleotide_k8": "086f585bd66227ab8cb875a781bc77003a8e11475c483b0c00d8e9ed0a5608cd"
+    },
+    "frozen_reference": "ADR-0002 section O1 (6/6 artifact hashes e5564ea3, f87bd3f6, 4997efed, d53de8b3, 839fa985, 086f585b)",
+    "result": "pass (6/6 byte-identical, opt==ref in every case)"
+  },
+  "n1000_run": {
+    "case": "null_k4 (12 windows, window_size=4, k_max=4, mononucleotide_shuffle)",
+    "flat_parameters_sha256": "121777c5aa03d0285c6ffca9dcdda155112bf9fe86aea0c1c8603bd567b9463b",
+    "artifact_sha256": "b6f0d561db00439683197bb7352ad9707853789d8c849d74baa4647f6049ab14",
+    "consistency": "opt1 == opt2 == reference (byte-exact cmp)",
+    "optimized_wall": "00:11:39",
+    "result": "pass"
+  },
+  "julia_independent_validation": {
+    "script": "julia/scripts/validate_null_n1000.jl",
+    "script_sha256": "b1c583985e3cf82741b7314a90c8a34ea0115e36d6546d343379b32827e5b53c",
+    "julia_core_sha256": "9b0152471acfeb34d62a229f1ea0094d7e68cea5788e08e21909c0586ee2470f",
+    "julia_version": "1.12.2",
+    "marker": "DOSA_JULIA_NULL_N1000_DIFFERENTIAL_OK",
+    "validated_windows": 12,
+    "null_replicates": 1000,
+    "tolerance": 0,
+    "result": "pass (byte-exact recomputation of the persisted Sounio artifact)"
+  },
+  "contract": "make contract green after all edits, including the two new ceiling drift guards",
+  "artifacts": [
+    "battery_log.txt",
+    "n1000_log.txt",
+    "julia_validation.txt",
+    "parameters_null_k4_n1000.flat",
+    "null_k4_n1000.jsonl",
+    "environment.txt",
+    "SHA256SUMS"
+  ]
+}

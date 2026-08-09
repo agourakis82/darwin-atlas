@@ -291,3 +291,41 @@ P2 em cases/s e wall: 72 cases/s (14,2 s), 63 (16,2 s), 44 (23,2 s) e 19
 
 Evidência completa em `receipts/u250-summaries-probe-20260808T204714Z/`
 (receipt.json, stdout da sonda, SHA256SUMS e logs do build Vitis).
+
+### P3. Teto `null_replicates` 64 → 1000 (schema, Sounio, Julia, contrato)
+
+O teto `null_replicates=64` apontado na seção N2 como pendente de revisão
+foi elevado a **1000** em quatro pontos coordenados, sem nenhuma mudança de
+semântica em r≤64:
+
+1. `schemas/pipeline_parameters.schema.json` — `null_replicates.maximum`
+   64 → 1000;
+2. `sounio/src/fasta_stream_fixture.sio` — `NULL_MAX_REPLICATES: i64 = 1000`
+   e buffer `NULL_VALS` `[i64; 1152]` → `[i64; 18000]` (18 métricas × 1000);
+3. `julia/scripts/window_pipeline_core.jl` — `NULL_MAX_REPLICATES = 1000` no
+   validador independente (a constante Julia também pinnava o teto — detectado
+   no dry run do validador n=1000);
+4. `Makefile` (contrato) — guarda de drift do máximo do schema atualizada
+   para 1000 e duas guardas novas pinnando as constantes Julia e Sounio.
+
+Evidência (receipt `receipts/null-replicates-n1000-20260809T013016Z/`):
+
+- **Re-bateria byte-idêntica**: o binário re-compilado (fonte `d89a7066`,
+  ELF `b3b1ac08`, Madaros souc v0.80.0) reproduz os 6/6 hashes congelados da
+  bateria mini-pipeline (`e5564ea3`, `f87bd3f6`, `4997efed`, `d53de8b3`,
+  `839fa985`, `086f585b`), opt==reference em todos os casos — prova de que a
+  mudança é só de teto/buffer, não de semântica.
+- **Corrida end-to-end n=1000**: caso null_k4 (12 janelas,
+  `mononucleotide_shuffle`) com `null_replicates=1000`; opt1==opt2==reference
+  byte-exato, artefato `b6f0d561` (83.775 bytes), wall otimizado 11min39s.
+- **Validação Julia independente**: `julia/scripts/validate_null_n1000.jl`
+  (Base-only, novo — o validador congelado não foi tocado) re-computa as 12
+  janelas × 18 métricas × 1000 réplicas e exige igualdade byte a byte:
+  `DOSA_JULIA_NULL_N1000_DIFFERENTIAL_OK`, tolerância 0 (~2 s).
+- `make contract` verde após todas as edições, incluindo as duas guardas
+  novas de teto.
+
+Com P2+B3, o custo de n=1000 deixou de ser o limitante (R9700 executa o
+pipeline completo a 28,0M draws/s); o que permanece em aberto para o null
+mono é a decisão de provenance (seed LCG de engenharia vs derivação SHA-256
+por réplica do dinuc) — item C vs D a registrar neste ADR após decisão.

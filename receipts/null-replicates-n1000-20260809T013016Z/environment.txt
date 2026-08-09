@@ -1,0 +1,7 @@
+build host: Lima VM souc-linux (macOS host, aarch64-linux guest)
+toolchain: Madaros souc v0.80.0 standalone at /tmp/bin/souc (toolchains/sounio.lock.json commit 37de2c9eefe68f3457a2c66004eff68bba5b4446)
+compile: /tmp/bin/souc compile fasta_stream_fixture_p3.sio -o fasta_fixture_p3 -> "Compilation successful!"
+ELF: /tmp/dosa-inputs/fasta_fixture_p3 sha256=b3b1ac08b0b2453bfddc758b267526fb95c86cab6c77a4cc382ec1a104b4a4f8 (143368 bytes)
+battery structure per case: --pipeline x2 + --pipeline-reference x1, cmp byte-exact, sha256
+n1000 case: null_k4 (12 windows), parameters_null_k4_n1000.flat (null_replicates=1000), opt x2 + reference x1
+validator: Julia 1.12.2 (macOS arm64, /opt/homebrew/bin/julia), julia/scripts/validate_null_n1000.jl, Base-only, tolerance=0

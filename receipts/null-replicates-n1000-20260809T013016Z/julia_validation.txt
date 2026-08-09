@@ -1,0 +1,2 @@
+DOSA_JULIA_NULL_N1000_DIFFERENTIAL_OK
+validated_windows=12 null_replicates=1000 tolerance=0
