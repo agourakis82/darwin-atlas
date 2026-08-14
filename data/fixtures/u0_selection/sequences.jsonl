@@ -1,0 +1,5 @@
+{"assembly_accession":"GCF_000000001.1","assigned_molecule_location_type":"Chromosome","chr_name":"chromosome","length":2000,"refseq_accession":"NC_LARGE00002.1","sequence_name":"chromosome"}
+{"assembly_accession":"GCF_000000001.1","assigned_molecule_location_type":"Chromosome","chr_name":"chromosome","length":1000,"refseq_accession":"NC_LARGE00001.1","sequence_name":"chromosome"}
+{"assembly_accession":"GCF_000000002.1","assigned_molecule_location_type":"Plasmid","chr_name":"plasmid pFixture","length":800,"refseq_accession":"NC_CONTROL001.1","sequence_name":"plasmid pFixture"}
+{"assembly_accession":"GCF_000000002.1","assigned_molecule_location_type":"Chromosome","chr_name":"chromosome","length":700,"refseq_accession":"NC_CONTROL002.1","sequence_name":"chromosome"}
+{"assembly_accession":"GCF_000000003.1","assigned_molecule_location_type":"Chromosome","chr_name":"chromosome","length":50,"refseq_accession":"NC_TEST00362.1","sequence_name":"chromosome"}

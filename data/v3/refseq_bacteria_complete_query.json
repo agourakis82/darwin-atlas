@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_id": "refseq-bacteria-complete-20260814",
+  "retrieval_date_utc": "2026-08-14",
+  "provider": "NCBI Datasets",
+  "taxon": "bacteria",
+  "assembly_source": "RefSeq",
+  "assembly_level": "complete",
+  "assembly_version": "current",
+  "exclude_atypical": false,
+  "exclude_multi_isolate": false,
+  "mag_filter": "all",
+  "reports": [
+    "genome",
+    "sequence"
+  ],
+  "package_include": [
+    "genome",
+    "gbff",
+    "seq-report"
+  ],
+  "selection_contract": {
+    "hash_sample": "unsigned_big_endian_integer(SHA256(sequence_accession_version)) mod 256 == 0",
+    "largest_replicons": 100,
+    "required_controls": [
+      "topology_circular",
+      "topology_linear",
+      "ambiguity_present",
+      "ambiguity_absent",
+      "replicon_chromosome",
+      "replicon_plasmid"
+    ],
+    "union_semantics": true
+  }
+}

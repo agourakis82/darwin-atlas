@@ -1,9 +1,15 @@
 # Darwin Operator Symmetry Atlas (DOSA)
 
-An operator-resolved, provenance-bound atlas of sequence symmetry in complete
-bacterial RefSeq replicons.
+An operator-resolved calibration resource for reversal and
+reverse-complement signals in complete bacterial RefSeq replicons.
 
-> **Current state:** specification and implementation migration. This checkout
+The v3 practical objective is precise and testable: given an
+`accession.version`, coordinate and scale, return the exact R/RC observation
+and its precomputed `n=1000` fixed-endpoint dinucleotide-null distribution so a
+researcher does not need to rerun 1000 shuffles.
+
+> **Current state:** DOSA v3 recovery and Gate U0 implementation. **U0 has not
+> passed.** This checkout
 > does not yet produce a publication-ready atlas. Sounio kernels are partial;
 > executable operator, streaming FASTA, and parameterized frozen mini-pipeline
 > fixtures (positional metrics plus masked k-mer composition for the
@@ -17,7 +23,41 @@ bacterial RefSeq replicons.
 > canonical products (cohort/replicons/exclusions for all four replicons,
 > window products for both plasmids) are emitted by Sounio and reproduced
 > byte-exact by independent Julia. Julia remains a validator, never the
-> canonical producer.
+> canonical producer. Full-atlas execution, a v3 tag/deposit, and HDD purchase
+> remain blocked until all operational U0 requirements and at least one
+> secondary scientific test pass with real receipts. The real gate profile is
+> fail-closed, explicitly promotion-locked, and still unexercised: it requires payload
+> `release_state=u0_pilot_evidence`, a single exact evidence-root/provenance
+> closure, persisted Sounio execution/output artifacts plus independent full
+> Julia semantic recomputation/agreement, and bound source and scientific
+> inputs. The actual U0 executor, integral Julia validator, held-out
+> derivation contract and full receipts do not yet exist.
+
+## DOSA v3 utility surface
+
+The public interface is intentionally small:
+
+- `dosa query` locates a calibrated window in typed Parquet shards;
+- `dosa calibrate` delegates a new sequence only to an explicitly configured,
+  hash-bound Sounio runner; its build attestation is provenance, not by itself
+  proof that the scientific result is correct; and
+- `dosa verify` checks package inventory, byte sizes, SHA-256 values, binding
+  presence and Parquet footer/row/compression integrity without private
+  cluster access.
+
+At the current `U0-dev` boundary, `dosa verify` does **not** claim to validate
+every scientific row against the v3 JSON Schemas or replace the independent
+Julia recomputation receipt. Those are separate mandatory U0/release gates.
+The Sounio build attestation likewise binds build identity only; it is not
+semantic evidence. Local provenance hashes establish integrity of the closed
+artifact set, not external authentication of its author or origin.
+
+DuckDB/Parquet performs projection, joins and packaging only. It never
+computes a DOSA scientific metric. The complete U0 contract, data reduction
+and kill rule are in
+[`ADR-0004`](docs/ADR-0004-v3-u0-utility-first-fail-closed-gates.md); the
+field-level public contract is in
+[`DOSA_V3_PUBLIC_DATA_DICTIONARY.md`](docs/DOSA_V3_PUBLIC_DATA_DICTIONARY.md).
 
 ## Scientific scope
 
@@ -33,8 +73,10 @@ symmetry, the first windowed/operator comparison, or the inventor of exact
 dinucleotide shuffling. The falsifiable novelty target is narrower: test
 whether a joint, representation-aware decomposition of positional and
 compositional operators retains reproducible biological structure after exact
-dinucleotide-null calibration. A complete, reusable atlas remains a valid data
-contribution even if the biological hypotheses fail. The prior-art boundary,
+dinucleotide-null calibration. The multiterabyte atlas is authorized only if
+U0 proves the operational utility and at least one of the preregistered
+OriC/terminus or model-violation tests. If both fail, the pilot is preserved as
+a negative benchmark and the full atlas is not generated. The prior-art boundary,
 rejected claims, kill criteria and evidence gates are frozen in
 [`docs/NOVELTY_AUDIT.md`](docs/NOVELTY_AUDIT.md); no scientific novelty is
 currently established.
@@ -113,6 +155,26 @@ make status
 
 # Validate the normative documentation and JSON contracts
 make contract
+
+# Validate the v3 U0 contracts and synthetic fail-closed gates. This cannot
+# promote U0 to PASS; the real path also remains explicitly promotion-locked.
+make u0-contract
+
+# Once a real six-category candidate file is reviewed, download the fresh
+# selected package, bind exact asset hashes, and prove every control claim.
+# The command requires a clean tree and pinned NCBI binaries.
+DOSA_DATASETS_BIN=/path/to/pinned/datasets \
+DOSA_DATAFORMAT_BIN=/path/to/pinned/dataformat \
+  scripts/freeze_u0_refseq_snapshot.sh \
+  /path/to/new-snapshot /path/to/control_candidates.tsv
+
+# Package/query/verify a logical Sounio artifact once DuckDB is installed.
+# Missing DuckDB is an explicit dependency error, never a fallback format.
+cli/bin/dosa --help
+
+# The capacity measurement opens real Parquet footers and requires the exact
+# pinned DuckDB version; a text file renamed .parquet is rejected.
+make u0-cli-integration
 
 # Run Julia validator-development tests (not a production run)
 make test-julia
@@ -215,6 +277,23 @@ the mini-pipeline fixture is an executable specification, not that pipeline.
 The historical Julia-only pipeline is available only through the explicitly
 named `make legacy-julia-pipeline` diagnostic target; its output is not release
 eligible.
+
+For v3, `make u0-gate` is separately fail-closed until all real pilot paths are
+provided beneath `U0_EVIDENCE_ROOT`: the agreement, query, speed, capacity,
+field-audit and scientific reports; their OriC/model inputs; parameters; source
+manifest, integrity receipt and source index; payload manifest; frozen
+selection/discovery/control/full-inventory evidence; the exact work-unit
+manifest; Sounio build attestation/build receipt plus execution receipt/output
+manifest; the full Julia semantic recomputation receipt; the Julia executable;
+and `U0_PILOT_PROVENANCE`, whose current scaffold closes 29 file roles by
+relative path, size and SHA-256. Fixture evidence exercises the evaluator
+but is structurally unable to authorize the full atlas or an HDD purchase. A
+regression test rejects fixture reports whose scope labels and hashes are
+rewritten to resemble a pilot. An explicit `U0_PROMOTION_LOCKED` check runs
+before real evidence adjudication; the Julia scientific evaluators separately
+refuse held-out scope. The lock is not removable until the actual n=1000
+multiscale executor, integral Sounio/Julia receipts, held-out derivation roles,
+and the remaining source/package/report/runtime closures exist.
 
 Because the official Sounio repository moves rapidly, fixture runners accept
 only the clean commit pinned in `toolchains/sounio.lock.json`. Refresh that pin

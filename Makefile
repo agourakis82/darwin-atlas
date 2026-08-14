@@ -7,6 +7,8 @@
 	cohort-smoke-differential \
 	cohort-products \
 	u250-smoke-contract u250-null-contract u250-dinucleotide-contract \
+	u0-contract u0-schema-integration u0-cli-integration u0-julia-contract \
+	u0-manifest-differential-fixture u0-gate \
 	cross-validate pipeline release-gate \
 	legacy-julia-pipeline legacy-export-knowledge legacy-verify-knowledge clean
 
@@ -42,6 +44,12 @@ help:
 	@echo "  u250-smoke-contract     Validate the engineering U250 hardware-smoke scaffold"
 	@echo "  u250-null-contract      Validate Julia/HLS exact null-draw fixtures"
 	@echo "  u250-dinucleotide-contract  Validate exact Euler/Wilson Sounio/Julia/HLS fixture"
+	@echo "  u0-contract             Validate DOSA v3 U0 contracts and fixture-only fail-closed gates"
+	@echo "  u0-schema-integration  Meta-validate v3 schemas (requires Python jsonschema)"
+	@echo "  u0-cli-integration     Exercise DuckDB/Zstd package, query and verify integration"
+	@echo "  u0-julia-contract      Run independent U0 manifest and secondary-gate validators"
+	@echo "  u0-manifest-differential-fixture  Pinned Sounio manifest boundary + independent Julia"
+	@echo "  u0-gate                Fail-closed U0 evaluator; real promotion remains explicitly locked"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"
 	@echo "  release-gate            Full publication gate (red until pipeline is ready)"
@@ -181,6 +189,7 @@ contract:
 	@$(MAKE) --no-print-directory u250-smoke-contract
 	@$(MAKE) --no-print-directory u250-null-contract
 	@$(MAKE) --no-print-directory u250-dinucleotide-contract
+	@$(MAKE) --no-print-directory u0-contract
 	@ruby -rjson -rdigest -e 'id="engineering-products-b3682abb-20260801T203932Z"; r=JSON.parse(File.read("receipts/#{id}/run_receipt.json")); abort "engineering receipt must be validated" unless r["state"]=="validated"; v=r["validator"]; abort "receipt validator drift" unless v["language"]=="Julia" && v["status"]=="pass" && v["absolute_tolerance"]==0; abort "receipt commit must be a 40-hex sha" unless r.dig("atlas_source","commit").to_s.match?(/\A[0-9a-f]{40}\z/); abort "receipt must come from a clean tree" unless r.dig("atlas_source","dirty")==false; r["artifacts"].each{|a| p=a["path"].to_s; next unless p.include?("receipts/#{id}/"); f="receipts/#{id}/#{File.basename(p)}"; abort "receipt artifact missing #{f}" unless File.file?(f); abort "receipt sha256 mismatch #{f}" unless Digest::SHA256.file(f).hexdigest==a["sha256"] }'
 	@ruby -rjson -rdigest -e 'id="engineering-products-8bbe89fd-20260802T144440Z"; r=JSON.parse(File.read("receipts/#{id}/run_receipt.json")); abort "release-tree engineering receipt must be validated" unless r["state"]=="validated"; v=r["validator"]; abort "release-tree receipt validator drift" unless v["language"]=="Julia" && v["status"]=="pass" && v["absolute_tolerance"]==0; abort "release-tree receipt commit must be a 40-hex sha" unless r.dig("atlas_source","commit").to_s.match?(/\A[0-9a-f]{40}\z/); abort "release-tree receipt must come from a clean tree" unless r.dig("atlas_source","dirty")==false; r["artifacts"].each{|a| p=a["path"].to_s; next unless p.include?("receipts/#{id}/"); f="receipts/#{id}/#{File.basename(p)}"; abort "release-tree receipt artifact missing #{f}" unless File.file?(f); abort "release-tree receipt sha256 mismatch #{f}" unless Digest::SHA256.file(f).hexdigest==a["sha256"] }'
 	@ruby -rjson -rdigest -e 'dir="release/darwin-atlas-0.1.0-engineering-b04fdefd"; r=JSON.parse(File.read("#{dir}/release_receipt.json")); abort "release kind drift" unless r["receipt_kind"]=="engineering_release"; abort "release must stay engineering scope" unless r["engineering_scope"]==true && r["release_eligible"]==false; abort "DOI must stay an explicit placeholder" unless r["doi"]=="pending"; abort "release commit must be a 40-hex sha" unless r["source_commit"].to_s.match?(/\A[0-9a-f]{40}\z/); abort "release must come from a clean tree" unless r["source_dirty"]==false; abort "battery marker drift" unless r.dig("battery","final_marker")=="BATTERY_ALL_GREEN"; abort "battery evidence hash drift" unless Digest::SHA256.file("#{dir}/battery_evidence.txt").hexdigest==r.dig("battery","evidence_sha256"); abort "tarball hash drift" unless Digest::SHA256.file("#{dir}/#{r.dig("bundle_files","tarball")}").hexdigest==r.dig("bundle_files","tarball_sha256"); abort "products receipt hash drift" unless Digest::SHA256.file("receipts/#{r.dig("products_receipt","run_id")}/run_receipt.json").hexdigest==r.dig("products_receipt","receipt_sha256"); abort "benchmark receipt hash drift" unless Digest::SHA256.file("receipts/#{r.dig("benchmark_receipt","run_id")}/benchmark_receipt.json").hexdigest==r.dig("benchmark_receipt","receipt_sha256")'
@@ -192,6 +201,101 @@ contract:
 	@! rg -n "Running Julia-only validation instead" julia/scripts/cross_validation.jl
 	@! rg -n "rm -rf julia/[M]anifest.toml" Makefile
 	@echo "Contract checks passed"
+
+u0-contract:
+	@for f in \
+		docs/ADR-0004-v3-u0-utility-first-fail-closed-gates.md \
+		docs/DOSA_V3_PUBLIC_DATA_DICTIONARY.md \
+		docs/V2_1_2_FORENSIC_PRESERVATION.md \
+		data/v3/u0_parameters.json \
+		data/v3/refseq_bacteria_complete_query.json \
+		data/v3/public_field_use_rules.json \
+		toolchains/ncbi-datasets.lock.json \
+		toolchains/u0-python-requirements.txt \
+		scripts/select_u0_pilot.py \
+		scripts/bind_u0_control_ledger.py \
+		scripts/validate_u0_control_ledger.py \
+		scripts/build_u0_source_manifest.py \
+		scripts/evaluate_u0_gate.py \
+		scripts/audit_v3_public_fields.py \
+		scripts/project_u0_parquet_capacity.py \
+		scripts/measure_u0_operational_utility.py \
+		scripts/prepare_biostudies_queue.py \
+		scripts/run_u0_manifest_differential.sh \
+		cli/bin/dosa \
+		sounio/src/u0_manifest_fixture.sio \
+		julia/scripts/validate_u0_manifest.jl; do test -s "$$f"; done
+	@test -s data/v3/U0_CONTROL_LEDGER.md
+	@test -s data/fixtures/u0_control_ledger/control_candidates.tsv
+	@for f in dosa_v3_common dosa_v3_parameters dosa_v3_source_manifest dosa_v3_source_index dosa_v3_replicon dosa_v3_run dosa_v3_window_profile dosa_v3_summary dosa_v3_exclusion dosa_v3_payload_manifest dosa_v3_receipt; do test -s "schemas/$$f.schema.json"; done
+	@bash -n scripts/freeze_u0_refseq_snapshot.sh scripts/test_u0_selection.sh scripts/test_u0_control_ledger.sh scripts/test_u0_source_manifest.sh scripts/test_u0_gate.sh scripts/test_u0_capacity.sh scripts/test_u0_operational.sh
+	@python3 -c 'import json,pathlib; files=list(pathlib.Path("schemas").glob("dosa_v3_*.schema.json"))+list(pathlib.Path("data/v3").glob("*.json"))+[pathlib.Path("toolchains/ncbi-datasets.lock.json")]; hook=lambda pairs: _pairs(pairs); ns={}; exec("def _pairs(pairs):\n d={}\n for k,v in pairs:\n  if k in d: raise ValueError(\"duplicate JSON key: \"+k)\n  d[k]=v\n return d",ns); [json.loads(p.read_text(),object_pairs_hook=ns["_pairs"]) for p in files]; print("DOSA_V3_JSON_NO_DUPLICATES_PASS files=%d"%len(files))'
+	@python3 -c 'import json; p=json.load(open("data/v3/u0_parameters.json")); mutable={"u0_status","full_atlas_execution_state","hdd_purchase_state","release_policy"}; assert p["window_profiles"]==[{"window_size":16,"stride":16},{"window_size":100,"stride":100},{"window_size":500,"stride":500},{"window_size":1000,"stride":1000}] and p["k_min"]==1 and p["k_max"]==8 and p["null_model"]=="euler_wilson_fixed_endpoints_v1" and p["null_replicates"]==1000 and not mutable.intersection(p) and "p_values" not in p and "q_values" not in p; print("DOSA_V3_U0_PARAMETERS_PASS immutable_science_only=true")'
+	@python3 scripts/audit_v3_public_fields.py --schema-dir schemas --rules data/v3/public_field_use_rules.json --evidence-scope fixture
+	@python3 -m unittest discover -s cli/tests -p 'test_*.py'
+	@scripts/test_u0_selection.sh
+	@bash scripts/test_u0_control_ledger.sh
+	@scripts/test_u0_source_manifest.sh
+	@scripts/test_u0_gate.sh
+	@scripts/test_u0_operational.sh
+	@! rg -n 'reverse_kmer_imbalance_1|fixed_R|fixed_RC|orbit_ratio|orbit_size|dmin|p_value|q_value|parameters_sha256' schemas/dosa_v3_window_profile.schema.json
+	@echo "DOSA_V3_U0_CONTRACT_PASS fixture_scope_only=true"
+
+u0-schema-integration:
+	@python3 -c 'import jsonschema' 2>/dev/null || (echo "BLOCKED: Python jsonschema is required for v3 schema integration" && exit 2)
+	@python3 scripts/validate_v3_schemas.py
+
+u0-cli-integration:
+	@python3 -c 'import duckdb; assert duckdb.__version__ == "1.5.5", duckdb.__version__' 2>/dev/null || (echo "BLOCKED: duckdb==1.5.5 is required for the U0 CLI integration" && exit 2)
+	@python3 -m unittest discover -s cli/tests -p 'test_*.py'
+	@scripts/test_u0_capacity.sh
+
+u0-julia-contract:
+	@$(JULIA) --startup-file=no julia/scripts/validate_u0_manifest.jl --self-test data/fixtures/u0_manifest
+	@$(JULIA) --startup-file=no julia/scripts/validate_u0_manifest.jl data/fixtures/u0_manifest/u0_manifest.tsv data/fixtures/u0_manifest/u0_expected_terminal.tsv
+	@$(JULIA) --startup-file=no julia/test/test_v3_scientific_gates.jl
+
+u0-manifest-differential-fixture:
+	@SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
+		JULIA_BIN="$$(printf '%s' "$(JULIA)" | awk '{print $$1}')" \
+		bash scripts/run_u0_manifest_differential.sh
+
+u0-gate:
+	@for variable in U0_AGREEMENT_REPORT U0_QUERY_REPORT U0_SPEED_REPORT U0_CAPACITY_REPORT U0_FIELD_AUDIT_REPORT U0_ORIC_REPORT U0_MODEL_REPORT U0_ORIC_INPUT U0_MODEL_INPUT U0_PARAMETERS U0_SOURCE_MANIFEST U0_SOURCE_INTEGRITY U0_SOURCE_INDEX U0_PAYLOAD_MANIFEST U0_SOUNIO_ATTESTATION U0_SOUNIO_BUILD_RECEIPT U0_SOUNIO_EXECUTION_RECEIPT U0_SOUNIO_OUTPUT_MANIFEST U0_JULIA_RECEIPT U0_PILOT_PROVENANCE U0_SELECTION U0_CONTROL_CANDIDATES U0_CONTROL_LEDGER U0_CONTROL_BINDING_RECEIPT U0_CONTROL_VALIDATION_RECEIPT U0_SOURCE_FREEZE_RECEIPT U0_ASSEMBLY_REPORT U0_SEQUENCE_REPORT U0_FULL_REPLICON_INVENTORY U0_WORK_UNIT_MANIFEST U0_JULIA_BIN; do eval "value=\$$$$variable"; if [ -z "$$value" ] || [ ! -f "$$value" ]; then echo "BLOCKED: $$variable must name an immutable real U0 evidence artifact"; exit 2; fi; done
+	@if [ -z "$$U0_EVIDENCE_ROOT" ] || [ ! -d "$$U0_EVIDENCE_ROOT" ]; then echo "BLOCKED: U0_EVIDENCE_ROOT must name the immutable real U0 evidence root"; exit 2; fi
+	@python3 scripts/evaluate_u0_gate.py \
+		--agreement "$$U0_AGREEMENT_REPORT" \
+		--query "$$U0_QUERY_REPORT" \
+		--speed "$$U0_SPEED_REPORT" \
+		--capacity "$$U0_CAPACITY_REPORT" \
+		--field-audit "$$U0_FIELD_AUDIT_REPORT" \
+		--oric "$$U0_ORIC_REPORT" \
+		--model "$$U0_MODEL_REPORT" \
+		--oric-input "$$U0_ORIC_INPUT" \
+		--model-input "$$U0_MODEL_INPUT" \
+		--selection "$$U0_SELECTION" \
+		--control-candidates "$$U0_CONTROL_CANDIDATES" \
+		--control-ledger "$$U0_CONTROL_LEDGER" \
+		--control-binding-receipt "$$U0_CONTROL_BINDING_RECEIPT" \
+		--control-validation-receipt "$$U0_CONTROL_VALIDATION_RECEIPT" \
+		--source-freeze-receipt "$$U0_SOURCE_FREEZE_RECEIPT" \
+		--assembly-report "$$U0_ASSEMBLY_REPORT" \
+		--sequence-report "$$U0_SEQUENCE_REPORT" \
+		--full-replicon-inventory "$$U0_FULL_REPLICON_INVENTORY" \
+		--work-unit-manifest "$$U0_WORK_UNIT_MANIFEST" \
+		--julia-bin "$$U0_JULIA_BIN" \
+		--parameters "$$U0_PARAMETERS" \
+		--source-manifest "$$U0_SOURCE_MANIFEST" \
+		--source-integrity "$$U0_SOURCE_INTEGRITY" \
+		--source-index "$$U0_SOURCE_INDEX" \
+		--payload-manifest "$$U0_PAYLOAD_MANIFEST" \
+		--sounio-attestation "$$U0_SOUNIO_ATTESTATION" \
+		--sounio-build-receipt "$$U0_SOUNIO_BUILD_RECEIPT" \
+		--sounio-execution-receipt "$$U0_SOUNIO_EXECUTION_RECEIPT" \
+		--sounio-output-manifest "$$U0_SOUNIO_OUTPUT_MANIFEST" \
+		--julia-receipt "$$U0_JULIA_RECEIPT" \
+		--evidence-root "$$U0_EVIDENCE_ROOT" \
+		--pilot-provenance "$$U0_PILOT_PROVENANCE"
 
 u250-smoke-contract:
 	@bash -n fpga/u250-smoke/build.sh fpga/u250-smoke/compile-host.sh fpga/u250-smoke/run-hardware.sh

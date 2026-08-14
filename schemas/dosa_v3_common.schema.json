@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/dosa_v3_common.schema.json",
+  "title": "DOSA v3 public-contract common definitions",
+  "description": "Shared exact-value, identifier, and reason-code definitions for the DOSA v3 public layer. A value represented here is analytic evidence only when its enclosing v3 receipt passes every required gate.",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "minLength": 1
+    },
+    "relativePath": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(?:/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$",
+      "description": "Portable package-relative path. Absolute paths, parent traversal, home-directory shorthand, whitespace, and platform-specific separators are prohibited."
+    },
+    "nonnegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "exactFraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["numerator", "denominator"],
+      "properties": {
+        "numerator": {"type": "integer", "minimum": 0},
+        "denominator": {"type": "integer", "minimum": 1}
+      },
+      "description": "Exact non-negative rational value. Consumers MUST derive any decimal display from these two integers; no rounded analytic value is part of the public contract."
+    },
+    "reasonCode": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "PARTIAL_WINDOW",
+        "AMBIGUOUS_WINDOW",
+        "INSUFFICIENT_EFFECTIVE_KMERS",
+        "K_OUT_OF_CONFIGURED_RANGE",
+        "NULL_INPUT_NOT_ACGT",
+        "NULL_GENERATOR_FAILED",
+        "NULL_DRAWS_INCOMPLETE",
+        "SOURCE_RECORD_EXCLUDED",
+        "RECEIPT_MISSING",
+        "VALIDATION_MISMATCH"
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "media_type", "sha256", "size_bytes"],
+      "properties": {
+        "role": {"$ref": "#/$defs/id"},
+        "path": {"$ref": "#/$defs/relativePath"},
+        "media_type": {"type": "string", "minLength": 1},
+        "schema_id": {"type": ["string", "null"]},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"$ref": "#/$defs/nonnegativeInteger"},
+        "record_count": {"$ref": "#/$defs/nonnegativeInteger"}
+      }
+    }
+  }
+}

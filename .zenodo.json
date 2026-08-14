@@ -1,21 +1,21 @@
 {
-  "title": "Darwin Operator Symmetry Atlas (DOSA): A database of dihedral symmetries in complete bacterial replicons",
-  "description": "A reproducible, DOI-versioned database of operator-defined symmetries in complete bacterial replicons. DOSA implements a hybrid Julia/Demetrios architecture for computing exact and approximate dihedral symmetry metrics across ~50,000 bacterial genomes. The atlas provides: (1) exact symmetry metrics including orbit sizes and palindrome detection; (2) approximate symmetry via normalized minimum dihedral distance (d_min/L); and (3) algebraic verification of dicyclic group structure (Dic_n → D_n double cover).",
+  "title": "Darwin Operator Symmetry Atlas (DOSA) v3 U0 development contract — not a data release",
+  "description": "Development-only, fail-closed contract for testing whether DOSA can serve as a reusable calibration resource for bacterial-window reversal and reverse-complement observations under a 1000-draw fixed-endpoint dinucleotide null. Sounio is the canonical scientific producer and Julia is the independent validator. Gate U0 has not passed; this repository state contains no v3 public atlas and is not eligible for deposition.",
   "upload_type": "dataset",
-  "publication_date": "2025-12-14",
+  "publication_date": "2026-08-14",
   "creators": [
     {
       "name": "Agourakis, Demetrios Chiuratto",
       "affiliation": "Independent Researcher",
-      "orcid": "0000-0000-0000-0000"
+      "orcid": "0009-0001-8671-8878"
     }
   ],
   "keywords": [
     "bacterial genomes",
-    "dihedral symmetry",
+    "operator calibration",
     "reverse complement",
     "genomic operators",
-    "palindrome sequences",
+    "dinucleotide null model",
     "bioinformatics",
     "reproducible research",
     "scientific data"
@@ -33,14 +33,14 @@
   ],
   "related_identifiers": [
     {
-      "identifier": "https://github.com/YOUR_USERNAME/darwin-atlas",
+      "identifier": "https://github.com/agourakis82/darwin-atlas",
       "relation": "isSupplementTo",
       "scheme": "url"
     }
   ],
   "grants": [],
-  "version": "2.0.0-alpha",
+  "version": "U0-dev",
   "language": "eng",
   "access_right": "open",
-  "notes": "This dataset accompanies a Data Descriptor manuscript submitted to Scientific Data (Nature Portfolio). All code and data are fully reproducible via 'git clone' + 'make reproduce'."
+  "notes": "DEPOSITION BLOCKED. A v3 release requires a passing real-pilot U0 receipt, full Sounio production, independent full Julia validation, payload closure, and an external-use receipt. The published v2.1.2 DOI is preserved separately and is not rewritten by this development branch."
 }

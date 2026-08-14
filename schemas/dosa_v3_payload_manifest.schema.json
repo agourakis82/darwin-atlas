@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/dosa_v3_payload_manifest.schema.json",
+  "title": "DOSA v3 public payload manifest",
+  "description": "Hash closure for a candidate v3 public payload. It requires the five named logical public Parquet tables, including a package-manifest-backed partitioned window table, and may bind additional supporting receipt/provenance artifacts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "payload_id", "run_id", "parameters_sha256", "source_manifest_sha256", "public_tables", "package_manifests", "supporting_artifacts", "release_state"],
+  "properties": {
+    "schema_version": {"const": "3.0.0"},
+    "payload_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"},
+    "run_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"},
+    "parameters_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+    "source_manifest_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+    "public_tables": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {"$ref": "#/$defs/publicTable"},
+      "allOf": [
+        {"contains": {"properties": {"filename": {"const": "runs.parquet"}}, "required": ["filename"]}},
+        {"contains": {"properties": {"filename": {"const": "replicons.parquet"}}, "required": ["filename"]}},
+        {"contains": {"properties": {"filename": {"const": "window_operator_profiles.parquet"}}, "required": ["filename"]}},
+        {"contains": {"properties": {"filename": {"const": "replicon_operator_summary.parquet"}}, "required": ["filename"]}},
+        {"contains": {"properties": {"filename": {"const": "excluded_records.parquet"}}, "required": ["filename"]}}
+      ]
+    },
+    "package_manifests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/packageManifest"}
+    },
+    "supporting_artifacts": {
+      "type": "array",
+      "items": {"$ref": "dosa_v3_common.schema.json#/$defs/artifact"}
+    },
+    "release_state": {"enum": ["blocked_pending_receipts", "u0_pilot_evidence", "release_candidate"]}
+  },
+  "$defs": {
+    "publicTable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "schema_id", "record_count", "storage"],
+      "properties": {
+        "filename": {
+          "enum": [
+            "runs.parquet",
+            "replicons.parquet",
+            "window_operator_profiles.parquet",
+            "replicon_operator_summary.parquet",
+            "excluded_records.parquet"
+          ]
+        },
+        "schema_id": {"type": "string", "minLength": 1},
+        "record_count": {"$ref": "dosa_v3_common.schema.json#/$defs/nonnegativeInteger"},
+        "storage": {"$ref": "#/$defs/tableStorage"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"filename": {"const": "window_operator_profiles.parquet"}}, "required": ["filename"]},
+          "then": {"properties": {"storage": {"properties": {"layout": {"const": "package_manifest_partitioned"}}, "required": ["layout"]}}}
+        }
+      ]
+    },
+    "tableStorage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["layout", "path", "sha256", "size_bytes"],
+          "properties": {
+            "layout": {"const": "single_file"},
+            "path": {"$ref": "dosa_v3_common.schema.json#/$defs/relativePath"},
+            "sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+            "size_bytes": {"$ref": "dosa_v3_common.schema.json#/$defs/nonnegativeInteger"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["layout", "partitioning", "package_manifest_ids"],
+          "properties": {
+            "layout": {"const": "package_manifest_partitioned"},
+            "partitioning": {"const": "scale_then_sha256_accession_bucket"},
+            "package_manifest_ids": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"$ref": "dosa_v3_common.schema.json#/$defs/id"}
+            }
+          }
+        }
+      ]
+    },
+    "packageManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package_manifest_id", "path", "sha256", "size_bytes", "table_filename", "manifest_version", "package_version"],
+      "properties": {
+        "package_manifest_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"},
+        "path": {"$ref": "dosa_v3_common.schema.json#/$defs/relativePath"},
+        "sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "size_bytes": {"$ref": "dosa_v3_common.schema.json#/$defs/nonnegativeInteger"},
+        "table_filename": {"const": "window_operator_profiles.parquet"},
+        "manifest_version": {"const": "dosa-v3-u0-dev-payload-manifest-3"},
+        "package_version": {"const": "U0-dev"}
+      }
+    }
+  }
+}

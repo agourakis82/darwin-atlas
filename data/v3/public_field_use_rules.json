@@ -1,0 +1,140 @@
+[
+  {
+    "rule_id": "schema_version_dispatch",
+    "field_pattern": "schema_version",
+    "demonstrated_use": "Select the exact parser and reject incompatible table rows.",
+    "evidence_gate": "schema_validation"
+  },
+  {
+    "rule_id": "relational_identity",
+    "field_pattern": "(?:run_id|replicon_id|source_record_id)",
+    "demonstrated_use": "Join each row to run provenance, one replicon, or one immutable source record without repeating metadata.",
+    "evidence_gate": "join_integrity"
+  },
+  {
+    "rule_id": "accession_lookup",
+    "field_pattern": "(?:assembly_accession_version|sequence_accession_version)",
+    "demonstrated_use": "Resolve a public query and reacquire the exact accession version.",
+    "evidence_gate": "external_source_recovery"
+  },
+  {
+    "rule_id": "replicon_control_metadata",
+    "field_pattern": "(?:replicon_class|declared_topology|length_bp|sequence_sha256)",
+    "demonstrated_use": "Route chromosome/plasmid and topology controls, validate coordinates, and verify recovered sequence bytes.",
+    "evidence_gate": "pilot_control_and_source_hash"
+  },
+  {
+    "rule_id": "run_hash_binding",
+    "field_pattern": "(?:parameters_sha256|source_manifest_sha256)",
+    "demonstrated_use": "Bind every table to the exact parameter and frozen-source contracts.",
+    "evidence_gate": "receipt_hash_closure"
+  },
+  {
+    "rule_id": "producer_container",
+    "field_pattern": "producer",
+    "demonstrated_use": "Keep canonical-producer provenance as one typed run-level structure.",
+    "evidence_gate": "sounio_producer_receipt"
+  },
+  {
+    "rule_id": "producer_identity",
+    "field_pattern": "producer\\.(?:language|source_commit|compiler_sha256|executable_sha256)",
+    "demonstrated_use": "Prove that Sounio at the bound source/compiler/executable produced the logical artifact.",
+    "evidence_gate": "sounio_producer_receipt"
+  },
+  {
+    "rule_id": "run_state",
+    "field_pattern": "status",
+    "demonstrated_use": "Prevent generated or excluded rows from being promoted to validated observations.",
+    "evidence_gate": "state_machine_validation"
+  },
+  {
+    "rule_id": "run_timing",
+    "field_pattern": "(?:started_utc|finished_utc)",
+    "demonstrated_use": "Audit run duration and temporal source/release ordering.",
+    "evidence_gate": "operational_receipt"
+  },
+  {
+    "rule_id": "window_location",
+    "field_pattern": "(?:window_size|window_index|window_start|window_end)",
+    "demonstrated_use": "Locate one zero-based half-open interval for query and independent recomputation.",
+    "evidence_gate": "query_and_coordinate_recompute"
+  },
+  {
+    "rule_id": "operator_containers",
+    "field_pattern": "(?:positional_r|positional_rc|kmer_r|kmer_rc)",
+    "demonstrated_use": "Project the declared R/RC operator panel without unrelated legacy columns.",
+    "evidence_gate": "operator_panel_schema"
+  },
+  {
+    "rule_id": "metric_selector",
+    "field_pattern": "(?:metric_id|k|kmer_r\\[\\]\\.k|kmer_rc\\[\\]\\.k)",
+    "demonstrated_use": "Select the operator and k stratum for calibration lookup and summaries.",
+    "evidence_gate": "operator_panel_completeness"
+  },
+  {
+    "rule_id": "effective_count",
+    "field_pattern": ".*effective_count",
+    "demonstrated_use": "Expose the number of eligible positions after ambiguity masking and validate exact denominators.",
+    "evidence_gate": "sounio_julia_exact_recompute"
+  },
+  {
+    "rule_id": "observed_fraction_container",
+    "field_pattern": ".*observed",
+    "demonstrated_use": "Represent the observed operator value as one exact fraction or an explicit unavailable value.",
+    "evidence_gate": "sounio_julia_exact_recompute"
+  },
+  {
+    "rule_id": "observed_fraction_parts",
+    "field_pattern": ".*observed\\.(?:numerator|denominator)",
+    "demonstrated_use": "Recompute the exact observed value without relying on rounded floating point.",
+    "evidence_gate": "sounio_julia_exact_recompute"
+  },
+  {
+    "rule_id": "null_summary_container",
+    "field_pattern": ".*null_summary",
+    "demonstrated_use": "Retrieve the ready dinucleotide-null calibration instead of repeating 1000 draws.",
+    "evidence_gate": "lookup_speedup"
+  },
+  {
+    "rule_id": "null_draw_count",
+    "field_pattern": ".*null_summary\\.n",
+    "demonstrated_use": "Prove that exactly 1000 eligible null draws completed or that none are claimed.",
+    "evidence_gate": "null_replicate_completeness"
+  },
+  {
+    "rule_id": "null_distribution_statistics",
+    "field_pattern": ".*null_summary\\.(?:mean|mad|q025|q500|q975)",
+    "demonstrated_use": "Support robust display and comparison to the precomputed null distribution.",
+    "evidence_gate": "calibration_query"
+  },
+  {
+    "rule_id": "null_statistic_fraction_parts",
+    "field_pattern": ".*null_summary\\.(?:mean|mad|q025|q500|q975)\\.(?:numerator|denominator)",
+    "demonstrated_use": "Validate every stored null statistic exactly without a rounded duplicate.",
+    "evidence_gate": "julia_null_recompute"
+  },
+  {
+    "rule_id": "null_tail_partition",
+    "field_pattern": ".*null_summary\\.tail_(?:lt|eq|gt)",
+    "demonstrated_use": "Compare observed and null values while exposing the complete 1000-draw order partition without p-values.",
+    "evidence_gate": "tail_partition_sum"
+  },
+  {
+    "rule_id": "reason_codes",
+    "field_pattern": ".*reason_code",
+    "demonstrated_use": "Explain every unavailable metric, null, interval, or record without silent row loss.",
+    "evidence_gate": "reason_code_completeness"
+  },
+  {
+    "rule_id": "summary_window_counts",
+    "field_pattern": "windows_(?:total|eligible|excluded)",
+    "demonstrated_use": "Check that replicon summaries account for every candidate window.",
+    "evidence_gate": "summary_count_reconciliation"
+  },
+  {
+    "rule_id": "exclusion_scope",
+    "field_pattern": "exclusion_level",
+    "demonstrated_use": "Distinguish a whole-record exclusion from a window or metric-specific exclusion.",
+    "evidence_gate": "exclusion_ledger_reconciliation"
+  }
+]

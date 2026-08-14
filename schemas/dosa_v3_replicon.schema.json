@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/dosa_v3_replicon.schema.json",
+  "title": "DOSA v3 replicons.parquet row",
+  "description": "One metadata row per replicon. Window profiles refer to replicon_id and MUST NOT repeat these fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["replicon_id", "assembly_accession_version", "sequence_accession_version", "replicon_class", "declared_topology", "length_bp", "sequence_sha256", "source_record_id"],
+  "properties": {
+    "replicon_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"},
+    "assembly_accession_version": {"type": "string", "pattern": "^[A-Za-z]+_[0-9]+\\.[0-9]+$"},
+    "sequence_accession_version": {"type": "string", "pattern": "^[A-Za-z]+_[0-9]+\\.[0-9]+$"},
+    "replicon_class": {"enum": ["chromosome", "plasmid", "other"]},
+    "declared_topology": {"enum": ["linear", "circular", "unknown"]},
+    "length_bp": {"type": "integer", "minimum": 1},
+    "sequence_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+    "source_record_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"}
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "retrieved_utc": "2026-08-14T11:59:21Z",
+  "documentation": "https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/",
+  "datasets": {
+    "version": "18.35.0",
+    "macos_universal_url": "https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/mac/datasets",
+    "sha256": "64bbbac201be6df9ae88803714be5996b1598e73ac21905042a09208afb4657a",
+    "size_bytes": 39818786
+  },
+  "dataformat": {
+    "version_reported": "undefined",
+    "macos_universal_url": "https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/mac/dataformat",
+    "sha256": "e2aa966b05531f76b8aa30a0ef7cf727e24f84a477cbf56592548fbcc7312dab",
+    "size_bytes": 39397778
+  }
+}

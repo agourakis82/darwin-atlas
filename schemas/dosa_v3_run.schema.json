@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/dosa_v3_run.schema.json",
+  "title": "DOSA v3 runs.parquet row",
+  "description": "Run-level provenance, stored once for all products. A run is never release-ready merely because it generated profiles: readiness is established only by the separate v3 receipt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "parameters_sha256", "source_manifest_sha256", "producer", "status", "started_utc", "finished_utc"],
+  "properties": {
+    "schema_version": {"const": "3.0.0"},
+    "run_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"},
+    "parameters_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+    "source_manifest_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "source_commit", "compiler_sha256", "executable_sha256"],
+      "properties": {
+        "language": {"const": "Sounio"},
+        "source_commit": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+        "compiler_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "executable_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}
+      }
+    },
+    "status": {"enum": ["generated_unvalidated", "validation_failed", "validated"]},
+    "started_utc": {"type": "string", "format": "date-time"},
+    "finished_utc": {"type": "string", "format": "date-time"}
+  }
+}

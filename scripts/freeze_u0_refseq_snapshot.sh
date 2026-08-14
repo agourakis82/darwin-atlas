@@ -1,0 +1,318 @@
+#!/usr/bin/env bash
+# Freeze the fresh RefSeq Complete Genome inputs needed by the DOSA v3 U0 pilot.
+#
+# Acquisition and routing only: this script never computes DOSA metrics.  It
+# refuses dirty source trees, tool drift, incomplete control candidates, output
+# overwrite, and a local pending bundle larger than the 200 GiB policy limit.
+set -euo pipefail
+
+atlas_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+lock_file="$atlas_root/toolchains/ncbi-datasets.lock.json"
+query_file="$atlas_root/data/v3/refseq_bacteria_complete_query.json"
+selector="$atlas_root/scripts/select_u0_pilot.py"
+control_ledger_binder="$atlas_root/scripts/bind_u0_control_ledger.py"
+control_ledger_validator="$atlas_root/scripts/validate_u0_control_ledger.py"
+source_manifest_builder="$atlas_root/scripts/build_u0_source_manifest.py"
+
+usage() {
+  echo "usage: $0 OUTPUT_DIRECTORY CONTROL_CANDIDATES.tsv" >&2
+  exit 2
+}
+
+[[ "$#" -eq 2 ]] || usage
+output_dir="$1"
+control_candidates_source="$2"
+
+datasets_bin="${DOSA_DATASETS_BIN:-$(command -v datasets || true)}"
+dataformat_bin="${DOSA_DATAFORMAT_BIN:-$(command -v dataformat || true)}"
+
+sha256_file() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  else
+    echo "BLOCKED: no SHA-256 utility" >&2
+    return 2
+  fi
+}
+
+[[ -x "$datasets_bin" ]] || { echo "BLOCKED: DOSA_DATASETS_BIN is not executable" >&2; exit 2; }
+[[ -x "$dataformat_bin" ]] || { echo "BLOCKED: DOSA_DATAFORMAT_BIN is not executable" >&2; exit 2; }
+[[ -s "$control_candidates_source" ]] || {
+  echo "BLOCKED: control candidates are missing or empty: $control_candidates_source" >&2
+  exit 2
+}
+[[ ! -e "$output_dir" ]] || { echo "BLOCKED: refusing to overwrite snapshot directory: $output_dir" >&2; exit 2; }
+[[ -z "$(git -C "$atlas_root" status --porcelain)" ]] || {
+  echo "BLOCKED: snapshot freeze requires a clean atlas source tree" >&2
+  exit 2
+}
+
+expected_datasets_sha="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("datasets").fetch("sha256")' "$lock_file")"
+expected_dataformat_sha="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("dataformat").fetch("sha256")' "$lock_file")"
+expected_version="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("datasets").fetch("version")' "$lock_file")"
+actual_datasets_sha="$(sha256_file "$datasets_bin")"
+actual_dataformat_sha="$(sha256_file "$dataformat_bin")"
+actual_version="$($datasets_bin version | sed -n 's/^datasets version: //p')"
+[[ "$actual_datasets_sha" == "$expected_datasets_sha" ]] || { echo "BLOCKED: datasets SHA-256 drift" >&2; exit 2; }
+[[ "$actual_dataformat_sha" == "$expected_dataformat_sha" ]] || { echo "BLOCKED: dataformat SHA-256 drift" >&2; exit 2; }
+[[ "$actual_version" == "$expected_version" ]] || { echo "BLOCKED: datasets version drift" >&2; exit 2; }
+
+mkdir -p "$output_dir/reports" "$output_dir/discovery" "$output_dir/package"
+cp "$control_candidates_source" "$output_dir/control_candidates.tsv"
+control_candidates="$output_dir/control_candidates.tsv"
+assembly_report="$output_dir/reports/assembly_data_report.jsonl"
+sequence_report="$output_dir/reports/sequence_data_report.jsonl"
+selection="$output_dir/u0_pilot_selection.jsonl"
+full_replicon_inventory="$output_dir/full_replicon_inventory.jsonl"
+
+# The all-record streaming summary endpoint can terminate after a partial HTTP/2
+# stream. NCBI's documented large-package path is dehydrated download followed
+# by selective rehydration, which is also restartable. Discover the full frozen
+# universe that way and rehydrate only sequence reports before pilot selection.
+"$datasets_bin" download genome taxon bacteria \
+  --assembly-level complete \
+  --assembly-source RefSeq \
+  --assembly-version current \
+  --include genome,gbff,seq-report \
+  --dehydrated \
+  --no-progressbar \
+  --filename "$output_dir/discovery/refseq_complete_dehydrated.zip"
+
+unzip -q "$output_dir/discovery/refseq_complete_dehydrated.zip" -d "$output_dir/discovery/unpacked"
+cp "$output_dir/discovery/unpacked/ncbi_dataset/data/assembly_data_report.jsonl" "$assembly_report"
+"$datasets_bin" rehydrate \
+  --directory "$output_dir/discovery/unpacked" \
+  --match sequence_report.jsonl \
+  --max-workers 10 \
+  --no-progressbar
+
+python3 - "$output_dir/discovery/unpacked/ncbi_dataset/data" "$sequence_report" <<'PY'
+import pathlib, sys
+root, target = map(pathlib.Path, sys.argv[1:])
+sources = sorted(root.glob("GCF_*/sequence_report.jsonl"))
+if not sources:
+    raise SystemExit("BLOCKED: dehydrated discovery produced no sequence reports")
+with target.open("x", encoding="utf-8", newline="\n") as output:
+    for source in sources:
+        text = source.read_text(encoding="utf-8")
+        output.write(text)
+        if text and not text.endswith("\n"):
+            output.write("\n")
+PY
+
+[[ -s "$assembly_report" && -s "$sequence_report" ]] || {
+  echo "BLOCKED: NCBI summary returned an empty report" >&2
+  exit 2
+}
+
+python3 - "$sequence_report" "$full_replicon_inventory" <<'PY'
+import json, pathlib, re, sys
+source, target = map(pathlib.Path, sys.argv[1:])
+accession_re = re.compile(r"^[A-Z][A-Z0-9_]*\.[0-9]+$")
+records = {}
+for line_number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), start=1):
+    if not line:
+        continue
+    row = json.loads(line)
+    accession = row.get("refseq_accession")
+    length = row.get("length")
+    if not isinstance(accession, str) or accession_re.fullmatch(accession) is None:
+        raise SystemExit(f"BLOCKED: invalid RefSeq accession in sequence report line {line_number}")
+    if isinstance(length, bool) or not isinstance(length, int) or length < 1:
+        raise SystemExit(f"BLOCKED: invalid sequence length in sequence report line {line_number}")
+    if accession in records and records[accession] != length:
+        raise SystemExit(f"BLOCKED: conflicting duplicate sequence report row: {accession}")
+    records[accession] = length
+if not records:
+    raise SystemExit("BLOCKED: full replicon inventory would be empty")
+with target.open("x", encoding="utf-8", newline="\n") as handle:
+    for accession in sorted(records):
+        handle.write(json.dumps({"sequence_accession_version": accession, "length_bp": records[accession]}, sort_keys=True, separators=(",", ":")) + "\n")
+PY
+
+python3 "$selector" \
+  --assemblies "$assembly_report" \
+  --sequences "$sequence_report" \
+  --control-candidates "$control_candidates" \
+  --output "$selection"
+
+python3 - "$selection" "$output_dir/assembly_accessions.txt" <<'PY'
+import json, pathlib, sys
+source, target = map(pathlib.Path, sys.argv[1:])
+assemblies = sorted({json.loads(line)["assembly_accession_version"] for line in source.read_text().splitlines() if line})
+target.write_text("".join(value + "\n" for value in assemblies), encoding="utf-8")
+PY
+
+"$datasets_bin" download genome accession \
+  --inputfile "$output_dir/assembly_accessions.txt" \
+  --include genome,gbff,seq-report \
+  --dehydrated \
+  --no-progressbar \
+  --filename "$output_dir/package/ncbi_dataset_dehydrated.zip"
+
+unzip -q "$output_dir/package/ncbi_dataset_dehydrated.zip" -d "$output_dir/package/rehydrated"
+"$datasets_bin" rehydrate --directory "$output_dir/package/rehydrated"
+
+# Bind the pre-download inclusion declarations to exact files only after the
+# selected package exists. The binding receipt remains explicitly unvalidated
+# until the independent semantic validator below proves every claim.
+control_ledger="$output_dir/control_ledger.tsv"
+control_binding_receipt="$output_dir/control_binding_receipt.json"
+python3 "$control_ledger_binder" \
+  --control-candidates "$control_candidates" \
+  --package-root "$output_dir/package/rehydrated" \
+  --output-ledger "$control_ledger" \
+  --output-receipt "$control_binding_receipt"
+
+# The generated ledger cannot be satisfied by an unrelated duplicate hash:
+# validate exact accession/assembly/path/hash binding and each semantic claim
+# before any source manifest is built.
+control_ledger_receipt="$output_dir/control_ledger_receipt.json"
+python3 "$control_ledger_validator" \
+  --controls "$control_ledger" \
+  --package-root "$output_dir/package/rehydrated" \
+  --output "$control_ledger_receipt"
+
+find "$output_dir/package/rehydrated" -type f -print0 | sort -z | while IFS= read -r -d '' file; do
+  printf '%s  %s\n' "$(sha256_file "$file")" "${file#"$output_dir/"}"
+done > "$output_dir/SHA256SUMS"
+
+commit="$(git -C "$atlas_root" rev-parse HEAD)"
+query_sha="$(sha256_file "$query_file")"
+selection_sha="$(sha256_file "$selection")"
+manifest_sha="$(sha256_file "$output_dir/SHA256SUMS")"
+control_candidates_sha="$(sha256_file "$control_candidates")"
+control_ledger_sha="$(sha256_file "$control_ledger")"
+control_binding_receipt_sha="$(sha256_file "$control_binding_receipt")"
+control_ledger_receipt_sha="$(sha256_file "$control_ledger_receipt")"
+
+catalog_count="$(find "$output_dir/package/rehydrated" -type f -name dataset_catalog.json | wc -l | tr -d '[:space:]')"
+[[ "$catalog_count" == "1" ]] || {
+  echo "BLOCKED: expected exactly one dataset_catalog.json in rehydrated package, found $catalog_count" >&2
+  exit 2
+}
+catalog_file="$(find "$output_dir/package/rehydrated" -type f -name dataset_catalog.json -print -quit)"
+python3 "$source_manifest_builder" \
+  --snapshot-root "$output_dir" \
+  --selection "$selection" \
+  --query-source "$query_file" \
+  --tool-lock-source "$lock_file" \
+  --package-root "$output_dir/package/rehydrated" \
+  --dehydrated-archive "$output_dir/package/ncbi_dataset_dehydrated.zip" \
+  --catalog "$catalog_file" \
+  --checksums "$output_dir/SHA256SUMS" \
+  --manifest-output "$output_dir/source_manifest.json" \
+  --integrity-output "$output_dir/source_integrity_receipt.json" \
+  --source-index-output "$output_dir/source_index.json" \
+  --retrieved-utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --package-id "u0-$(basename "$output_dir")" \
+  --manifest-id "u0-source-$(basename "$output_dir")"
+
+source_manifest_sha="$(sha256_file "$output_dir/source_manifest.json")"
+source_integrity_sha="$(sha256_file "$output_dir/source_integrity_receipt.json")"
+source_index_sha="$(sha256_file "$output_dir/source_index.json")"
+full_replicon_inventory_sha="$(sha256_file "$full_replicon_inventory")"
+work_unit_manifest="$output_dir/u0_work_units.tsv"
+python3 - "$output_dir" "$selection" "$output_dir/source_index.json" "$atlas_root/data/v3/u0_parameters.json" "$work_unit_manifest" <<'PY'
+import hashlib, json, pathlib, sys
+snapshot, selection_path, index_path, parameters_path, output_path = map(pathlib.Path, sys.argv[1:])
+selection = {}
+for line in selection_path.read_text(encoding="utf-8").splitlines():
+    if not line:
+        continue
+    row = json.loads(line)
+    accession = row["sequence_accession_version"]
+    if accession in selection:
+        raise SystemExit(f"BLOCKED: duplicate work-unit accession: {accession}")
+    selection[accession] = row
+index = json.loads(index_path.read_text(encoding="utf-8"))
+records = index.get("records")
+if index.get("source_index_version") != "dosa-v3-source-index-1" or set(records or {}) != set(selection):
+    raise SystemExit("BLOCKED: source index and selection differ before work-unit construction")
+parameters_sha = hashlib.sha256(parameters_path.read_bytes()).hexdigest()
+header = (
+    "u0_manifest_version", "work_unit_id", "assembly_accession_version",
+    "sequence_accession_version", "replicon_class", "source_locator",
+    "source_file_sha256", "sequence_sha256", "sequence_length", "declared_alphabet",
+    "parameters_sha256", "scale", "stride", "k_min", "k_max", "null_model",
+    "null_replicates",
+)
+rows = []
+for accession in sorted(selection):
+    selected = selection[accession]
+    record = records[accession]
+    locator = record["locator"]
+    relative = pathlib.PurePosixPath(locator)
+    if relative.is_absolute() or relative.as_posix() != locator or any(part in ("", ".", "..") for part in relative.parts):
+        raise SystemExit(f"BLOCKED: unsafe source-index locator for {accession}")
+    source = snapshot.joinpath(*relative.parts)
+    if source.is_symlink() or not source.is_file():
+        raise SystemExit(f"BLOCKED: unavailable canonical FASTA for {accession}")
+    try:
+        source.resolve(strict=True).relative_to(snapshot.resolve(strict=True))
+    except ValueError as exc:
+        raise SystemExit(f"BLOCKED: canonical FASTA escapes snapshot for {accession}") from exc
+    raw = source.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != record["canonical_sequence_input_sha256"]:
+        raise SystemExit(f"BLOCKED: canonical FASTA hash mismatch for {accession}")
+    lines = raw.decode("ascii").splitlines()
+    if not lines or not lines[0].startswith(">") or accession not in lines[0] or any(not line for line in lines[1:]):
+        raise SystemExit(f"BLOCKED: canonical FASTA shape mismatch for {accession}")
+    sequence = "".join(lines[1:])
+    sequence_sha = hashlib.sha256(sequence.encode("ascii")).hexdigest()
+    if sequence_sha != record["normalized_sequence_sha256"] or len(sequence) != selected["length_bp"]:
+        raise SystemExit(f"BLOCKED: canonical sequence identity mismatch for {accession}")
+    alphabet = "acgt" if all(base in "ACGT" for base in sequence) else "non_acgt"
+    for scale in (16, 100, 500, 1000):
+        rows.append((
+            "1.0.0", f"{accession}@{scale}", selected["assembly_accession_version"],
+            accession, selected["replicon_class"], locator,
+            record["canonical_sequence_input_sha256"], sequence_sha, str(len(sequence)), alphabet,
+            parameters_sha, str(scale), str(scale), "1", "8",
+            "euler_wilson_fixed_endpoints_v1", "1000",
+        ))
+with output_path.open("x", encoding="utf-8", newline="\n") as handle:
+    handle.write("\t".join(header) + "\n")
+    for row in rows:
+        handle.write("\t".join(row) + "\n")
+PY
+work_unit_manifest_sha="$(sha256_file "$work_unit_manifest")"
+pending_bytes="$(du -sk "$output_dir" | awk '{print $1 * 1024}')"
+max_pending_bytes=$((200 * 1024 * 1024 * 1024))
+if (( pending_bytes > max_pending_bytes )); then
+  echo "BLOCKED: local pending snapshot exceeds 200 GiB policy: $pending_bytes" >&2
+  exit 2
+fi
+
+python3 - "$output_dir/freeze_receipt.json" "$commit" "$actual_version" "$actual_datasets_sha" "$actual_dataformat_sha" "$query_sha" "$selection_sha" "$manifest_sha" "$control_candidates_sha" "$control_ledger_sha" "$control_binding_receipt_sha" "$control_ledger_receipt_sha" "$source_manifest_sha" "$source_integrity_sha" "$source_index_sha" "$full_replicon_inventory_sha" "$work_unit_manifest_sha" "$pending_bytes" <<'PY'
+import datetime, json, pathlib, sys
+target = pathlib.Path(sys.argv[1])
+receipt = {
+    "schema_version": "dosa-u0-source-freeze-1",
+    "status": "frozen_unprocessed",
+    "finished_utc": datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+    "atlas_commit": sys.argv[2],
+    "datasets_version": sys.argv[3],
+    "datasets_sha256": sys.argv[4],
+    "dataformat_sha256": sys.argv[5],
+    "query_sha256": sys.argv[6],
+    "selection_sha256": sys.argv[7],
+    "package_manifest_sha256": sys.argv[8],
+    "control_candidates_sha256": sys.argv[9],
+    "control_ledger_sha256": sys.argv[10],
+    "control_binding_receipt_sha256": sys.argv[11],
+    "control_ledger_receipt_sha256": sys.argv[12],
+    "source_manifest_sha256": sys.argv[13],
+    "source_integrity_receipt_sha256": sys.argv[14],
+    "source_index_sha256": sys.argv[15],
+    "full_replicon_inventory_sha256": sys.argv[16],
+    "work_unit_manifest_sha256": sys.argv[17],
+    "pending_bytes": int(sys.argv[18]),
+    "scientific_metrics_computed": False,
+}
+target.write_text(json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+PY
+
+echo "DOSA_U0_SOURCE_FREEZE_OK output=$output_dir receipt_sha256=$(sha256_file "$output_dir/freeze_receipt.json")"

@@ -1,0 +1,17 @@
+record_id	split_id	partition	split_group	genus	species	replicon_length_bp	true_oric_bp	true_terminus_bp	baseline_oric_bp	baseline_terminus_bp	dosa_oric_bp	dosa_terminus_bp	baseline_model	dosa_model	evidence_scope
+ga_1	fold_1	test	group_a	Testus	alpha	1000	100	600	200	700	120	620	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+ga_2	fold_1	train	group_a	Testus	alpha	1000	100	600	200	700	140	640	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gb_1	fold_1	test	group_b	Otherus	beta	1000	100	600	200	700	125	625	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gb_2	fold_1	test	group_b	Otherus	beta	1000	100	600	200	700	135	635	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gc_1	fold_1	train	group_c	Trainus	gamma	1000	100	600	200	700	120	620	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gc_2	fold_1	train	group_c	Trainus	gamma	1000	100	600	200	700	130	630	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gd_1	fold_1	train	group_d	Holdus	delta	1000	100	600	200	700	125	625	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gd_2	fold_1	train	group_d	Holdus	delta	1000	100	600	200	700	135	635	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+ga_1	fold_2	train	group_a	Testus	alpha	1000	100	600	200	700	120	620	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+ga_2	fold_2	test	group_a	Testus	alpha	1000	100	600	200	700	140	640	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gb_1	fold_2	train	group_b	Otherus	beta	1000	100	600	200	700	125	625	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gb_2	fold_2	train	group_b	Otherus	beta	1000	100	600	200	700	135	635	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gc_1	fold_2	test	group_c	Trainus	gamma	1000	100	600	200	700	120	620	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gc_2	fold_2	test	group_c	Trainus	gamma	1000	100	600	200	700	130	630	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gd_1	fold_2	test	group_d	Holdus	delta	1000	100	600	200	700	125	625	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture
+gd_2	fold_2	test	group_d	Holdus	delta	1000	100	600	200	700	135	635	gc_skew+dinucleotide_skew+dnaa_motifs	gc_skew+dinucleotide_skew+dnaa_motifs+dosa	fixture

@@ -1,0 +1,13 @@
+case_id	split_id	partition	genus	species	transform	violation_label	rc_equivariant_score	non_equivariant_score	evidence_scope
+train_shared	fold_1	train	Sharedus	alpha	R	0	0.10	0.30	fixture
+train_shared	fold_1	train	Sharedus	alpha	RC	0	0.11	0.70	fixture
+train_shared	fold_1	train	Sharedus	alpha	ORIGIN_SHIFT	0	0.09	0.45	fixture
+test_other	fold_1	test	Otherus	beta	R	1	0.95	0.80	fixture
+test_other	fold_1	test	Otherus	beta	RC	1	0.96	0.25	fixture
+test_other	fold_1	test	Otherus	beta	ORIGIN_SHIFT	1	0.94	0.60	fixture
+test_shared	fold_2	test	Sharedus	alpha	R	1	0.90	0.40	fixture
+test_shared	fold_2	test	Sharedus	alpha	RC	1	0.91	0.85	fixture
+test_shared	fold_2	test	Sharedus	alpha	ORIGIN_SHIFT	1	0.92	0.55	fixture
+train_third	fold_2	train	Thirdus	gamma	R	0	0.10	0.20	fixture
+train_third	fold_2	train	Thirdus	gamma	RC	0	0.11	0.90	fixture
+train_third	fold_2	train	Thirdus	gamma	ORIGIN_SHIFT	0	0.12	0.50	fixture

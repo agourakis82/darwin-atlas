@@ -1,0 +1,6 @@
+LOCUS       NC_000001                 8 bp    DNA
+VERSION     NC_000001.1
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 acgtacgt
+//

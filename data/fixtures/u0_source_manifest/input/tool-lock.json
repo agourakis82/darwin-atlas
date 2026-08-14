@@ -1,0 +1,15 @@
+{
+  "dataformat": {
+    "macos_universal_url": "https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/mac/dataformat",
+    "sha256": "e2aa966b05531f76b8aa30a0ef7cf727e24f84a477cbf56592548fbcc7312dab",
+    "size_bytes": 39397778,
+    "version_reported": "undefined"
+  },
+  "datasets": {
+    "macos_universal_url": "https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/mac/datasets",
+    "sha256": "64bbbac201be6df9ae88803714be5996b1598e73ac21905042a09208afb4657a",
+    "size_bytes": 39818786,
+    "version": "18.35.0"
+  },
+  "schema_version": "1.0.0"
+}

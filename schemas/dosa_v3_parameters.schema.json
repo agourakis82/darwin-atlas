@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/dosa_v3_parameters.schema.json",
+  "title": "DOSA v3 U0 canonical parameters",
+  "description": "The sole v3 parameter object. It fixes the complete public operator panel, four non-overlapping window profiles, k=1..8, the exact fixed-endpoint Euler/Wilson null, and n=1000. It deliberately has no p- or q-value fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "window_profiles",
+    "k_min",
+    "k_max",
+    "operator_panel",
+    "null_model",
+    "null_replicates",
+    "coordinate_system"
+  ],
+  "properties": {
+    "schema_version": {"const": "3.0.0"},
+    "contract_id": {"const": "dosa-v3-u0"},
+    "window_profiles": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["window_size", "stride"],
+        "properties": {
+          "window_size": {"enum": [16, 100, 500, 1000]},
+          "stride": {"enum": [16, 100, 500, 1000]}
+        },
+        "allOf": [
+          {"if": {"properties": {"window_size": {"const": 16}}}, "then": {"properties": {"stride": {"const": 16}}}},
+          {"if": {"properties": {"window_size": {"const": 100}}}, "then": {"properties": {"stride": {"const": 100}}}},
+          {"if": {"properties": {"window_size": {"const": 500}}}, "then": {"properties": {"stride": {"const": 500}}}},
+          {"if": {"properties": {"window_size": {"const": 1000}}}, "then": {"properties": {"stride": {"const": 1000}}}}
+        ]
+      },
+      "allOf": [
+        {"contains": {"properties": {"window_size": {"const": 16}}, "required": ["window_size"]}},
+        {"contains": {"properties": {"window_size": {"const": 100}}, "required": ["window_size"]}},
+        {"contains": {"properties": {"window_size": {"const": 500}}, "required": ["window_size"]}},
+        {"contains": {"properties": {"window_size": {"const": 1000}}, "required": ["window_size"]}}
+      ]
+    },
+    "k_min": {"const": 1},
+    "k_max": {"const": 8},
+    "operator_panel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["positional", "kmer_r", "kmer_rc", "omitted_identically_zero"],
+      "properties": {
+        "positional": {"type": "array", "const": ["R", "RC"]},
+        "kmer_r": {"type": "array", "const": [2, 3, 4, 5, 6, 7, 8]},
+        "kmer_rc": {"type": "array", "const": [1, 2, 3, 4, 5, 6, 7, 8]},
+        "omitted_identically_zero": {"type": "array", "const": ["kmer_r_k1"]}
+      }
+    },
+    "null_model": {"const": "euler_wilson_fixed_endpoints_v1"},
+    "null_replicates": {"const": 1000},
+    "coordinate_system": {"const": "zero_based_half_open"}
+  }
+}

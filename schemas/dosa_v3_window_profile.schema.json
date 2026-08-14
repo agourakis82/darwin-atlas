@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/dosa_v3_window_profile.schema.json",
+  "title": "DOSA v3 window_operator_profiles.parquet row",
+  "description": "One public analytic row. It contains exact positional R/RC, k-mer R for k=2..8, and k-mer RC for k=1..8. Reverse k=1 is omitted because it is identically zero. Replicon metadata, fixed flags, legacy orbit fields, rounded values, repeated denominators, p-values, and q-values are absent.",
+  "x-dosa-cross-field-invariants": [
+    "window_end - window_start == window_size",
+    "window_start == window_index * window_size",
+    "available observed.denominator == effective_count",
+    "available null_summary.tail_lt + tail_eq + tail_gt == null_summary.n",
+    "available null_summary.q025 <= q500 <= q975"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "replicon_id",
+    "window_size",
+    "window_index",
+    "window_start",
+    "window_end",
+    "status",
+    "reason_code",
+    "positional_r",
+    "positional_rc",
+    "kmer_r",
+    "kmer_rc"
+  ],
+  "properties": {
+    "run_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"},
+    "replicon_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"},
+    "window_size": {"enum": [16, 100, 500, 1000]},
+    "window_index": {"type": "integer", "minimum": 0},
+    "window_start": {"type": "integer", "minimum": 0},
+    "window_end": {"type": "integer", "minimum": 1},
+    "status": {"enum": ["eligible", "excluded"]},
+    "reason_code": {"$ref": "dosa_v3_common.schema.json#/$defs/reasonCode"},
+    "positional_r": {"$ref": "#/$defs/metricObservation"},
+    "positional_rc": {"$ref": "#/$defs/metricObservation"},
+    "kmer_r": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {"$ref": "#/$defs/kmerRObservation"},
+      "allOf": [
+        {"contains": {"properties": {"k": {"const": 2}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 3}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 4}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 5}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 6}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 7}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 8}}, "required": ["k"]}}
+      ]
+    },
+    "kmer_rc": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {"$ref": "#/$defs/kmerRCObservation"},
+      "allOf": [
+        {"contains": {"properties": {"k": {"const": 1}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 2}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 3}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 4}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 5}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 6}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 7}}, "required": ["k"]}},
+        {"contains": {"properties": {"k": {"const": 8}}, "required": ["k"]}}
+      ]
+    }
+  },
+  "$defs": {
+    "metricObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effective_count", "observed", "null_summary", "reason_code"],
+      "properties": {
+        "effective_count": {"type": "integer", "minimum": 0},
+        "observed": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}]},
+        "null_summary": {"$ref": "#/$defs/nullSummary"},
+        "reason_code": {"$ref": "dosa_v3_common.schema.json#/$defs/reasonCode"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"reason_code": {"const": null}}, "required": ["reason_code"]},
+          "then": {"properties": {"effective_count": {"minimum": 1}, "observed": {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}}}
+        },
+        {
+          "if": {"properties": {"reason_code": {"type": "string"}}, "required": ["reason_code"]},
+          "then": {"properties": {"observed": {"type": "null"}}}
+        }
+      ]
+    },
+    "kmerRObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["k", "effective_count", "observed", "null_summary", "reason_code"],
+      "properties": {
+        "k": {"type": "integer", "minimum": 2, "maximum": 8},
+        "effective_count": {"type": "integer", "minimum": 0},
+        "observed": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}]},
+        "null_summary": {"$ref": "#/$defs/nullSummary"},
+        "reason_code": {"$ref": "dosa_v3_common.schema.json#/$defs/reasonCode"}
+      },
+      "allOf": [
+        {"if": {"properties": {"reason_code": {"const": null}}}, "then": {"properties": {"effective_count": {"minimum": 1}, "observed": {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}}}},
+        {"if": {"properties": {"reason_code": {"type": "string"}}}, "then": {"properties": {"observed": {"type": "null"}}}}
+      ]
+    },
+    "kmerRCObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["k", "effective_count", "observed", "null_summary", "reason_code"],
+      "properties": {
+        "k": {"type": "integer", "minimum": 1, "maximum": 8},
+        "effective_count": {"type": "integer", "minimum": 0},
+        "observed": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}]},
+        "null_summary": {"$ref": "#/$defs/nullSummary"},
+        "reason_code": {"$ref": "dosa_v3_common.schema.json#/$defs/reasonCode"}
+      },
+      "allOf": [
+        {"if": {"properties": {"reason_code": {"const": null}}}, "then": {"properties": {"effective_count": {"minimum": 1}, "observed": {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}}}},
+        {"if": {"properties": {"reason_code": {"type": "string"}}}, "then": {"properties": {"observed": {"type": "null"}}}}
+      ]
+    },
+    "nullSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "mean", "mad", "q025", "q500", "q975", "tail_lt", "tail_eq", "tail_gt", "reason_code"],
+      "properties": {
+        "n": {"enum": [0, 1000]},
+        "mean": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}]},
+        "mad": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}]},
+        "q025": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}]},
+        "q500": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}]},
+        "q975": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"}]},
+        "tail_lt": {"type": ["integer", "null"], "minimum": 0},
+        "tail_eq": {"type": ["integer", "null"], "minimum": 0},
+        "tail_gt": {"type": ["integer", "null"], "minimum": 0},
+        "reason_code": {"$ref": "dosa_v3_common.schema.json#/$defs/reasonCode"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"n": {"const": 1000}}, "required": ["n"]},
+          "then": {
+            "properties": {
+              "mean": {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"},
+              "mad": {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"},
+              "q025": {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"},
+              "q500": {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"},
+              "q975": {"$ref": "dosa_v3_common.schema.json#/$defs/exactFraction"},
+              "tail_lt": {"type": "integer", "minimum": 0, "maximum": 1000},
+              "tail_eq": {"type": "integer", "minimum": 0, "maximum": 1000},
+              "tail_gt": {"type": "integer", "minimum": 0, "maximum": 1000},
+              "reason_code": {"const": null}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"n": {"const": 0}}, "required": ["n"]},
+          "then": {
+            "properties": {
+              "mean": {"type": "null"},
+              "mad": {"type": "null"},
+              "q025": {"type": "null"},
+              "q500": {"type": "null"},
+              "q975": {"type": "null"},
+              "tail_lt": {"type": "null"},
+              "tail_eq": {"type": "null"},
+              "tail_gt": {"type": "null"},
+              "reason_code": {"type": "string"}
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "eligible"}}, "required": ["status"]},
+      "then": {"properties": {"reason_code": {"const": null}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "excluded"}}, "required": ["status"]},
+      "then": {"properties": {"reason_code": {"type": "string"}}}
+    }
+  ]
+}

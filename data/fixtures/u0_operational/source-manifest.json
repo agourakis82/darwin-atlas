@@ -1,0 +1,105 @@
+{
+  "acquisition_tools": {
+    "dataformat": {
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "size_bytes": 1,
+      "source_url": "https://ftp.ncbi.nlm.nih.gov/pub/datasets/dataformat",
+      "version": "fixture"
+    },
+    "datasets": {
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "size_bytes": 1,
+      "source_url": "https://ftp.ncbi.nlm.nih.gov/pub/datasets/datasets",
+      "version": "fixture"
+    }
+  },
+  "manifest_id": "u0-operational-fixture",
+  "package": {
+    "catalog": {
+      "path": "package/dataset_catalog.json",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "size_bytes": 1
+    },
+    "catalog_verified": true,
+    "checksum_manifest": {
+      "path": "package/SHA256SUMS",
+      "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "size_bytes": 1
+    },
+    "dehydrated_archive": {
+      "path": "package/dehydrated.zip",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "size_bytes": 1
+    },
+    "package_checksums_verified": true,
+    "package_id": "u0-operational-fixture",
+    "package_root": "package/rehydrated",
+    "selected_assets_complete": true,
+    "source_url": "https://api.ncbi.nlm.nih.gov/datasets/v2/genome/accession/"
+  },
+  "package_assets": [
+    {
+      "assembly_accession_version": "GCF_000000001.1",
+      "asset_id": "fasta-GCF_000000001.1",
+      "asset_kind": "fasta",
+      "package_path": "assets/GCF_000000001.1_genomic.fna",
+      "selected_record_ids": [
+        "src-NC_000001.1"
+      ],
+      "sequence_accession_version": null,
+      "sha256": "68fb2551613bd872fdd902705e5e88c8f5192e08aaad2d714701f85dea2d0cb6",
+      "size_bytes": 54,
+      "source_url": "https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000000001.1/"
+    },
+    {
+      "assembly_accession_version": "GCF_000000001.1",
+      "asset_id": "gbff-GCF_000000001.1",
+      "asset_kind": "gbff",
+      "package_path": "assets/GCF_000000001.1_genomic.gbff",
+      "selected_record_ids": [
+        "src-NC_000001.1"
+      ],
+      "sequence_accession_version": null,
+      "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "size_bytes": 1,
+      "source_url": "https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000000001.1/"
+    },
+    {
+      "assembly_accession_version": "GCF_000000001.1",
+      "asset_id": "sequence-report-GCF_000000001.1",
+      "asset_kind": "sequence_report",
+      "package_path": "assets/sequence_report.jsonl",
+      "selected_record_ids": [
+        "src-NC_000001.1"
+      ],
+      "sequence_accession_version": null,
+      "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "size_bytes": 1,
+      "source_url": "https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000000001.1/"
+    }
+  ],
+  "query": {
+    "object": {
+      "taxon": "bacteria"
+    },
+    "path": "provenance/query.json",
+    "sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "size_bytes": 1
+  },
+  "retrieved_utc": "2026-08-14T12:00:00Z",
+  "schema_version": "3.0.0",
+  "selected_records": [
+    {
+      "assembly_accession_version": "GCF_000000001.1",
+      "replicon_id": "NC_000001.1",
+      "required_asset_kinds": [
+        "fasta",
+        "gbff",
+        "sequence_report"
+      ],
+      "sequence_accession_version": "NC_000001.1",
+      "source_record_id": "src-NC_000001.1"
+    }
+  ],
+  "source_provider": "NCBI_Datasets"
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/dosa_v3_source_index.schema.json",
+  "title": "DOSA v3 portable source index",
+  "description": "Duplicate-free accession.version index that lets a self-contained DOSA package return public-source provenance without exposing private paths.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_index_version", "records"],
+  "properties": {
+    "source_index_version": {"const": "dosa-v3-source-index-1"},
+    "records": {
+      "type": "object",
+      "minProperties": 1,
+      "patternProperties": {
+        "^[A-Za-z]+_[0-9]+\\.[0-9]+$": {"$ref": "#/$defs/record"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "locator",
+        "canonical_sequence_input_sha256",
+        "normalized_sequence_sha256",
+        "source_manifest_sha256",
+        "source_integrity_sha256"
+      ],
+      "properties": {
+        "locator": {
+          "$ref": "dosa_v3_common.schema.json#/$defs/relativePath",
+          "description": "Path relative to the deployed public source manifest/package root."
+        },
+        "canonical_sequence_input_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "normalized_sequence_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "source_manifest_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "source_integrity_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}
+      }
+    }
+  }
+}

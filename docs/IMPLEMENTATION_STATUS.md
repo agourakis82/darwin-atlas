@@ -1,5 +1,55 @@
 # Implementation status snapshot
 
+## DOSA v3 recovery delta — 2026-08-14
+
+Branch `codex/dosa-v3-recovery` starts from clean commit
+`2d0b1a21816b0a636516f5356aaecc0d1c38f7e5`. Published v2.1.2 evidence and
+the separate dirty WIP were preserved before branch creation; see
+`docs/V2_1_2_FORENSIC_PRESERVATION.md`.
+
+| v3 item | Current state | Boundary |
+| --- | --- | --- |
+| Utility-first U0 contract, parameters, schemas and data dictionary | IMPLEMENTED / fixture-validated | U0 remains `NOT_YET_PASSED` |
+| Fresh RefSeq acquisition, deterministic pilot selector and source closure builder | IMPLEMENTED / acquisition not frozen | NCBI Datasets 18.35.0 is locally hash-pinned; pre-download control candidates are bound only after rehydration to an exact six-field ledger and independently proven from FASTA/GBFF/sequence-report bytes; the real candidates and fresh package remain pending |
+| `dosa query`, `dosa calibrate`, `dosa verify`, Parquet/Zstandard packager | IMPLEMENTED / synthetic integration | calibration requires a read-only hash-bound official-repository runner attestation but that attestation is non-semantic; verify currently proves transport/footer integrity, not full scientific row validity; no public shard exists yet |
+| Manifest-directed Sounio work-unit contract | IMPLEMENTED WITH CAPABILITY REFUSALS | pinned canonical pipeline still has a 16-base window capacity and no bound n=1000 U0 executor; the build attestation is deliberately non-semantic, and no fake scale-100/500/1000 output is emitted |
+| Independent Julia manifest and scientific secondary evaluators | IMPLEMENTED / synthetic fixtures | fixture metrics exercise the frozen thresholds, but any input labelled `held_out_grouped_cohort` is explicitly `REFUSE` until the frozen cohort/split/ground-truth and prediction-derivation contract exists; no real full-pilot Julia recomputation or scientific receipt exists |
+| Operational gate evaluator, field-use audit and capacity projection | SCAFFOLDED / PROMOTION LOCKED | the implemented profile checks a 29-role evidence root, selection, controls, work units, logical rows, packages and capacity, but known source, package, operational-report, field-audit, Julia-runtime and held-out derivation closures are prerequisites to removing the explicit lock; no real PASS path is enabled |
+| Gate U0 | **BLOCKED** | `U0_PROMOTION_LOCKED` is raised before real-pilot evidence evaluation while the canonical executor, integral Julia validator and six held-out derivation roles are absent; independent regressions reject both operational and scientific fixture relabelling |
+| Full atlas, BioStudies upload, v3.0.0 tag and HDD purchase | **BLOCKED UNTIL U0** | no release or procurement claim |
+
+The remainder of this document is the pre-v3 engineering evidence snapshot.
+Those receipts remain valuable regression evidence but do not substitute for
+U0 or a v3 public payload.
+
+The Gate U0 P0 adversarial audit reproduced operational and scientific
+scope-relabel promotion attempts against earlier aggregators. The current
+branch rejects both classes and additionally applies an explicit promotion
+lock before any real-scope evaluation. Removing that lock requires a code and
+contract change that adds the canonical Sounio executor, integral Julia
+validator, and frozen held-out derivation roles. The deeper real-evidence
+checks remain scaffolded and unexercised; they are not represented as a
+complete admission proof. The intended provenance promise is integrity
+closure, explicitly not external authentication; external recovery remains a
+separate mandatory gate.
+
+Pinned U0 manifest-boundary evidence at the official Sounio commit
+`37de2c9eefe68f3457a2c66004eff68bba5b4446`:
+
+- source `sounio/src/u0_manifest_fixture.sio` SHA-256
+  `4e12d5e8b4d0dd3ebb1443501bac6f62fb982fe9122b811b52d501cc4a81da09`;
+- compiled ELF SHA-256
+  `c311d612d13736dbe449aceb491c1c1bf8ea72f76b0c0cc06824638dea8dcc65`;
+- canonical nine-line terminal artifact SHA-256
+  `157c6ee406dd476e76f6a134a2f657db87faa195743740f134f28dce24d5b03d`;
+- checkpoint-resume suffix SHA-256
+  `0c105f1c79afaa8799140ba6036ccce69a8925d6aa36d7bbcd9103f5d29e73ad`.
+
+These hashes prove the structural work-unit/refusal contract only. The
+terminal evidence explicitly records `U0_MANIFEST_EXECUTOR_BOUND=false` and
+`U0_GATE_PASS=false`; scales above 16 and the n=1000 U0 executor remain
+refused rather than simulated.
+
 **Observed:** 2026-08-09
 
 **Base commit:** decision D1 on branch `codex/dinucleotide-window-null`, commit
@@ -76,7 +126,7 @@ loaded. It is not evidence that project tests pass or fail.
 | Tool | Observed state |
 |---|---|
 | Sounio `souc` | official pinned checkout works through Lima `souc-linux`; the host is arm64 and cannot execute the Linux x86-64 Madaros natively |
-| NCBI Datasets CLI `datasets` | pinned at `~/.local/dosa-tools/ncbi-datasets-v2/datasets` 18.34.0, binary SHA-256 `f1133f8278edc594b9c36082e08140c4cde0acfd2591118e4faf4e5055b3592c` (`dataformat` SHA-256 `625fc7d5760825ae0790280343a1c895069479124982e1648b8241fa47c1f134`) |
+| NCBI Datasets CLI `datasets` | official 18.35.0 installed at `~/.local/dosa-tools/ncbi-datasets-18.35.0/datasets`, binary SHA-256 `64bbbac201be6df9ae88803714be5996b1598e73ac21905042a09208afb4657a` (`dataformat` SHA-256 `e2aa966b05531f76b8aa30a0ef7cf727e24f84a477cbf56592548fbcc7312dab`; its version command reports `undefined`, so identity is hash-pinned) |
 | Julia | 1.12.2 present; Base-only validators work; local project `Pkg` dependency broken |
 
 All executable evidence below was produced from the official repository at the

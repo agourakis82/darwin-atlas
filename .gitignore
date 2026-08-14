@@ -31,6 +31,8 @@ Thumbs.db
 # Temporary
 *.tmp
 *.log
+__pycache__/
+*.pyc
 fpga/u250-smoke/build/
 fpga/u250-null-model/build/
 fpga/u250-dinucleotide-null/build/

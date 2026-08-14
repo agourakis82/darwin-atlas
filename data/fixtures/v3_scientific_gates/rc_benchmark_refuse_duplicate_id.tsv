@@ -1,0 +1,5 @@
+case_id	split_id	partition	genus	species	transform	violation_label	rc_equivariant_score	non_equivariant_score	evidence_scope
+duplicate_case	fold_1	train	Trainus	alpha	R	0	0.10	0.30	fixture
+duplicate_case	fold_1	train	Trainus	alpha	RC	0	0.11	0.70	fixture
+duplicate_case	fold_1	train	Trainus	alpha	ORIGIN_SHIFT	0	0.09	0.45	fixture
+duplicate_case	fold_2	test	Testus	beta	R	1	0.95	0.80	fixture

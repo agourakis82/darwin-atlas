@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 title: "Darwin Operator Symmetry Atlas (DOSA)"
-message: "If you use this dataset or software, please cite it as below."
-type: dataset
+message: "This U0-dev tree is not a data release. Cite a published DOSA DOI, not this development branch."
+type: software
 authors:
   - family-names: "Agourakis"
     given-names: "Demetrios Chiuratto"
@@ -11,10 +11,11 @@ authors:
 repository-code: "https://github.com/agourakis82/darwin-atlas"
 url: "https://github.com/agourakis82/darwin-atlas"
 abstract: >-
-  An operator-resolved, provenance-bound atlas of positional,
-  reverse-complement compositional, periodic, and circular-representation
-  symmetries in complete bacterial RefSeq replicons. Sounio is the canonical
-  scientific producer and Julia is an independent artifact validator.
+  A fail-closed development contract for testing DOSA as a reusable
+  bacterial-window reversal and reverse-complement calibration resource under
+  an exact fixed-endpoint dinucleotide null. Sounio is the canonical producer
+  and Julia is an independent artifact validator. Gate U0 has not passed and
+  this tree is not a public v3 atlas.
 keywords:
   - bacterial genomics
   - dihedral symmetry
@@ -23,7 +24,7 @@ keywords:
   - reproducible research
   - NCBI RefSeq
 license: MIT
-version: "0.1.0-alpha"
+version: "U0-dev"
 references:
   - type: software
     title: "Sounio Programming Language"

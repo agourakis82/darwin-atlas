@@ -1,0 +1,381 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agourakis82/darwin-atlas/schemas/dosa_v3_receipt.schema.json",
+  "title": "DOSA v3 U0 and data-release receipt",
+  "description": "Fail-closed two-stage receipt. U0 passes only when every mandatory operational requirement passes and at least one of exactly two scientific secondary tests passes. Full-atlas execution and an HDD purchase are blocked until U0 but are never themselves U0, scientific, or data-release prerequisites. Data release additionally requires full producer, Julia, payload, and external-use receipts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "run_id",
+    "parameters_sha256",
+    "source_manifest_sha256",
+    "payload_manifest_sha256",
+    "source_identity",
+    "producer",
+    "validator",
+    "accelerators",
+    "runtime_environment",
+    "remote_inventories",
+    "u0_evaluation",
+    "full_atlas_execution_state",
+    "hdd_purchase_state",
+    "release_gates",
+    "release_state"
+  ],
+  "properties": {
+    "schema_version": {"const": "3.0.0"},
+    "receipt_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"},
+    "run_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"},
+    "parameters_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+    "source_manifest_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+    "payload_manifest_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+    "source_identity": {"$ref": "#/$defs/sourceIdentity"},
+    "producer": {"$ref": "#/$defs/producerBinding"},
+    "validator": {"$ref": "#/$defs/validatorBinding"},
+    "accelerators": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/acceleratorBinding"}
+    },
+    "runtime_environment": {"$ref": "#/$defs/runtimeEnvironment"},
+    "remote_inventories": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/remoteInventory"},
+      "allOf": [
+        {"contains": {"properties": {"provider": {"const": "BioStudies"}}, "required": ["provider"]}},
+        {"contains": {"properties": {"provider": {"const": "Zenodo"}}, "required": ["provider"]}}
+      ]
+    },
+    "u0_evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "reason_code", "evidence_scope", "mandatory_operational_requirements", "scientific_secondary_tests"],
+      "properties": {
+        "state": {"enum": ["NOT_YET_PASSED", "PASSED"]},
+        "reason_code": {"type": ["string", "null"], "enum": [null, "U0_REQUIREMENT_FAILED", "FIXTURE_EVIDENCE_CANNOT_PASS_U0", "INVALID_EVIDENCE"]},
+        "evidence_scope": {"enum": ["fixture", "mixed_or_fixture", "u0_pilot"]},
+        "mandatory_operational_requirements": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/operationalRequirement"},
+          "allOf": [
+            {"contains": {"properties": {"requirement_id": {"const": "sounio_julia_full_agreement"}}}},
+            {"contains": {"properties": {"requirement_id": {"const": "query_transfer_le_5_gib_and_time_le_60_seconds"}}}},
+            {"contains": {"properties": {"requirement_id": {"const": "lookup_speedup_ge_100"}}}},
+            {"contains": {"properties": {"requirement_id": {"const": "external_source_and_hash_verification"}}}},
+            {"contains": {"properties": {"requirement_id": {"const": "parquet_projection_with_2x_margin"}}}},
+            {"contains": {"properties": {"requirement_id": {"const": "public_field_utility_audit"}}}}
+          ]
+        },
+        "scientific_secondary_tests": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/scientificRequirement"},
+          "allOf": [
+            {"contains": {"properties": {"requirement_id": {"const": "dosa_oric_terminus_secondary_gate"}}}},
+            {"contains": {"properties": {"requirement_id": {"const": "dosa_rc_equivariance_secondary_benchmark"}}}}
+          ]
+        }
+      }
+    },
+    "full_atlas_execution_state": {"enum": ["BLOCKED_UNTIL_U0", "PERMITTED_AFTER_U0"]},
+    "hdd_purchase_state": {"enum": ["BLOCKED_UNTIL_U0", "PERMITTED_AFTER_U0"]},
+    "release_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["full_producer", "full_julia", "payload", "external_use"],
+      "properties": {
+        "full_producer": {"$ref": "#/$defs/receiptGate"},
+        "full_julia": {"$ref": "#/$defs/receiptGate"},
+        "payload": {"$ref": "#/$defs/receiptGate"},
+        "external_use": {"$ref": "#/$defs/receiptGate"}
+      }
+    },
+    "release_state": {"enum": ["BLOCKED", "PASSED"]}
+  },
+  "$defs": {
+    "sourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["git_commit_full", "git_tree_full", "clean", "tag", "remote_url", "source_archive_path", "source_archive_sha256"],
+      "properties": {
+        "git_commit_full": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "git_tree_full": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "clean": {"const": true},
+        "tag": {"type": ["string", "null"], "pattern": "^v3\\.0\\.0$"},
+        "remote_url": {"type": "string", "format": "uri", "pattern": "^https://"},
+        "source_archive_path": {"$ref": "dosa_v3_common.schema.json#/$defs/relativePath"},
+        "source_archive_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}
+      }
+    },
+    "producerBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "repository", "repository_commit", "source_sha256", "compiler_sha256", "executable_sha256", "receipt_path", "receipt_sha256"],
+      "properties": {
+        "language": {"const": "Sounio"},
+        "repository": {"const": "https://github.com/sounio-lang/sounio.git"},
+        "repository_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "source_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "compiler_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "executable_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "receipt_path": {"$ref": "dosa_v3_common.schema.json#/$defs/relativePath"},
+        "receipt_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}
+      }
+    },
+    "validatorBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "version", "project_sha256", "manifest_sha256", "implementation_sha256", "rows_recomputed", "disagreements", "absolute_tolerance", "receipt_path", "receipt_sha256"],
+      "properties": {
+        "language": {"const": "Julia"},
+        "version": {"type": "string", "minLength": 1},
+        "project_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "manifest_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "implementation_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "rows_recomputed": {"type": "integer", "minimum": 1},
+        "disagreements": {"const": 0},
+        "absolute_tolerance": {"const": 0},
+        "receipt_path": {"$ref": "dosa_v3_common.schema.json#/$defs/relativePath"},
+        "receipt_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}
+      }
+    },
+    "acceleratorBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accelerator_id", "role", "implementation_sha256", "artifact_sha256", "equivalence_receipt_path", "equivalence_receipt_sha256", "tolerance"],
+      "properties": {
+        "accelerator_id": {"enum": ["R9700", "U250"]},
+        "role": {"enum": ["primary_null_summaries", "independent_hardware_equivalence"]},
+        "implementation_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "artifact_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "equivalence_receipt_path": {"$ref": "dosa_v3_common.schema.json#/$defs/relativePath"},
+        "equivalence_receipt_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"},
+        "tolerance": {"const": 0}
+      },
+      "allOf": [
+        {"if": {"properties": {"accelerator_id": {"const": "R9700"}}, "required": ["accelerator_id"]}, "then": {"properties": {"role": {"const": "primary_null_summaries"}}}},
+        {"if": {"properties": {"accelerator_id": {"const": "U250"}}, "required": ["accelerator_id"]}, "then": {"properties": {"role": {"const": "independent_hardware_equivalence"}}}}
+      ]
+    },
+    "runtimeEnvironment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os_release", "architecture", "container_digest"],
+      "properties": {
+        "os_release": {"type": "string", "minLength": 1},
+        "architecture": {"type": "string", "minLength": 1},
+        "container_digest": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"}
+      }
+    },
+    "remoteInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "state", "accession", "file_count", "api_inventory_sha256", "receipt_path", "receipt_sha256"],
+      "properties": {
+        "provider": {"enum": ["BioStudies", "Zenodo"]},
+        "state": {"enum": ["NOT_UPLOADED", "VERIFIED"]},
+        "accession": {"type": ["string", "null"]},
+        "file_count": {"type": "integer", "minimum": 0},
+        "api_inventory_sha256": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}]},
+        "receipt_path": {"type": ["string", "null"]},
+        "receipt_sha256": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}]}
+      },
+      "allOf": [
+        {"if": {"properties": {"state": {"const": "NOT_UPLOADED"}}, "required": ["state"]}, "then": {"properties": {"accession": {"type": "null"}, "file_count": {"const": 0}, "api_inventory_sha256": {"type": "null"}, "receipt_path": {"type": "null"}, "receipt_sha256": {"type": "null"}}}},
+        {"if": {"properties": {"state": {"const": "VERIFIED"}}, "required": ["state"]}, "then": {"properties": {"accession": {"type": "string", "minLength": 1}, "file_count": {"type": "integer", "minimum": 1}, "api_inventory_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}, "receipt_path": {"$ref": "dosa_v3_common.schema.json#/$defs/relativePath"}, "receipt_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}}}}
+      ]
+    },
+    "checkedRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement_id", "state", "receipt_path", "receipt_sha256", "reason_code"],
+      "properties": {
+        "requirement_id": {"$ref": "dosa_v3_common.schema.json#/$defs/id"},
+        "state": {"enum": ["NOT_YET_PASSED", "PASSED"]},
+        "receipt_path": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/relativePath"}]},
+        "receipt_sha256": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}]},
+        "reason_code": {"type": ["string", "null"], "enum": [null, "RECEIPT_MISSING", "VALIDATION_MISMATCH", "NULL_DRAWS_INCOMPLETE"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"state": {"const": "PASSED"}}}, "then": {"properties": {"receipt_path": {"type": "string", "minLength": 1}, "receipt_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}, "reason_code": {"const": null}}}},
+        {"if": {"properties": {"state": {"const": "NOT_YET_PASSED"}}}, "then": {"properties": {"receipt_path": {"type": "null"}, "receipt_sha256": {"type": "null"}, "reason_code": {"type": "string"}}}}
+      ]
+    },
+    "operationalRequirement": {
+      "allOf": [
+        {"$ref": "#/$defs/checkedRequirement"},
+        {
+          "properties": {
+            "requirement_id": {
+              "enum": [
+                "sounio_julia_full_agreement",
+                "query_transfer_le_5_gib_and_time_le_60_seconds",
+                "lookup_speedup_ge_100",
+                "external_source_and_hash_verification",
+                "parquet_projection_with_2x_margin",
+                "public_field_utility_audit"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "scientificRequirement": {
+      "allOf": [
+        {"$ref": "#/$defs/checkedRequirement"},
+        {
+          "properties": {
+            "requirement_id": {
+              "enum": [
+                "dosa_oric_terminus_secondary_gate",
+                "dosa_rc_equivariance_secondary_benchmark"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "receiptGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "receipt_path", "receipt_sha256", "reason_code"],
+      "properties": {
+        "state": {"enum": ["NOT_YET_PASSED", "PASSED"]},
+        "receipt_path": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/relativePath"}]},
+        "receipt_sha256": {"oneOf": [{"type": "null"}, {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}]},
+        "reason_code": {"type": ["string", "null"], "enum": [null, "RECEIPT_MISSING", "VALIDATION_MISMATCH"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"state": {"const": "PASSED"}}}, "then": {"properties": {"receipt_path": {"type": "string", "minLength": 1}, "receipt_sha256": {"$ref": "dosa_v3_common.schema.json#/$defs/sha256"}, "reason_code": {"const": null}}}},
+        {"if": {"properties": {"state": {"const": "NOT_YET_PASSED"}}}, "then": {"properties": {"receipt_path": {"type": "null"}, "receipt_sha256": {"type": "null"}, "reason_code": {"type": "string"}}}}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "u0_evaluation": {
+            "properties": {"state": {"const": "PASSED"}}
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "u0_evaluation": {
+            "properties": {
+              "evidence_scope": {"const": "u0_pilot"},
+              "reason_code": {"const": null},
+              "mandatory_operational_requirements": {"items": {"properties": {"state": {"const": "PASSED"}}}},
+              "scientific_secondary_tests": {"contains": {"properties": {"state": {"const": "PASSED"}}, "required": ["state"]}}
+            }
+          },
+          "full_atlas_execution_state": {"const": "PERMITTED_AFTER_U0"},
+          "hdd_purchase_state": {"const": "PERMITTED_AFTER_U0"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "u0_evaluation": {
+            "properties": {"state": {"const": "NOT_YET_PASSED"}}
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "full_atlas_execution_state": {"const": "BLOCKED_UNTIL_U0"},
+          "hdd_purchase_state": {"const": "BLOCKED_UNTIL_U0"},
+          "release_state": {"const": "BLOCKED"},
+          "u0_evaluation": {"properties": {"reason_code": {"type": "string"}}}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"release_state": {"const": "PASSED"}}},
+      "then": {
+        "properties": {
+          "source_identity": {"properties": {"tag": {"const": "v3.0.0"}}},
+          "remote_inventories": {"items": {"properties": {"state": {"const": "VERIFIED"}}}},
+          "runtime_environment": {"properties": {"container_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}}},
+          "accelerators": {
+            "minItems": 2,
+            "maxItems": 2,
+            "contains": {"properties": {"accelerator_id": {"const": "R9700"}}, "required": ["accelerator_id"]},
+            "allOf": [
+              {"contains": {"properties": {"accelerator_id": {"const": "U250"}}, "required": ["accelerator_id"]}}
+            ]
+          },
+          "u0_evaluation": {"properties": {"state": {"const": "PASSED"}}},
+          "release_gates": {
+            "properties": {
+              "full_producer": {"properties": {"state": {"const": "PASSED"}}},
+              "full_julia": {"properties": {"state": {"const": "PASSED"}}},
+              "payload": {"properties": {"state": {"const": "PASSED"}}},
+              "external_use": {"properties": {"state": {"const": "PASSED"}}}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "release_gates": {
+            "properties": {
+              "full_producer": {"properties": {"state": {"const": "NOT_YET_PASSED"}}}
+            }
+          }
+        }
+      },
+      "then": {"properties": {"release_state": {"const": "BLOCKED"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "release_gates": {
+            "properties": {
+              "full_julia": {"properties": {"state": {"const": "NOT_YET_PASSED"}}}
+            }
+          }
+        }
+      },
+      "then": {"properties": {"release_state": {"const": "BLOCKED"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "release_gates": {
+            "properties": {
+              "payload": {"properties": {"state": {"const": "NOT_YET_PASSED"}}}
+            }
+          }
+        }
+      },
+      "then": {"properties": {"release_state": {"const": "BLOCKED"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "release_gates": {
+            "properties": {
+              "external_use": {"properties": {"state": {"const": "NOT_YET_PASSED"}}}
+            }
+          }
+        }
+      },
+      "then": {"properties": {"release_state": {"const": "BLOCKED"}}}
+    }
+  ]
+}

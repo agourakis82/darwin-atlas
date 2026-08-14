@@ -1,0 +1,413 @@
+//@ run-pass
+
+// U0 manifest-directed, restartable producer contract.
+//
+// Manifest rows bind replicon x scale work units to immutable source
+// locators and declared digests; they never embed a replicon.  This pinned
+// Sounio runtime has no SHA-256 primitive, so it validates only the strict
+// manifest grammar and emits an explicit runner verification requirement.
+// The independent Julia validator must read the FASTA and verify file bytes,
+// normalized sequence bytes, length, accession, and declared alphabet before
+// accepting any output.
+//
+// The existing exact Euler/Wilson executable fixture is limited to 16 bases
+// (15 edges), while U0 requires scales 16/100/500/1000 and n=1000.  This
+// contract therefore emits terminal capability refusals; it never substitutes
+// a smaller scientific calculation.  Resume is an operational work-unit
+// checkpoint and never enters scientific state.
+
+const U0_MAX_MANIFEST_BYTES: i64 = 16777216
+const U0_MAX_MANIFEST_LINE_BYTES: i64 = 4096
+const U0_MAX_ID_BYTES: i64 = 128
+const U0_MAX_LOCATOR_BYTES: i64 = 512
+const U0_PINNED_WINDOW_CAPACITY: i64 = 16
+
+var U0_MANIFEST_TEXT: string = ""
+var U0_GROUP_SCALE_INDEX: i64 = 0
+var U0_GROUP_ASSEMBLY: string = ""
+var U0_GROUP_ACCESSION: string = ""
+var U0_GROUP_CLASS: string = ""
+var U0_GROUP_LOCATOR: string = ""
+var U0_GROUP_FILE_SHA: string = ""
+var U0_GROUP_SEQUENCE_SHA: string = ""
+var U0_GROUP_LENGTH: i64 = 0
+var U0_GROUP_ALPHABET: string = ""
+var U0_GROUP_PARAMETERS_SHA: string = ""
+var U0_RESUME_ACTIVE: bool = false
+var U0_RESUME_FOUND: bool = false
+var U0_RESUME_WORK_UNIT: string = ""
+var U0_EMIT_ENABLED: bool = false
+
+fn u0_span(text: string, start: i64, finish: i64) -> string with Mut, Panic, Div {
+    if start < 0 || finish < start { return "" }
+    let n = finish - start
+    if n <= 0 || n > U0_MAX_MANIFEST_LINE_BYTES { return "" }
+    var bytes: [i8; 4096] = [0; 4096]
+    var i: i64 = 0
+    while i < n {
+        bytes[i as usize] = str_char_at(text, start + i) as i8
+        i = i + 1
+    }
+    str_from_bytes(bytes, n)
+}
+
+fn u0_field(line: string, target: i64) -> string with Mut, Panic, Div {
+    let n = str_len(line)
+    var index: i64 = 0
+    var start: i64 = 0
+    var i: i64 = 0
+    while i <= n {
+        if i == n || str_char_at(line, i) == 9 {
+            if index == target { return u0_span(line, start, i) }
+            index = index + 1
+            start = i + 1
+        }
+        i = i + 1
+    }
+    ""
+}
+
+fn u0_field_count(line: string) -> i64 with Mut, Panic, Div {
+    var count: i64 = 1
+    var i: i64 = 0
+    while i < str_len(line) {
+        if str_char_at(line, i) == 9 { count = count + 1 }
+        i = i + 1
+    }
+    count
+}
+
+fn u0_header_ok(line: string) -> bool with Mut, Panic, Div {
+    u0_field_count(line) == 17
+        && str_eq(u0_field(line, 0), "u0_manifest_version")
+        && str_eq(u0_field(line, 1), "work_unit_id")
+        && str_eq(u0_field(line, 2), "assembly_accession_version")
+        && str_eq(u0_field(line, 3), "sequence_accession_version")
+        && str_eq(u0_field(line, 4), "replicon_class")
+        && str_eq(u0_field(line, 5), "source_locator")
+        && str_eq(u0_field(line, 6), "source_file_sha256")
+        && str_eq(u0_field(line, 7), "sequence_sha256")
+        && str_eq(u0_field(line, 8), "sequence_length")
+        && str_eq(u0_field(line, 9), "declared_alphabet")
+        && str_eq(u0_field(line, 10), "parameters_sha256")
+        && str_eq(u0_field(line, 11), "scale")
+        && str_eq(u0_field(line, 12), "stride")
+        && str_eq(u0_field(line, 13), "k_min")
+        && str_eq(u0_field(line, 14), "k_max")
+        && str_eq(u0_field(line, 15), "null_model")
+        && str_eq(u0_field(line, 16), "null_replicates")
+}
+
+fn u0_decimal(raw: string) -> i64 with Mut, Panic, Div {
+    if str_len(raw) <= 0 { return -1 }
+    var value: i64 = 0
+    var i: i64 = 0
+    while i < str_len(raw) {
+        let ch = str_char_at(raw, i)
+        if ch < 48 || ch > 57 { return -1 }
+        value = value * 10 + ch - 48
+        if value < 0 { return -1 }
+        i = i + 1
+    }
+    value
+}
+
+fn u0_hex(ch: i64) -> i64 {
+    if ch >= 48 && ch <= 57 { return ch - 48 }
+    if ch >= 97 && ch <= 102 { return ch - 87 }
+    -1
+}
+
+fn u0_sha256_syntax(raw: string) -> bool with Mut, Panic, Div {
+    if str_len(raw) != 64 { return false }
+    var i: i64 = 0
+    while i < 64 {
+        if u0_hex(str_char_at(raw, i)) < 0 { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn u0_identifier(raw: string) -> bool with Mut, Panic, Div {
+    let n = str_len(raw)
+    if n <= 0 || n > U0_MAX_ID_BYTES { return false }
+    var i: i64 = 0
+    while i < n {
+        let ch = str_char_at(raw, i)
+        let ok = (ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122)
+            || (ch >= 48 && ch <= 57) || ch == 45 || ch == 46 || ch == 95
+        if !ok { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn u0_locator(raw: string) -> bool with Mut, Panic, Div {
+    let n = str_len(raw)
+    if n < 4 || n > U0_MAX_LOCATOR_BYTES || str_char_at(raw, 0) == 47 { return false }
+    var i: i64 = 0
+    while i < n {
+        let ch = str_char_at(raw, i)
+        let ok = (ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122)
+            || (ch >= 48 && ch <= 57) || ch == 45 || ch == 46
+            || ch == 95 || ch == 47
+        if !ok { return false }
+        if ch == 47 && (i == 0 || i == n - 1 || str_char_at(raw, i - 1) == 47) { return false }
+        if ch == 46 && i + 1 < n && str_char_at(raw, i + 1) == 46 { return false }
+        i = i + 1
+    }
+    str_char_at(raw, n - 3) == 46 && str_char_at(raw, n - 2) == 102
+        && str_char_at(raw, n - 1) == 97
+}
+
+fn u0_expected_scale(index: i64) -> i64 {
+    if index == 0 { return 16 }
+    if index == 1 { return 100 }
+    if index == 2 { return 500 }
+    if index == 3 { return 1000 }
+    -1
+}
+
+fn u0_work_id_matches(work_id: string, accession: string, scale: i64) -> bool with Mut, Panic, Div {
+    let accession_n = str_len(accession)
+    let n = str_len(work_id)
+    if accession_n <= 0 || n <= accession_n + 1 || n > U0_MAX_ID_BYTES + 6 { return false }
+    var i: i64 = 0
+    while i < accession_n {
+        if str_char_at(work_id, i) != str_char_at(accession, i) { return false }
+        i = i + 1
+    }
+    if str_char_at(work_id, accession_n) != 64 { return false } // @
+    u0_decimal(u0_span(work_id, accession_n + 1, n)) == scale
+}
+
+fn u0_work_unit_occurrences(work_id: string) -> i64 with Mut, Panic, Div {
+    let n = str_len(U0_MANIFEST_TEXT)
+    var start: i64 = 0
+    var logical_line: i64 = 0
+    var count: i64 = 0
+    while start <= n {
+        var finish = start
+        while finish < n && str_char_at(U0_MANIFEST_TEXT, finish) != 10 { finish = finish + 1 }
+        var line_end = finish
+        if line_end > start && str_char_at(U0_MANIFEST_TEXT, line_end - 1) == 13 { line_end = line_end - 1 }
+        let line = u0_span(U0_MANIFEST_TEXT, start, line_end)
+        if str_len(line) > 0 {
+            if logical_line > 0 && u0_field_count(line) == 17
+                && str_eq(u0_field(line, 1), work_id) {
+                count = count + 1
+            }
+            logical_line = logical_line + 1
+        }
+        if finish >= n { break }
+        start = finish + 1
+    }
+    count
+}
+
+fn u0_coordinate_occurrences(accession: string, scale: i64) -> i64 with Mut, Panic, Div {
+    let n = str_len(U0_MANIFEST_TEXT)
+    var start: i64 = 0
+    var logical_line: i64 = 0
+    var count: i64 = 0
+    while start <= n {
+        var finish = start
+        while finish < n && str_char_at(U0_MANIFEST_TEXT, finish) != 10 { finish = finish + 1 }
+        var line_end = finish
+        if line_end > start && str_char_at(U0_MANIFEST_TEXT, line_end - 1) == 13 { line_end = line_end - 1 }
+        let line = u0_span(U0_MANIFEST_TEXT, start, line_end)
+        if str_len(line) > 0 {
+            if logical_line > 0 && u0_field_count(line) == 17
+                && str_eq(u0_field(line, 3), accession)
+                && u0_decimal(u0_field(line, 11)) == scale {
+                count = count + 1
+            }
+            logical_line = logical_line + 1
+        }
+        if finish >= n { break }
+        start = finish + 1
+    }
+    count
+}
+
+fn u0_begin_group(assembly: string, accession: string, replicon_class: string,
+                  locator: string, file_sha: string, sequence_sha: string,
+                  length: i64, alphabet: string, parameters_sha: string) with Mut {
+    U0_GROUP_SCALE_INDEX = 0
+    U0_GROUP_ASSEMBLY = assembly
+    U0_GROUP_ACCESSION = accession
+    U0_GROUP_CLASS = replicon_class
+    U0_GROUP_LOCATOR = locator
+    U0_GROUP_FILE_SHA = file_sha
+    U0_GROUP_SEQUENCE_SHA = sequence_sha
+    U0_GROUP_LENGTH = length
+    U0_GROUP_ALPHABET = alphabet
+    U0_GROUP_PARAMETERS_SHA = parameters_sha
+}
+
+fn u0_group_matches(assembly: string, accession: string, replicon_class: string,
+                    locator: string, file_sha: string, sequence_sha: string,
+                    length: i64, alphabet: string, parameters_sha: string) -> bool with Mut, Panic, Div {
+    str_eq(assembly, U0_GROUP_ASSEMBLY) && str_eq(accession, U0_GROUP_ACCESSION)
+        && str_eq(replicon_class, U0_GROUP_CLASS) && str_eq(locator, U0_GROUP_LOCATOR)
+        && str_eq(file_sha, U0_GROUP_FILE_SHA) && str_eq(sequence_sha, U0_GROUP_SEQUENCE_SHA)
+        && length == U0_GROUP_LENGTH && str_eq(alphabet, U0_GROUP_ALPHABET)
+        && str_eq(parameters_sha, U0_GROUP_PARAMETERS_SHA)
+}
+
+fn u0_should_emit(work_id: string) -> bool with Mut, Panic, Div {
+    if !U0_RESUME_ACTIVE { return true }
+    if !U0_RESUME_FOUND {
+        if str_eq(work_id, U0_RESUME_WORK_UNIT) { U0_RESUME_FOUND = true }
+        return false
+    }
+    true
+}
+
+fn u0_emit_terminal(work_id: string, assembly: string, accession: string,
+                    scale: i64, locator: string, file_sha: string,
+                    sequence_sha: string, length: i64, alphabet: string,
+                    parameters_sha: string) with IO, Mut, Panic, Div {
+    print("1.0.0\t")
+    if str_eq(alphabet, "non_acgt") { print("null_unavailable\t") }
+    else { print("capability_refused\t") }
+    print(work_id)
+    print("\t")
+    print(assembly)
+    print("\t")
+    print(accession)
+    print("\t")
+    print_int(scale)
+    print("\t")
+    print(locator)
+    print("\t")
+    print(file_sha)
+    print("\t")
+    print(sequence_sha)
+    print("\t")
+    print_int(length)
+    print("\t")
+    print(parameters_sha)
+    print("\t")
+    print(work_id)
+    print("\tRUNNER_MUST_VERIFY_FASTA_FILE_SHA256_SEQUENCE_SHA256_LENGTH_ACCESSION_AND_ALPHABET\t")
+    if str_eq(alphabet, "non_acgt") {
+        print("DECLARED_NON_ACGT_NULL_UNAVAILABLE_REQUIRES_RUNNER_VERIFICATION")
+    } else if scale > U0_PINNED_WINDOW_CAPACITY {
+        print("SCALE_EXCEEDS_PINNED_SOUNIO_WINDOW_CAPACITY_16")
+    } else {
+        print("U0_EULER_WILSON_N1000_EXECUTOR_NOT_BOUND")
+    }
+    print("\n")
+}
+
+fn u0_process_row(line: string) -> bool with IO, Mut, Panic, Div {
+    if u0_field_count(line) != 17 { return false }
+    let version = u0_field(line, 0)
+    let work_id = u0_field(line, 1)
+    let assembly = u0_field(line, 2)
+    let accession = u0_field(line, 3)
+    let replicon_class = u0_field(line, 4)
+    let locator = u0_field(line, 5)
+    let file_sha = u0_field(line, 6)
+    let sequence_sha = u0_field(line, 7)
+    let length = u0_decimal(u0_field(line, 8))
+    let alphabet = u0_field(line, 9)
+    let parameters_sha = u0_field(line, 10)
+    let scale = u0_decimal(u0_field(line, 11))
+    let stride = u0_decimal(u0_field(line, 12))
+    let k_min = u0_decimal(u0_field(line, 13))
+    let k_max = u0_decimal(u0_field(line, 14))
+    let null_model = u0_field(line, 15)
+    let null_replicates = u0_decimal(u0_field(line, 16))
+    let class_ok = str_eq(replicon_class, "chromosome") || str_eq(replicon_class, "plasmid")
+    let alphabet_ok = str_eq(alphabet, "acgt") || str_eq(alphabet, "non_acgt")
+    if !str_eq(version, "1.0.0") || !u0_identifier(assembly) || !u0_identifier(accession)
+        || !u0_work_id_matches(work_id, accession, scale) || !class_ok || !u0_locator(locator)
+        || !u0_sha256_syntax(file_sha) || !u0_sha256_syntax(sequence_sha)
+        || length <= 0 || !alphabet_ok || !u0_sha256_syntax(parameters_sha)
+        || scale != u0_expected_scale(U0_GROUP_SCALE_INDEX) || stride != scale
+        || k_min != 1 || k_max != 8 || !str_eq(null_model, "euler_wilson_fixed_endpoints_v1")
+        || null_replicates != 1000 || u0_work_unit_occurrences(work_id) != 1
+        || u0_coordinate_occurrences(accession, scale) != 1 {
+        return false
+    }
+    if U0_GROUP_SCALE_INDEX == 0 {
+        u0_begin_group(assembly, accession, replicon_class, locator, file_sha,
+            sequence_sha, length, alphabet, parameters_sha)
+    } else if !u0_group_matches(assembly, accession, replicon_class, locator,
+                               file_sha, sequence_sha, length, alphabet, parameters_sha) {
+        return false
+    }
+    if U0_EMIT_ENABLED && u0_should_emit(work_id) {
+        u0_emit_terminal(work_id, assembly, accession, scale, locator, file_sha,
+            sequence_sha, length, alphabet, parameters_sha)
+    }
+    U0_GROUP_SCALE_INDEX = U0_GROUP_SCALE_INDEX + 1
+    if U0_GROUP_SCALE_INDEX == 4 { U0_GROUP_SCALE_INDEX = 0 }
+    true
+}
+
+fn u0_parse_manifest(text: string) -> bool with IO, Mut, Panic, Div {
+    let n = str_len(text)
+    var start: i64 = 0
+    var logical_line: i64 = 0
+    var rows: i64 = 0
+    while start <= n {
+        var finish = start
+        while finish < n && str_char_at(text, finish) != 10 { finish = finish + 1 }
+        var line_end = finish
+        if line_end > start && str_char_at(text, line_end - 1) == 13 { line_end = line_end - 1 }
+        let line = u0_span(text, start, line_end)
+        if str_len(line) > 0 {
+            if logical_line == 0 {
+                if !u0_header_ok(line) { return false }
+            } else {
+                if !u0_process_row(line) { return false }
+                rows = rows + 1
+            }
+            logical_line = logical_line + 1
+        }
+        if finish >= n { break }
+        start = finish + 1
+    }
+    rows > 0 && U0_GROUP_SCALE_INDEX == 0
+}
+
+fn u0_reset_pass() with Mut {
+    U0_GROUP_SCALE_INDEX = 0
+    U0_RESUME_FOUND = false
+}
+
+fn main() -> i64 with IO, Mut, Panic, Div {
+    let argc = arg_count()
+    if argc != 1 && argc != 2 {
+        println("usage: u0_manifest_fixture <u0-manifest.tsv> [resume_work_unit_id]")
+        return 64
+    }
+    let text = read_file(get_arg(0))
+    let n = str_len(text)
+    if n <= 0 || n > U0_MAX_MANIFEST_BYTES { return 12 }
+    U0_MANIFEST_TEXT = text
+    if argc == 2 {
+        U0_RESUME_ACTIVE = true
+        U0_RESUME_WORK_UNIT = get_arg(1)
+        if u0_work_unit_occurrences(U0_RESUME_WORK_UNIT) != 1 { return 12 }
+    }
+
+    // Pass one validates the complete manifest and emits no bytes.  This
+    // prevents a malformed suffix from leaving a plausible partial artifact.
+    U0_EMIT_ENABLED = false
+    u0_reset_pass()
+    if !u0_parse_manifest(text) { return 12 }
+
+    U0_EMIT_ENABLED = true
+    u0_reset_pass()
+    print("u0_manifest_version\trecord_kind\twork_unit_id\t")
+    print("assembly_accession_version\tsequence_accession_version\tscale\t")
+    print("source_locator\tsource_file_sha256\tsequence_sha256\tsequence_length\t")
+    print("parameters_sha256\tcheckpoint_key\tsource_verification_requirement\treason_code\n")
+    if !u0_parse_manifest(text) { return 12 }
+    if U0_RESUME_ACTIVE && !U0_RESUME_FOUND { return 12 }
+    0
+}
