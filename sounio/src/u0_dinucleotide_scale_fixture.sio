@@ -1,0 +1,473 @@
+//@ run-pass
+
+// Capacity fixture for the exact euler_wilson_fixed_endpoints_v1 null.
+//
+// This is intentionally separate from every historical FASTA/pipeline fixture
+// and from the still-unimplemented U0 producer.  It exercises fixed arrays at
+// 16/100/500/1000 bases and exactly 1000 draws per case, retaining the Fase L
+// generator semantics (including its sequential replicate jump) in a bounded,
+// synthetic fixture.  It emits only after a grammar pass and a full dry-run;
+// malformed input therefore exits 12 with zero stdout bytes.
+
+const MAX_BASES: i64 = 1000
+const MAX_EDGES: i64 = 999
+const ORDER_SLOTS: i64 = 4000
+const CASE_SPAN_MAX: i64 = 4096
+const FIXTURE_CASES: i64 = 4
+const REPLICATES: i64 = 1000
+
+const RNG_M1: i64 = 2147483563
+const RNG_M2: i64 = 2147483399
+const RNG_A1: i64 = 40014
+const RNG_A2: i64 = 40692
+const RNG_JUMP1: i64 = 993186111
+const RNG_JUMP2: i64 = 1744472178
+
+var EDGE_SRC: [i64; 999] = [0; 999]
+var EDGE_DST: [i64; 999] = [0; 999]
+var OUT_DEGREE: [i64; 4] = [0; 4]
+var ORDERED_EDGES: [i64; 4000] = [0; 4000]
+var ORDER_CURSOR: [i64; 4] = [0; 4]
+var TREE_EDGE: [i64; 4] = [-1; 4]
+var NEXT_EDGE: [i64; 4] = [-1; 4]
+var IN_TREE: [bool; 4] = [false; 4]
+var ACTIVE_VERTEX: [bool; 4] = [false; 4]
+var INPUT_BASES: [i64; 1000] = [0; 1000]
+var OUTPUT_BASES: [i64; 1000] = [0; 1000]
+var G_RNG1: i64 = 1
+var G_RNG2: i64 = 1
+var G_WINDOW_LENGTH: i64 = 0
+
+fn span(text: string, start: i64, finish: i64) -> string with Mut, Panic, Div {
+    if start < 0 || finish < start { return "" }
+    let n = finish - start
+    if n <= 0 || n > CASE_SPAN_MAX { return "" }
+    var bytes: [i8; 4096] = [0; 4096]
+    var i: i64 = 0
+    while i < n {
+        bytes[i as usize] = str_char_at(text, start + i) as i8
+        i = i + 1
+    }
+    str_from_bytes(bytes, n)
+}
+
+fn field(line: string, target: i64) -> string with Mut, Panic, Div {
+    let n = str_len(line)
+    var index: i64 = 0
+    var start: i64 = 0
+    var i: i64 = 0
+    while i <= n {
+        if i == n || str_char_at(line, i) == 9 {
+            if index == target { return span(line, start, i) }
+            index = index + 1
+            start = i + 1
+        }
+        i = i + 1
+    }
+    ""
+}
+
+fn field_count(line: string) -> i64 with Mut, Panic, Div {
+    var count: i64 = 1
+    var i: i64 = 0
+    while i < str_len(line) {
+        if str_char_at(line, i) == 9 { count = count + 1 }
+        i = i + 1
+    }
+    count
+}
+
+fn decimal(raw: string) -> i64 with Mut, Panic, Div {
+    if str_len(raw) <= 0 { return -1 }
+    var value: i64 = 0
+    var i: i64 = 0
+    while i < str_len(raw) {
+        let ch = str_char_at(raw, i)
+        if ch < 48 || ch > 57 { return -1 }
+        value = value * 10 + ch - 48
+        if value < 0 { return -1 }
+        i = i + 1
+    }
+    value
+}
+
+fn hex_value(ch: i64) -> i64 {
+    if ch >= 48 && ch <= 57 { return ch - 48 }
+    if ch >= 97 && ch <= 102 { return ch - 87 }
+    -1
+}
+
+fn sha_ok(raw: string) -> bool with Mut, Panic, Div {
+    if str_len(raw) != 64 { return false }
+    var i: i64 = 0
+    while i < 64 {
+        if hex_value(str_char_at(raw, i)) < 0 { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn seed_ok(raw: string) -> bool with Mut, Panic, Div {
+    if str_len(raw) != 16 { return false }
+    var i: i64 = 0
+    while i < 16 {
+        if hex_value(str_char_at(raw, i)) < 0 { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn parse_hex8(raw: string, start: i64) -> i64 with Mut, Panic, Div {
+    var value: i64 = 0
+    var i: i64 = 0
+    while i < 8 {
+        let digit = hex_value(str_char_at(raw, start + i))
+        if digit < 0 { return -1 }
+        value = value * 16 + digit
+        i = i + 1
+    }
+    value
+}
+
+fn identifier_ok(raw: string) -> bool with Mut, Panic, Div {
+    let n = str_len(raw)
+    if n <= 0 || n > 128 { return false }
+    var i: i64 = 0
+    while i < n {
+        let ch = str_char_at(raw, i)
+        let ok = (ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122)
+            || (ch >= 48 && ch <= 57) || ch == 46 || ch == 95 || ch == 45
+        if !ok { return false }
+        i = i + 1
+    }
+    true
+}
+
+fn expected_scale(index: i64) -> i64 {
+    if index == 0 { return 16 }
+    if index == 1 { return 100 }
+    if index == 2 { return 500 }
+    if index == 3 { return 1000 }
+    -1
+}
+
+fn expected_case_id(index: i64) -> string {
+    if index == 0 { return "scale_16" }
+    if index == 1 { return "scale_100" }
+    if index == 2 { return "scale_500" }
+    if index == 3 { return "scale_1000" }
+    ""
+}
+
+fn expected_parameter_sha() -> string {
+    "68343e046af24a997195eb2583532d3172234b0b9713f2e4296b9b12300bef94"
+}
+
+fn expected_accession(index: i64) -> string {
+    if index == 0 { return "U0_SCALE_FIXTURE_0016.1" }
+    if index == 1 { return "U0_SCALE_FIXTURE_0100.1" }
+    if index == 2 { return "U0_SCALE_FIXTURE_0500.1" }
+    if index == 3 { return "U0_SCALE_FIXTURE_1000.1" }
+    ""
+}
+
+fn expected_window_start(index: i64) -> i64 {
+    index * 10000
+}
+
+fn expected_seed(index: i64) -> string {
+    if index == 0 { return "e7bcf4255f458035" }
+    if index == 1 { return "0d9efb059ac73188" }
+    if index == 2 { return "196ba777d9b3f34f" }
+    if index == 3 { return "e4443898d42b13fe" }
+    ""
+}
+
+fn base_code(ch: i64) -> i64 {
+    if ch == 65 { return 0 }
+    if ch == 67 { return 1 }
+    if ch == 71 { return 2 }
+    if ch == 84 { return 3 }
+    -1
+}
+
+fn rng_step() -> i64 with Mut, Div {
+    G_RNG1 = (RNG_A1 * G_RNG1) % RNG_M1
+    G_RNG2 = (RNG_A2 * G_RNG2) % RNG_M2
+    var value = G_RNG1 - G_RNG2
+    if value < 1 { value = value + RNG_M1 - 1 }
+    value - 1
+}
+
+fn rng_bounded(bound: i64) -> i64 with Mut, Div {
+    if bound <= 1 { return 0 }
+    let range = RNG_M1 - 1
+    let limit = range - (range % bound)
+    while true {
+        let value = rng_step()
+        if value < limit { return value % bound }
+    }
+    0
+}
+
+// The sequential 2^20 stream separation is intentionally retained from the
+// accepted Fase L fixture.  Jump-ahead is a future U0-executor optimization
+// that must first be independently differential-tested against this form.
+fn seed_replicate(seed_hi: i64, seed_lo: i64, replicate: i64) with Mut, Div {
+    G_RNG1 = 1 + (seed_hi % (RNG_M1 - 1))
+    G_RNG2 = 1 + (seed_lo % (RNG_M2 - 1))
+    var i: i64 = 1
+    while i < replicate {
+        G_RNG1 = (G_RNG1 * RNG_JUMP1) % RNG_M1
+        G_RNG2 = (G_RNG2 * RNG_JUMP2) % RNG_M2
+        i = i + 1
+    }
+}
+
+fn random_out_edge(edge_count: i64, vertex: i64) -> i64 with Mut, Panic, Div {
+    let rank = rng_bounded(OUT_DEGREE[vertex as usize])
+    var seen: i64 = 0
+    var edge: i64 = 0
+    while edge < edge_count {
+        if EDGE_SRC[edge as usize] == vertex {
+            if seen == rank { return edge }
+            seen = seen + 1
+        }
+        edge = edge + 1
+    }
+    -1
+}
+
+fn shuffle_window(seed_hi: i64, seed_lo: i64, replicate: i64) -> bool with Mut, Panic, Div {
+    let edge_count = G_WINDOW_LENGTH - 1
+    let root = INPUT_BASES[(G_WINDOW_LENGTH - 1) as usize]
+    var vertex: i64 = 0
+    while vertex < 4 {
+        OUT_DEGREE[vertex as usize] = 0
+        ORDER_CURSOR[vertex as usize] = 0
+        TREE_EDGE[vertex as usize] = -1
+        NEXT_EDGE[vertex as usize] = -1
+        IN_TREE[vertex as usize] = false
+        ACTIVE_VERTEX[vertex as usize] = false
+        vertex = vertex + 1
+    }
+    var edge: i64 = 0
+    while edge < MAX_EDGES {
+        EDGE_SRC[edge as usize] = -1
+        EDGE_DST[edge as usize] = -1
+        edge = edge + 1
+    }
+    edge = 0
+    while edge < edge_count {
+        let source = INPUT_BASES[edge as usize]
+        let target = INPUT_BASES[(edge + 1) as usize]
+        EDGE_SRC[edge as usize] = source
+        EDGE_DST[edge as usize] = target
+        OUT_DEGREE[source as usize] = OUT_DEGREE[source as usize] + 1
+        ACTIVE_VERTEX[source as usize] = true
+        ACTIVE_VERTEX[target as usize] = true
+        edge = edge + 1
+    }
+
+    seed_replicate(seed_hi, seed_lo, replicate)
+    vertex = 0
+    while vertex < 4 {
+        if !ACTIVE_VERTEX[vertex as usize] { IN_TREE[vertex as usize] = true }
+        vertex = vertex + 1
+    }
+    IN_TREE[root as usize] = true
+
+    vertex = 0
+    while vertex < 4 {
+        var current = vertex
+        var safety: i64 = 0
+        while !IN_TREE[current as usize] {
+            if OUT_DEGREE[current as usize] <= 0 { return false }
+            let chosen = random_out_edge(edge_count, current)
+            if chosen < 0 { return false }
+            NEXT_EDGE[current as usize] = chosen
+            current = EDGE_DST[chosen as usize]
+            safety = safety + 1
+            if safety > 4096 { return false }
+        }
+        current = vertex
+        while !IN_TREE[current as usize] {
+            let chosen = NEXT_EDGE[current as usize]
+            if chosen < 0 { return false }
+            IN_TREE[current as usize] = true
+            TREE_EDGE[current as usize] = chosen
+            current = EDGE_DST[chosen as usize]
+        }
+        vertex = vertex + 1
+    }
+
+    vertex = 0
+    while vertex < 4 {
+        var count: i64 = 0
+        edge = 0
+        while edge < edge_count {
+            if EDGE_SRC[edge as usize] == vertex {
+                ORDERED_EDGES[(vertex * MAX_BASES + count) as usize] = edge
+                count = count + 1
+            }
+            edge = edge + 1
+        }
+        var i = count - 1
+        while i > 0 {
+            let j = rng_bounded(i + 1)
+            let left = (vertex * MAX_BASES + i) as usize
+            let right = (vertex * MAX_BASES + j) as usize
+            let temporary = ORDERED_EDGES[left]
+            ORDERED_EDGES[left] = ORDERED_EDGES[right]
+            ORDERED_EDGES[right] = temporary
+            i = i - 1
+        }
+        if vertex != root && ACTIVE_VERTEX[vertex as usize] {
+            let tree = TREE_EDGE[vertex as usize]
+            var position: i64 = -1
+            i = 0
+            while i < count {
+                if ORDERED_EDGES[(vertex * MAX_BASES + i) as usize] == tree { position = i }
+                i = i + 1
+            }
+            if position < 0 { return false }
+            let at = (vertex * MAX_BASES + position) as usize
+            let last = (vertex * MAX_BASES + count - 1) as usize
+            let temporary = ORDERED_EDGES[at]
+            ORDERED_EDGES[at] = ORDERED_EDGES[last]
+            ORDERED_EDGES[last] = temporary
+        }
+        vertex = vertex + 1
+    }
+
+    var current = INPUT_BASES[0]
+    OUTPUT_BASES[0] = current
+    edge = 0
+    while edge < edge_count {
+        let cursor = ORDER_CURSOR[current as usize]
+        if cursor >= OUT_DEGREE[current as usize] { return false }
+        let chosen = ORDERED_EDGES[(current * MAX_BASES + cursor) as usize]
+        if EDGE_SRC[chosen as usize] != current { return false }
+        ORDER_CURSOR[current as usize] = cursor + 1
+        current = EDGE_DST[chosen as usize]
+        OUTPUT_BASES[(edge + 1) as usize] = current
+        edge = edge + 1
+    }
+    current == root
+}
+
+fn print_base(base: i64) with IO {
+    if base == 0 { print("A") }
+    if base == 1 { print("C") }
+    if base == 2 { print("G") }
+    if base == 3 { print("T") }
+}
+
+fn emit_draw(case_id: string, scale: i64, replicate: i64, seed64: string) with IO, Mut, Panic {
+    print("{\"case_id\":\"")
+    print(case_id)
+    print("\",\"scale\":")
+    print_int(scale)
+    print(",\"replicate\":")
+    print_int(replicate)
+    print(",\"seed64\":\"")
+    print(seed64)
+    print("\",\"sequence\":\"")
+    var i: i64 = 0
+    while i < G_WINDOW_LENGTH {
+        print_base(OUTPUT_BASES[i as usize])
+        i = i + 1
+    }
+    print("\"}\n")
+}
+
+// pass 0 validates only. pass 1 completes every draw with no output. pass 2
+// emits the already-proven-reachable stream.  This is the no-partial-stdout
+// boundary for invalid/malformed cases, not a U0 run receipt.
+fn process_case(line: string, index: i64, pass: i64) -> bool with IO, Mut, Panic, Div {
+    if field_count(line) != 8 { return false }
+    let case_id = field(line, 0)
+    let parameters_sha = field(line, 1)
+    let accession = field(line, 2)
+    let window_start = decimal(field(line, 3))
+    let scale = decimal(field(line, 4))
+    let seed64 = field(line, 5)
+    let bases = field(line, 6)
+    let requested_replicates = decimal(field(line, 7))
+    if !str_eq(case_id, expected_case_id(index)) || !sha_ok(parameters_sha)
+        || !str_eq(parameters_sha, expected_parameter_sha())
+        || !identifier_ok(accession) || !str_eq(accession, expected_accession(index))
+        || window_start != expected_window_start(index) || scale != expected_scale(index)
+        || !seed_ok(seed64) || !str_eq(seed64, expected_seed(index))
+        || str_len(bases) != scale || requested_replicates != REPLICATES {
+        return false
+    }
+    if pass == 0 { return true }
+
+    var i: i64 = 0
+    while i < scale {
+        let base = base_code(str_char_at(bases, i))
+        if base < 0 { return false }
+        INPUT_BASES[i as usize] = base
+        i = i + 1
+    }
+    G_WINDOW_LENGTH = scale
+    let seed_hi = parse_hex8(seed64, 0)
+    let seed_lo = parse_hex8(seed64, 8)
+    if seed_hi < 0 || seed_lo < 0 { return false }
+    var replicate: i64 = 1
+    while replicate <= REPLICATES {
+        if !shuffle_window(seed_hi, seed_lo, replicate) { return false }
+        if pass == 2 { emit_draw(case_id, scale, replicate, seed64) }
+        replicate = replicate + 1
+    }
+    true
+}
+
+fn run_cases(text: string, pass: i64) -> bool with IO, Mut, Panic, Div {
+    let n = str_len(text)
+    if n <= 0 || str_char_at(text, n - 1) != 10 { return false }
+    var scan: i64 = 0
+    while scan < n {
+        if str_char_at(text, scan) == 13 { return false }
+        scan = scan + 1
+    }
+    var start: i64 = 0
+    var logical_line: i64 = 0
+    var cases: i64 = 0
+    while start <= n {
+        var finish = start
+        while finish < n && str_char_at(text, finish) != 10 { finish = finish + 1 }
+        let line_end = finish
+        if line_end == start {
+            if finish < n { return false }
+        } else {
+            let line = span(text, start, line_end)
+            if logical_line == 0 {
+                if !str_eq(line, "case_id\tparameters_sha256\taccession_version\twindow_start\tscale\tseed64\tbases\treplicates") {
+                    return false
+                }
+            } else {
+                if cases >= FIXTURE_CASES || !process_case(line, cases, pass) { return false }
+                cases = cases + 1
+            }
+            logical_line = logical_line + 1
+        }
+        if finish >= n { break }
+        start = finish + 1
+    }
+    logical_line == FIXTURE_CASES + 1 && cases == FIXTURE_CASES
+}
+
+fn main() -> i64 with IO, Mut, Panic, Div {
+    if arg_count() != 1 {
+        println("usage: u0_dinucleotide_scale_fixture <cases.tsv>")
+        return 64
+    }
+    let text = read_file(get_arg(0))
+    if str_len(text) <= 0 || str_len(text) > 32768 { return 12 }
+    if !run_cases(text, 0) { return 12 }
+    if !run_cases(text, 1) { return 12 }
+    if !run_cases(text, 2) { return 12 }
+    0
+}

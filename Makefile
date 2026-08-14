@@ -8,7 +8,7 @@
 	cohort-products \
 	u250-smoke-contract u250-null-contract u250-dinucleotide-contract \
 	u0-contract u0-schema-integration u0-cli-integration u0-julia-contract \
-	u0-manifest-differential-fixture u0-gate \
+	u0-manifest-differential-fixture u0-dinucleotide-scale-fixture u0-gate \
 	cross-validate pipeline release-gate \
 	legacy-julia-pipeline legacy-export-knowledge legacy-verify-knowledge clean
 
@@ -49,6 +49,7 @@ help:
 	@echo "  u0-cli-integration     Exercise DuckDB/Zstd package, query and verify integration"
 	@echo "  u0-julia-contract      Run independent U0 manifest and secondary-gate validators"
 	@echo "  u0-manifest-differential-fixture  Pinned Sounio manifest boundary + independent Julia"
+	@echo "  u0-dinucleotide-scale-fixture  Engineering Euler/Wilson scale probe (16..1000) + Julia byte check"
 	@echo "  u0-gate                Fail-closed U0 evaluator; real promotion remains explicitly locked"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"
@@ -213,6 +214,7 @@ u0-contract:
 		toolchains/ncbi-datasets.lock.json \
 		toolchains/u0-python-requirements.txt \
 		scripts/select_u0_pilot.py \
+		scripts/review_u0_control_candidates.py \
 		scripts/bind_u0_control_ledger.py \
 		scripts/validate_u0_control_ledger.py \
 		scripts/build_u0_source_manifest.py \
@@ -222,18 +224,27 @@ u0-contract:
 		scripts/measure_u0_operational_utility.py \
 		scripts/prepare_biostudies_queue.py \
 		scripts/run_u0_manifest_differential.sh \
+		scripts/generate_u0_dinucleotide_scale_cases.rb \
+		scripts/run_u0_dinucleotide_scale_fixture.sh \
 		cli/bin/dosa \
 		sounio/src/u0_manifest_fixture.sio \
-		julia/scripts/validate_u0_manifest.jl; do test -s "$$f"; done
+		sounio/src/u0_dinucleotide_scale_fixture.sio \
+		julia/scripts/validate_u0_manifest.jl \
+		julia/scripts/validate_u0_dinucleotide_scale_fixture.jl; do test -s "$$f"; done
 	@test -s data/v3/U0_CONTROL_LEDGER.md
 	@test -s data/fixtures/u0_control_ledger/control_candidates.tsv
+	@test -s data/fixtures/u0_dinucleotide_scale/cases.tsv
+	@test -s data/fixtures/u0_dinucleotide_scale/invalid_replicates.tsv
 	@for f in dosa_v3_common dosa_v3_parameters dosa_v3_source_manifest dosa_v3_source_index dosa_v3_replicon dosa_v3_run dosa_v3_window_profile dosa_v3_summary dosa_v3_exclusion dosa_v3_payload_manifest dosa_v3_receipt; do test -s "schemas/$$f.schema.json"; done
-	@bash -n scripts/freeze_u0_refseq_snapshot.sh scripts/test_u0_selection.sh scripts/test_u0_control_ledger.sh scripts/test_u0_source_manifest.sh scripts/test_u0_gate.sh scripts/test_u0_capacity.sh scripts/test_u0_operational.sh
+	@bash -n scripts/freeze_u0_refseq_snapshot.sh scripts/run_u0_dinucleotide_scale_fixture.sh scripts/test_u0_selection.sh scripts/test_u0_control_review.sh scripts/test_u0_control_ledger.sh scripts/test_u0_source_manifest.sh scripts/test_u0_gate.sh scripts/test_u0_capacity.sh scripts/test_u0_operational.sh
+	@ruby -c scripts/generate_u0_dinucleotide_scale_cases.rb >/dev/null
+	@tmp="$$(mktemp "$${TMPDIR:-/tmp}/dosa-u0-scale-cases.XXXXXX")"; ruby scripts/generate_u0_dinucleotide_scale_cases.rb data/v3/u0_parameters.json "$$tmp"; cmp data/fixtures/u0_dinucleotide_scale/cases.tsv "$$tmp"; rm -f "$$tmp"
 	@python3 -c 'import json,pathlib; files=list(pathlib.Path("schemas").glob("dosa_v3_*.schema.json"))+list(pathlib.Path("data/v3").glob("*.json"))+[pathlib.Path("toolchains/ncbi-datasets.lock.json")]; hook=lambda pairs: _pairs(pairs); ns={}; exec("def _pairs(pairs):\n d={}\n for k,v in pairs:\n  if k in d: raise ValueError(\"duplicate JSON key: \"+k)\n  d[k]=v\n return d",ns); [json.loads(p.read_text(),object_pairs_hook=ns["_pairs"]) for p in files]; print("DOSA_V3_JSON_NO_DUPLICATES_PASS files=%d"%len(files))'
 	@python3 -c 'import json; p=json.load(open("data/v3/u0_parameters.json")); mutable={"u0_status","full_atlas_execution_state","hdd_purchase_state","release_policy"}; assert p["window_profiles"]==[{"window_size":16,"stride":16},{"window_size":100,"stride":100},{"window_size":500,"stride":500},{"window_size":1000,"stride":1000}] and p["k_min"]==1 and p["k_max"]==8 and p["null_model"]=="euler_wilson_fixed_endpoints_v1" and p["null_replicates"]==1000 and not mutable.intersection(p) and "p_values" not in p and "q_values" not in p; print("DOSA_V3_U0_PARAMETERS_PASS immutable_science_only=true")'
 	@python3 scripts/audit_v3_public_fields.py --schema-dir schemas --rules data/v3/public_field_use_rules.json --evidence-scope fixture
 	@python3 -m unittest discover -s cli/tests -p 'test_*.py'
 	@scripts/test_u0_selection.sh
+	@bash scripts/test_u0_control_review.sh
 	@bash scripts/test_u0_control_ledger.sh
 	@scripts/test_u0_source_manifest.sh
 	@scripts/test_u0_gate.sh
@@ -253,12 +264,20 @@ u0-cli-integration:
 u0-julia-contract:
 	@$(JULIA) --startup-file=no julia/scripts/validate_u0_manifest.jl --self-test data/fixtures/u0_manifest
 	@$(JULIA) --startup-file=no julia/scripts/validate_u0_manifest.jl data/fixtures/u0_manifest/u0_manifest.tsv data/fixtures/u0_manifest/u0_expected_terminal.tsv
+	@$(JULIA) --startup-file=no julia/test/test_u0_dinucleotide_scale_fixture.jl
 	@$(JULIA) --startup-file=no julia/test/test_v3_scientific_gates.jl
 
 u0-manifest-differential-fixture:
 	@SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
 		JULIA_BIN="$$(printf '%s' "$(JULIA)" | awk '{print $$1}')" \
 		bash scripts/run_u0_manifest_differential.sh
+
+# Synthetic capacity fixture only: it does not make U0 evidence or unlock the
+# canonical U0 producer.  The canonical v3 parameter bytes bind its seeds.
+u0-dinucleotide-scale-fixture:
+	@SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
+		JULIA_BIN="$$(printf '%s' "$(JULIA)" | awk '{print $$1}')" \
+		bash scripts/run_u0_dinucleotide_scale_fixture.sh
 
 u0-gate:
 	@for variable in U0_AGREEMENT_REPORT U0_QUERY_REPORT U0_SPEED_REPORT U0_CAPACITY_REPORT U0_FIELD_AUDIT_REPORT U0_ORIC_REPORT U0_MODEL_REPORT U0_ORIC_INPUT U0_MODEL_INPUT U0_PARAMETERS U0_SOURCE_MANIFEST U0_SOURCE_INTEGRITY U0_SOURCE_INDEX U0_PAYLOAD_MANIFEST U0_SOUNIO_ATTESTATION U0_SOUNIO_BUILD_RECEIPT U0_SOUNIO_EXECUTION_RECEIPT U0_SOUNIO_OUTPUT_MANIFEST U0_JULIA_RECEIPT U0_PILOT_PROVENANCE U0_SELECTION U0_CONTROL_CANDIDATES U0_CONTROL_LEDGER U0_CONTROL_BINDING_RECEIPT U0_CONTROL_VALIDATION_RECEIPT U0_SOURCE_FREEZE_RECEIPT U0_ASSEMBLY_REPORT U0_SEQUENCE_REPORT U0_FULL_REPLICON_INVENTORY U0_WORK_UNIT_MANIFEST U0_JULIA_BIN; do eval "value=\$$$$variable"; if [ -z "$$value" ] || [ ! -f "$$value" ]; then echo "BLOCKED: $$variable must name an immutable real U0 evidence artifact"; exit 2; fi; done

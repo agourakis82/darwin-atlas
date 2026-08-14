@@ -154,15 +154,18 @@ separate requirements.
 - data release is `BLOCKED`.
 
 The current manifest-directed fixture proves parsing, ordering, resume and
-explicit refusal behavior. It does not bind the scale-100/500/1000 or n=1000
-executor. The current CLI verifier proves package/hash/footer integrity, not
-full v3 row semantics. Parts of the real provenance validator are scaffolded,
-but the admission profile is deliberately locked and has not been exercised
-end to end: no actual U0 Sounio executor/output manifest, execution receipt,
-full-pilot Julia recomputation receipt, or frozen scientific derivation
-closure exists. Known deeper source/package/report/runtime closures must also
-be completed before the lock can be removed. These are blockers, not deferred
-claims.
+explicit refusal behavior. The separate multiscale capacity fixture binds the
+canonical parameter bytes and proves 1000 exact Euler/Wilson draws at each of
+16, 100, 500 and 1000 bp against an independent Julia oracle. Neither fixture
+is the manifest-directed U0 executor: they do not emit the v3 window schema,
+null summaries, Parquet, work-unit receipts or pilot agreement. The current
+CLI verifier proves package/hash/footer integrity, not full v3 row semantics.
+Parts of the real provenance validator are scaffolded, but the admission
+profile is deliberately locked and has not been exercised end to end: no
+actual U0 Sounio executor/output manifest, execution receipt, full-pilot Julia
+recomputation receipt, or frozen scientific derivation closure exists. Known
+deeper source/package/report/runtime closures must also be completed before
+the lock can be removed. These are blockers, not deferred claims.
 
 After U0, full-atlas execution and an HDD purchase may become permitted work.
 An HDD purchase is never a scientific result, U0 criterion, or data-release

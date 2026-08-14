@@ -17,7 +17,12 @@ researcher does not need to rerun 1000 shuffles.
 > independent Julia checks. The ADR-0003 exact dinucleotide-preserving
 > engineering null is integrated additively into the frozen window fixture
 > with SHA-derived per-window seeds and eight replicates; ADR-0002 remains
-> proposed. A frozen miniature cohort of four complete
+> proposed. A separate synthetic scale fixture now executes exactly 1000
+> Euler/Wilson draws at each of 16, 100, 500 and 1000 bp in pinned Sounio and
+> reproduces all 4000 JSONL records byte-exact in independent Julia. This
+> proves the bounded null-draw core at the four U0 scales; it is not the
+> manifest-directed U0 producer, a pilot payload, or a receipt. A frozen
+> miniature cohort of four complete
 > circular RefSeq replicons (two assemblies, official NCBI checksum closure)
 > is pinned in [`data/cohort/mini/`](data/cohort/mini/README.md); engineering
 > canonical products (cohort/replicons/exclusions for all four replicons,
@@ -184,6 +189,13 @@ SOUNIO_REPO=/path/to/sounio make sounio-fixture
 
 # Apple Silicon: execute the official Linux x86-64 Madaros in Lima
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux make sounio-fixture
+
+# Bounded U0 scale probe: four synthetic windows at 16/100/500/1000 bp,
+# exactly 1000 fixed-endpoint Euler/Wilson draws each. Pinned Sounio emits the
+# 4000-draw JSONL and independent Base-only Julia regenerates it byte-exact.
+# This is engineering fixture evidence only and cannot unlock Gate U0.
+SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
+  make u0-dinucleotide-scale-fixture
 
 # Compile/execute in Sounio, persist stdout, then recompute in Base-only Julia
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \

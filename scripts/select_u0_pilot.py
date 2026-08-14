@@ -318,7 +318,11 @@ def select(args: argparse.Namespace) -> dict[str, Any]:
         "assemblies": len({row["assembly_accession_version"] for row in rows}),
         "sha256_sample_records": sum("sha256_mod_256_zero" in row["selection_reasons"] for row in rows),
         "largest_requested": args.largest,
-        "control_candidates_complete": True,
+        "control_candidates_declared_complete": True,
+        # Both accepted control-input modes are declarations only at this
+        # stage. Semantic proof requires the separate offline review or the
+        # final package validator; never infer it from candidate coverage.
+        "control_claims_semantically_validated": False,
         "control_ledger_validated": False,
         "control_input_kind": control_input_kind,
         "output": str(args.output),

@@ -130,6 +130,10 @@ jobs:
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-manifest-differential-fixture
 
+      - name: Validate the bounded 16/100/500/1000 Euler-Wilson capacity fixture
+        working-directory: atlas
+        run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-dinucleotide-scale-fixture
+
   cross-validation-boundary:
     name: Missing Sounio is blocked, never a pass
     runs-on: ubuntu-latest

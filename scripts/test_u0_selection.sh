@@ -33,7 +33,8 @@ assert by_id["NC_CONTROL001.1"]["replicon_class"] == "plasmid"
 assert by_id["NC_CONTROL002.1"]["replicon_class"] == "chromosome"
 assert all(row["sha256_bucket"] == row["accession_sha256"][:2] for row in rows)
 assert summary["control_input_kind"] == "unverified_candidates"
-assert summary["control_candidates_complete"] is True
+assert summary["control_candidates_declared_complete"] is True
+assert summary["control_claims_semantically_validated"] is False
 assert summary["control_ledger_validated"] is False
 print("U0_SELECTION_FIXTURE_PASS records=5")
 PY

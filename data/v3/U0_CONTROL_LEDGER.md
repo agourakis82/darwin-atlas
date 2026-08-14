@@ -30,6 +30,16 @@ ambiguity for the exact FASTA record; and chromosome/plasmid from the exact
 sequence-report row with its matching assembly. The binding receipt alone
 never proves those claims.
 
+Before a full freeze, `python3 scripts/review_u0_control_candidates.py create`
+may run
+the same binder and semantic validator against a bounded, already-downloaded
+mini-package. Its receipt scope is
+`bounded_control_candidate_review_non_scientific`: the six control claims are
+semantically qualified from exact package bytes, but no DOSA metric is
+computed and the receipt is not a RefSeq freeze, pilot run or scientific
+result. The `verify` subcommand reopens every bound file from an already-issued
+review receipt and rejects path escape, symlink or byte drift.
+
 On success the freeze binds the candidate file, generated ledger, binding
 receipt, and semantic-validation receipt into freeze_receipt.json before the
 source manifest is accepted. Synthetic fixtures may test software behavior but
