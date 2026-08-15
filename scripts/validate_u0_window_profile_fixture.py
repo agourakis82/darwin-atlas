@@ -127,16 +127,17 @@ def validate_schema(rows: list[dict[str, Any]], schema_dir: pathlib.Path) -> Non
     print(f"U0_WINDOW_PROFILE_JSON_SCHEMA_PASS rows={len(rows)} schema={target['$id']}")
 
 
-def validate(path: pathlib.Path, schema_dir: pathlib.Path | None = None) -> None:
+def validate(path: pathlib.Path, schema_dir: pathlib.Path | None = None,
+             expected_run_id: str = "u0-profile-fixture",
+             expected_scales: tuple[int, ...] = (16, 100, 500, 1000)) -> None:
     if not path.is_file() or path.is_symlink() or path.stat().st_size < 1:
         raise ProfileError("profile artifact must be a non-empty regular non-symlink file")
     raw = path.read_bytes()
     if not raw.endswith(b"\n") or b"\r" in raw:
         raise ProfileError("profile artifact must be LF-only with terminal LF")
     lines = raw.splitlines()
-    if len(lines) != 4:
-        raise ProfileError("profile artifact must contain exactly four rows")
-    expected_scales = (16, 100, 500, 1000)
+    if len(lines) != len(expected_scales):
+        raise ProfileError(f"profile artifact must contain exactly {len(expected_scales)} rows")
     rows: list[dict[str, Any]] = []
     for ordinal, (line, expected_scale) in enumerate(zip(lines, expected_scales, strict=True), start=1):
         try:
@@ -146,7 +147,7 @@ def validate(path: pathlib.Path, schema_dir: pathlib.Path | None = None) -> None
         if not isinstance(row, dict) or set(row) != TOP_KEYS:
             raise ProfileError(f"row {ordinal} top-level field set drift")
         rows.append(row)
-        if row.get("run_id") != "u0-profile-fixture" or not isinstance(row.get("replicon_id"), str):
+        if row.get("run_id") != expected_run_id or not isinstance(row.get("replicon_id"), str):
             raise ProfileError(f"row {ordinal} identity drift")
         size = positive_integer(row.get("window_size"), f"row {ordinal}.window_size")
         index = nonnegative_integer(row.get("window_index"), f"row {ordinal}.window_index")
@@ -170,16 +171,21 @@ def validate(path: pathlib.Path, schema_dir: pathlib.Path | None = None) -> None
             validate_observation(value, f"row {ordinal}.kmer_rc[{k}]", k)
     if schema_dir is not None:
         validate_schema(rows, schema_dir)
-    print("U0_WINDOW_PROFILE_STRUCTURE_PASS rows=4 metrics=17 null_replicates=1000")
+    print(f"U0_WINDOW_PROFILE_STRUCTURE_PASS rows={len(rows)} metrics=17 null_replicates=1000")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("artifact", type=pathlib.Path)
     parser.add_argument("--schema-dir", type=pathlib.Path)
+    parser.add_argument("--expected-run-id", default="u0-profile-fixture")
+    parser.add_argument("--expected-scales", default="16,100,500,1000")
     args = parser.parse_args()
     try:
-        validate(args.artifact, args.schema_dir)
+        scales = tuple(int(value) for value in args.expected_scales.split(","))
+        if not scales or any(value < 1 for value in scales):
+            raise ProfileError("expected scales must be positive comma-separated integers")
+        validate(args.artifact, args.schema_dir, args.expected_run_id, scales)
         return 0
     except (OSError, ProfileError) as exc:
         print(f"U0_WINDOW_PROFILE_STRUCTURE_FAIL: {exc}", file=sys.stderr)

@@ -48,6 +48,7 @@ var G_RNG1: i64 = 1
 var G_RNG2: i64 = 1
 var G_WINDOW_LENGTH: i64 = 0
 var G_PROFILE_MODE: bool = false
+var G_WORK_UNIT_MODE: bool = false
 
 fn span(text: string, start: i64, finish: i64) -> string with Mut, Panic, Div {
     if start < 0 || finish < start { return "" }
@@ -192,6 +193,18 @@ fn expected_seed(index: i64) -> string {
     if index == 2 { return "196ba777d9b3f34f" }
     if index == 3 { return "e4443898d42b13fe" }
     ""
+}
+
+fn validate_work_unit_case(case_id: string, parameters_sha: string, accession: string,
+                           window_start: i64, scale: i64, seed64: string,
+                           bases: string, requested_replicates: i64) -> bool with Mut, Panic, Div {
+    str_eq(case_id, "NC_000001_1_16_0")
+        && str_eq(parameters_sha, expected_parameter_sha())
+        && str_eq(accession, "NC_000001.1")
+        && window_start == 0 && scale == 16
+        && str_eq(seed64, "435a2cbf24d69d3a")
+        && str_eq(bases, "ACGTTGCAACGTTGCA")
+        && requested_replicates == REPLICATES
 }
 
 fn base_code(ch: i64) -> i64 {
@@ -614,7 +627,8 @@ fn emit_profile_observation(metric: i64, k: i64, include_k: bool) with IO, Mut, 
 }
 
 fn emit_window_profile(accession: string, scale: i64, window_start: i64) with IO, Mut, Panic, Div {
-    print("{\"run_id\":\"u0-profile-fixture\",\"replicon_id\":\"")
+    if G_WORK_UNIT_MODE { print("{\"run_id\":\"u0-work-unit-fixture\",\"replicon_id\":\"") }
+    else { print("{\"run_id\":\"u0-profile-fixture\",\"replicon_id\":\"") }
     print(accession)
     print("\",\"window_size\":")
     print_int(scale)
@@ -684,13 +698,18 @@ fn process_case(line: string, index: i64, pass: i64) -> bool with IO, Mut, Panic
     let seed64 = field(line, 5)
     let bases = field(line, 6)
     let requested_replicates = decimal(field(line, 7))
-    if !str_eq(case_id, expected_case_id(index)) || !sha_ok(parameters_sha)
-        || !str_eq(parameters_sha, expected_parameter_sha())
-        || !identifier_ok(accession) || !str_eq(accession, expected_accession(index))
-        || window_start != expected_window_start(index) || scale != expected_scale(index)
-        || !seed_ok(seed64) || !str_eq(seed64, expected_seed(index))
-        || str_len(bases) != scale || requested_replicates != REPLICATES {
-        return false
+    if G_WORK_UNIT_MODE {
+        if index != 0 || !validate_work_unit_case(case_id, parameters_sha, accession,
+            window_start, scale, seed64, bases, requested_replicates) { return false }
+    } else {
+        if !str_eq(case_id, expected_case_id(index)) || !sha_ok(parameters_sha)
+            || !str_eq(parameters_sha, expected_parameter_sha())
+            || !identifier_ok(accession) || !str_eq(accession, expected_accession(index))
+            || window_start != expected_window_start(index) || scale != expected_scale(index)
+            || !seed_ok(seed64) || !str_eq(seed64, expected_seed(index))
+            || str_len(bases) != scale || requested_replicates != REPLICATES {
+            return false
+        }
     }
     if pass == 0 { return true }
 
@@ -744,7 +763,8 @@ fn run_cases(text: string, pass: i64) -> bool with IO, Mut, Panic, Div {
                     return false
                 }
             } else {
-                if cases >= FIXTURE_CASES || !process_case(line, cases, pass) { return false }
+                let expected_cases = if G_WORK_UNIT_MODE { 1 } else { FIXTURE_CASES }
+                if cases >= expected_cases || !process_case(line, cases, pass) { return false }
                 cases = cases + 1
             }
             logical_line = logical_line + 1
@@ -752,17 +772,21 @@ fn run_cases(text: string, pass: i64) -> bool with IO, Mut, Panic, Div {
         if finish >= n { break }
         start = finish + 1
     }
-    logical_line == FIXTURE_CASES + 1 && cases == FIXTURE_CASES
+    let expected_cases = if G_WORK_UNIT_MODE { 1 } else { FIXTURE_CASES }
+    logical_line == expected_cases + 1 && cases == expected_cases
 }
 
 fn main() -> i64 with IO, Mut, Panic, Div {
     if arg_count() != 1 && arg_count() != 2 {
-        println("usage: u0_dinucleotide_scale_fixture <cases.tsv> [--profiles]")
+        println("usage: u0_dinucleotide_scale_fixture <cases.tsv> [--profiles|--work-unit-profile]")
         return 64
     }
     if arg_count() == 2 {
-        if !str_eq(get_arg(1), "--profiles") { return 64 }
-        G_PROFILE_MODE = true
+        if str_eq(get_arg(1), "--profiles") { G_PROFILE_MODE = true }
+        else if str_eq(get_arg(1), "--work-unit-profile") {
+            G_PROFILE_MODE = true
+            G_WORK_UNIT_MODE = true
+        } else { return 64 }
     }
     let text = read_file(get_arg(0))
     if str_len(text) <= 0 || str_len(text) > 32768 { return 12 }

@@ -135,7 +135,7 @@ function observation_json(metric::Int, k::Union{Nothing,Int},
     )
 end
 
-function expected_profile_line(case)::String
+function expected_profile_line(case; run_id::String="u0-profile-fixture")::String
     observed_numerators, effective = profile_metrics(case.bases)
     draws = [Int[] for _ in 1:PROFILE_METRICS]
     for replicate in 1:REPLICATES
@@ -155,7 +155,7 @@ function expected_profile_line(case)::String
         (observation_json(9 + k, k, observed_numerators, effective, draws) for k in 1:8), ","
     )
     string(
-        "{\"run_id\":\"u0-profile-fixture\",\"replicon_id\":\"$(case.accession)\",",
+        "{\"run_id\":\"$run_id\",\"replicon_id\":\"$(case.accession)\",",
         "\"window_size\":$(case.scale),\"window_index\":$(div(case.window_start, case.scale)),",
         "\"window_start\":$(case.window_start),\"window_end\":$(case.window_start + case.scale),",
         "\"status\":\"eligible\",\"reason_code\":null,",

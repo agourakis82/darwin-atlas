@@ -133,7 +133,7 @@ jobs:
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-manifest-differential-fixture
 
-      - name: Validate bounded Euler-Wilson draws and nested v3 profiles at 16/100/500/1000
+      - name: Validate bounded draws, nested v3 profiles, and one manifest-FASTA work unit
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-dinucleotide-scale-fixture
 

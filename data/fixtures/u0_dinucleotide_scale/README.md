@@ -28,10 +28,16 @@ checks the structural/cross-field invariants; the integration test also
 validates the rows against the public JSON Schema. At official Sounio commit
 `37de2c9eefe68f3457a2c66004eff68bba5b4446`, the observed evidence is:
 
-- Sounio source SHA-256 `00dbe8d49247adf966f0ca5c40d6e1e8e54735fc041693d5e910633e4fb972b0`;
-- compiled ELF SHA-256 `1d9bb5baeb338a2fb5196c48e10a08d850d9d5b8000d12f9082da47a48bbce41`;
+- Sounio source SHA-256 `0ba40491c0202e59d04e5c9ad03c58c33eac9e33681145b2914df88256bc92ee`;
+- compiled ELF SHA-256 `9a0b32cd4b90d7494b080b2545aa7aac73f759f56afcadadcc657479236cd023`;
 - unchanged 4000-draw artifact SHA-256 `726c2c9fd3f96a27b6ae18d35ad73f203c0cae94bae9f0094618b31db81f2463`;
 - four-row profile artifact SHA-256 `f0b5ef9cabaf1e998f5851b6008936b3764f22c8718625cf31de0ac571424016`.
+
+The same executable also accepts a separately pinned one-work-unit mode. Its
+host-derived case ledger SHA-256 is
+`781326e35a9f32b874c8fa49c3b1249c330a05f1e5625bd9bff67b7a567f7457`
+and its complete one-row profile artifact is
+`4a81aefafb99ef5beabc3c813cc8f265d52f21fd7df748be04e1dfce0074bea8`.
 
 Passing this fixture establishes neither U0, a manifest/FASTA-driven pilot
 executor, an integral pilot receipt, a RefSeq result, Parquet equivalence nor

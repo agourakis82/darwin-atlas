@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Pinned-Sounio runner for the non-scientific Euler/Wilson scale fixture.
+# Pinned-Sounio runner for the non-scientific Euler/Wilson scale/profile and
+# one-work-unit composition fixtures.
 #
-# This tests a dedicated 16/100/500/1000-base capacity probe only.  It does
-# not create a U0 payload, receipt, source freeze, or promotion evidence.
+# It does not create a U0 payload, receipt, source freeze, pilot-wide executor,
+# or promotion evidence.
 set -euo pipefail
 
 readonly atlas_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -13,6 +14,10 @@ readonly parameters_file="${atlas_root}/data/v3/u0_parameters.json"
 readonly validator="${atlas_root}/julia/scripts/validate_u0_dinucleotide_scale_fixture.jl"
 readonly profile_validator="${atlas_root}/julia/scripts/validate_u0_window_profile_fixture.jl"
 readonly structure_validator="${atlas_root}/scripts/validate_u0_window_profile_fixture.py"
+readonly work_builder="${atlas_root}/scripts/build_u0_work_unit_case.py"
+readonly work_validator="${atlas_root}/julia/scripts/validate_u0_work_unit_fixture.jl"
+readonly work_fixture_dir="${atlas_root}/data/fixtures/u0_work_unit"
+readonly work_manifest="${work_fixture_dir}/u0_work_units.tsv"
 readonly schema_dir="${atlas_root}/schemas"
 readonly temp_dir="$(mktemp -d)"
 readonly julia_bin="${JULIA_BIN:-julia}"
@@ -52,6 +57,8 @@ git -C "${SOUNIO_REPO}" rev-parse --is-inside-work-tree >/dev/null 2>&1 && [[ -x
 [[ -s "${validator}" ]] || { echo "BLOCKED: missing independent Julia scale validator" >&2; exit 2; }
 [[ -s "${profile_validator}" ]] || { echo "BLOCKED: missing independent Julia profile validator" >&2; exit 2; }
 [[ -s "${structure_validator}" ]] || { echo "BLOCKED: missing profile structure validator" >&2; exit 2; }
+[[ -s "${work_builder}" ]] || { echo "BLOCKED: missing work-unit case binder" >&2; exit 2; }
+[[ -s "${work_validator}" ]] || { echo "BLOCKED: missing independent Julia work-unit validator" >&2; exit 2; }
 
 expected_commit="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("commit")' "${lock_file}")"
 expected_repo="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("repository")' "${lock_file}")"
@@ -98,6 +105,12 @@ ruby -e 'File.binwrite(ARGV[1], File.binread(ARGV[0]).gsub("\n", "\r\n"))' \
 readonly source_sha="$(sha256_file "${source_file}")"
 artifact="${temp_dir}/sounio.jsonl"
 profile_artifact="${temp_dir}/profiles.jsonl"
+work_cases="${temp_dir}/work-unit-cases.tsv"
+work_artifact="${temp_dir}/work-unit-profile.jsonl"
+python3 "${work_builder}" --parameters "${parameters_file}" --manifest "${work_manifest}" \
+  --source-root "${work_fixture_dir}" --output "${work_cases}"
+ruby -e 'bytes=File.binread(ARGV[0]); old="435a2cbf24d69d3a"; abort "seed missing" unless bytes.include?(old); File.binwrite(ARGV[1],bytes.sub(old,"535a2cbf24d69d3a"))' \
+  "${work_cases}" "${temp_dir}/invalid-work-seed.tsv"
 
 if [[ -n "${instance}" ]]; then
   command -v limactl >/dev/null 2>&1 || { echo "BLOCKED: limactl is unavailable for ${instance}" >&2; exit 2; }
@@ -106,6 +119,8 @@ if [[ -n "${instance}" ]]; then
   limactl copy -y --backend=scp "${source_file}" "${instance}:${guest_root}/fixture.sio"
   limactl copy -y --backend=scp "${fixture_dir}/cases.tsv" "${instance}:${guest_root}/cases.tsv"
   limactl copy -y --backend=scp "${fixture_dir}/invalid_replicates.tsv" "${instance}:${guest_root}/invalid-grammar.tsv"
+  limactl copy -y --backend=scp "${work_cases}" "${instance}:${guest_root}/work-unit.tsv"
+  limactl copy -y --backend=scp "${temp_dir}/invalid-work-seed.tsv" "${instance}:${guest_root}/invalid-work-seed.tsv"
   limactl copy -y --backend=scp "${temp_dir}/invalid-late.tsv" "${instance}:${guest_root}/invalid-late.tsv"
   limactl copy -y --backend=scp "${temp_dir}/invalid-parameters.tsv" "${instance}:${guest_root}/invalid-parameters.tsv"
   limactl copy -y --backend=scp "${temp_dir}/invalid-missing-lf.tsv" "${instance}:${guest_root}/invalid-missing-lf.tsv"
@@ -127,6 +142,10 @@ test "$(wc -l < "${root}/run1.jsonl")" -eq 4000
 "${root}/fixture.elf" "${root}/cases.tsv" --profiles > "${root}/profiles2.jsonl"
 cmp "${root}/profiles1.jsonl" "${root}/profiles2.jsonl"
 test "$(wc -l < "${root}/profiles1.jsonl")" -eq 4
+"${root}/fixture.elf" "${root}/work-unit.tsv" --work-unit-profile > "${root}/work-unit1.jsonl"
+"${root}/fixture.elf" "${root}/work-unit.tsv" --work-unit-profile > "${root}/work-unit2.jsonl"
+cmp "${root}/work-unit1.jsonl" "${root}/work-unit2.jsonl"
+test "$(wc -l < "${root}/work-unit1.jsonl")" -eq 1
 for invalid in invalid-grammar invalid-late invalid-parameters invalid-missing-lf invalid-crlf; do
   set +e
   "${root}/fixture.elf" "${root}/${invalid}.tsv" > "${root}/${invalid}.out"
@@ -135,9 +154,16 @@ for invalid in invalid-grammar invalid-late invalid-parameters invalid-missing-l
   test "${invalid_rc}" -eq 12
   test ! -s "${root}/${invalid}.out"
 done
+set +e
+"${root}/fixture.elf" "${root}/invalid-work-seed.tsv" --work-unit-profile > "${root}/invalid-work-seed.out"
+rc=$?
+set -e
+test "${rc}" -eq 12
+test ! -s "${root}/invalid-work-seed.out"
 SOUNIO_RUN
   limactl copy -y --backend=scp "${instance}:${guest_root}/run1.jsonl" "${artifact}"
   limactl copy -y --backend=scp "${instance}:${guest_root}/profiles1.jsonl" "${profile_artifact}"
+  limactl copy -y --backend=scp "${instance}:${guest_root}/work-unit1.jsonl" "${work_artifact}"
 else
   readonly executable="${temp_dir}/fixture.elf"
   (
@@ -154,6 +180,10 @@ else
   "${executable}" "${fixture_dir}/cases.tsv" --profiles > "${temp_dir}/profiles2.jsonl"
   cmp "${profile_artifact}" "${temp_dir}/profiles2.jsonl"
   [[ "$(wc -l < "${profile_artifact}")" -eq 4 ]]
+  "${executable}" "${work_cases}" --work-unit-profile > "${work_artifact}"
+  "${executable}" "${work_cases}" --work-unit-profile > "${temp_dir}/work-unit2.jsonl"
+  cmp "${work_artifact}" "${temp_dir}/work-unit2.jsonl"
+  [[ "$(wc -l < "${work_artifact}")" -eq 1 ]]
   for invalid in \
     "${fixture_dir}/invalid_replicates.tsv" \
     "${temp_dir}/invalid-late.tsv" \
@@ -167,6 +197,11 @@ else
     [[ "${invalid_rc}" -eq 12 ]]
     [[ ! -s "${temp_dir}/invalid.out" ]]
   done
+  set +e
+  "${executable}" "${temp_dir}/invalid-work-seed.tsv" --work-unit-profile > "${temp_dir}/invalid-work-seed.out"
+  rc=$?
+  set -e
+  [[ "${rc}" -eq 12 && ! -s "${temp_dir}/invalid-work-seed.out" ]]
 fi
 
 "${julia_bin}" --startup-file=no "${validator}" \
@@ -174,6 +209,10 @@ fi
 python3 "${structure_validator}" "${profile_artifact}" --schema-dir "${schema_dir}"
 "${julia_bin}" --startup-file=no "${profile_validator}" \
   "${parameters_file}" "${fixture_dir}/cases.tsv" "${profile_artifact}"
+python3 "${structure_validator}" "${work_artifact}" --schema-dir "${schema_dir}" \
+  --expected-run-id u0-work-unit-fixture --expected-scales 16
+"${julia_bin}" --startup-file=no "${work_validator}" \
+  "${parameters_file}" "${work_manifest}" "${work_fixture_dir}" "${work_artifact}"
 
 echo "sounio_repository=${expected_repo}"
 echo "sounio_commit=${actual_commit}"
@@ -183,6 +222,9 @@ echo "parameters_sha256=$(sha256_file "${parameters_file}")"
 echo "cases_sha256=$(sha256_file "${fixture_dir}/cases.tsv")"
 echo "artifact_sha256=$(sha256_file "${artifact}")"
 echo "profile_artifact_sha256=$(sha256_file "${profile_artifact}")"
+echo "work_unit_case_sha256=$(sha256_file "${work_cases}")"
+echo "work_unit_artifact_sha256=$(sha256_file "${work_artifact}")"
 echo "U0_SCALE_INVALID_REFUSAL_PASS cases=5 rc=12 bytes=0"
 echo "U0_DINUCLEOTIDE_SCALE_FIXTURE_PASS cases=4 scales=4 replicates=1000 draws=4000 tolerance=0"
 echo "U0_WINDOW_PROFILE_FIXTURE_PASS rows=4 metrics=17 null_replicates=1000 tolerance=0"
+echo "U0_WORK_UNIT_COMPOSITION_FIXTURE_PASS work_units=1 rows=1 metrics=17 null_replicates=1000 tolerance=0"
