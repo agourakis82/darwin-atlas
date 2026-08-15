@@ -154,11 +154,13 @@ separate requirements.
 - data release is `BLOCKED`.
 
 The current manifest-directed fixture proves parsing, ordering, resume and
-explicit refusal behavior. The separate multiscale capacity fixture binds the
-canonical parameter bytes and proves 1000 exact Euler/Wilson draws at each of
-16, 100, 500 and 1000 bp against an independent Julia oracle. Neither fixture
-is the manifest-directed U0 executor: they do not emit the v3 window schema,
-null summaries, Parquet, work-unit receipts or pilot agreement. The current
+explicit refusal behavior. The separate synthetic multiscale profile fixture
+binds the canonical parameter bytes and proves 1000 exact Euler/Wilson draws
+at each of 16, 100, 500 and 1000 bp plus complete v3 window-profile rows and
+null summaries against an independent Julia oracle. Neither fixture is the
+manifest-directed U0 executor: the profile rows are not derived from frozen
+RefSeq FASTA/work units and have no Parquet, execution receipts or pilot
+agreement. The current
 CLI verifier proves package/hash/footer integrity, not full v3 row semantics.
 Parts of the real provenance validator are scaffolded, but the admission
 profile is deliberately locked and has not been exercised end to end: no

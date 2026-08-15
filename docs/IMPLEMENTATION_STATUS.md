@@ -12,8 +12,8 @@ the separate dirty WIP were preserved before branch creation; see
 | Utility-first U0 contract, parameters, schemas and data dictionary | IMPLEMENTED / fixture-validated | U0 remains `NOT_YET_PASSED` |
 | Fresh RefSeq acquisition, deterministic pilot selector and source closure builder | IMPLEMENTED / acquisition not frozen | NCBI Datasets 18.35.0 is locally hash-pinned; pre-download control candidates are bound only after rehydration to an exact six-field ledger and independently proven from FASTA/GBFF/sequence-report bytes; the real candidates and fresh package remain pending |
 | `dosa query`, `dosa calibrate`, `dosa verify`, Parquet/Zstandard packager | IMPLEMENTED / synthetic integration | calibration requires a read-only hash-bound official-repository runner attestation but that attestation is non-semantic; verify currently proves transport/footer integrity, not full scientific row validity; no public shard exists yet |
-| Manifest-directed Sounio work-unit contract | IMPLEMENTED WITH CAPABILITY REFUSALS | the manifest fixture still refuses unbound U0 execution; a separate exact-null scale fixture now exercises fixed arrays through 1000 bp and n=1000 but does not emit window profiles, summaries, work-unit receipts or pilot evidence |
-| Independent Julia manifest, multiscale-null and scientific secondary evaluators | IMPLEMENTED / synthetic fixtures | Julia independently regenerates 4000 exact Euler/Wilson draws at the four prescribed scales; fixture metrics exercise the frozen scientific thresholds, but any input labelled `held_out_grouped_cohort` is explicitly `REFUSE` until the frozen cohort/split/ground-truth and prediction-derivation contract exists; no real full-pilot Julia recomputation or scientific receipt exists |
+| Manifest-directed Sounio work-unit contract | IMPLEMENTED WITH CAPABILITY REFUSALS | the manifest fixture still refuses unbound U0 execution; a separate exact-null scale fixture exercises fixed arrays through 1000 bp and n=1000 and emits four complete synthetic window-profile rows, but it has no FASTA/manifest work-unit execution, receipts or pilot evidence |
+| Independent Julia manifest, multiscale-null and scientific secondary evaluators | IMPLEMENTED / synthetic fixtures | Julia independently regenerates 4000 exact Euler/Wilson draws and all 17 observed/null blocks in each of four complete v3 profile rows at the prescribed scales; any input labelled `held_out_grouped_cohort` is explicitly `REFUSE` until the frozen cohort/split/ground-truth and prediction-derivation contract exists; no real full-pilot Julia recomputation or scientific receipt exists |
 | Operational gate evaluator, field-use audit and capacity projection | SCAFFOLDED / PROMOTION LOCKED | the implemented profile checks a 29-role evidence root, selection, controls, work units, logical rows, packages and capacity, but known source, package, operational-report, field-audit, Julia-runtime and held-out derivation closures are prerequisites to removing the explicit lock; no real PASS path is enabled |
 | Gate U0 | **BLOCKED** | `U0_PROMOTION_LOCKED` is raised before real-pilot evidence evaluation while the canonical executor, integral Julia validator and six held-out derivation roles are absent; independent regressions reject both operational and scientific fixture relabelling |
 | Full atlas, BioStudies upload, v3.0.0 tag and HDD purchase | **BLOCKED UNTIL U0** | no release or procurement claim |
@@ -50,25 +50,31 @@ terminal evidence explicitly records `U0_MANIFEST_EXECUTOR_BOUND=false` and
 `U0_GATE_PASS=false`; that manifest path still refuses the n=1000 U0 executor
 rather than simulating it.
 
-A separate engineering capacity fixture binds the canonical U0 parameter
-bytes and four deterministic synthetic cases at 16, 100, 500 and 1000 bp.
-Pinned Sounio performs 1000 fixed-endpoint Euler/Wilson draws per case; a
-Base-only Julia implementation independently reconstructs all 4000 JSONL
-records byte for byte and rechecks length, endpoints, mononucleotide counts
-and all 16 directed dinucleotide counts. The runner also proves deterministic
-repetition and five zero-byte rc=12 refusal paths, including a non-ACGT byte
-in the final case after the earlier cases have completed the dry run. This is
-null-core capacity evidence only: it contains no RefSeq pilot, window metrics,
-Parquet, execution receipt, full-pilot agreement or U0 promotion evidence.
+A separate engineering capacity/profile fixture binds the canonical U0
+parameter bytes and four deterministic synthetic cases at 16, 100, 500 and
+1000 bp. Pinned Sounio performs 1000 fixed-endpoint Euler/Wilson draws per
+case and emits both all 4000 draws and four complete nested v3 profile rows.
+Each profile contains positional R/RC plus k-mer R (k=2..8) and RC (k=1..8),
+with exact observed fractions, n=1000 mean/MAD/quantiles and tail counts. A
+Base-only Julia implementation independently reconstructs every shuffle,
+metric, summary and complete JSON line byte for byte; a stdlib structural
+validator and the public JSON Schema reject malformed rows. The runner also
+proves deterministic repetition and five zero-byte rc=12 refusal paths,
+including a non-ACGT byte in the final case after the earlier cases have
+completed the dry run. This is synthetic analytical-core evidence only: it
+contains no RefSeq pilot, manifest/FASTA execution, Parquet, execution receipt,
+full-pilot agreement or U0 promotion evidence.
 At the official Sounio pin `37de2c9eefe68f3457a2c66004eff68bba5b4446`,
 the final source SHA-256 is
-`2d9a9ed6a5c2da3af574b73f9cb87e18febf6d8edcb204e189df3e3ec56c8618`,
+`00dbe8d49247adf966f0ca5c40d6e1e8e54735fc041693d5e910633e4fb972b0`,
 the compiled ELF is
-`8dfa6c241efa71621f82f695f02d3a11b9a213d1361c1bdbd0d37ffd55aa1652`,
+`1d9bb5baeb338a2fb5196c48e10a08d850d9d5b8000d12f9082da47a48bbce41`,
 the cases are
 `b9b3c233179b84934bd24e1ac71c7b63255c9e0f626a5fe1c7246d9e12d66f79`,
-and the deterministic 4000-line artifact is
-`726c2c9fd3f96a27b6ae18d35ad73f203c0cae94bae9f0094618b31db81f2463`.
+the unchanged deterministic 4000-line artifact is
+`726c2c9fd3f96a27b6ae18d35ad73f203c0cae94bae9f0094618b31db81f2463`,
+and the deterministic four-row profile artifact is
+`f0b5ef9cabaf1e998f5851b6008936b3764f22c8718625cf31de0ac571424016`.
 
 **Observed:** 2026-08-14
 

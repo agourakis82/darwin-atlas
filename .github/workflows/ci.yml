@@ -114,6 +114,9 @@ jobs:
         with:
           version: '1.10'
 
+      - name: Install pinned public-schema validator
+        run: python3 -m pip install 'jsonschema==4.26.0'
+
       - name: Check, compile, execute, and independently validate the operator fixture
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make operator-differential-fixture
@@ -130,7 +133,7 @@ jobs:
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-manifest-differential-fixture
 
-      - name: Validate the bounded 16/100/500/1000 Euler-Wilson capacity fixture
+      - name: Validate bounded Euler-Wilson draws and nested v3 profiles at 16/100/500/1000
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-dinucleotide-scale-fixture
 

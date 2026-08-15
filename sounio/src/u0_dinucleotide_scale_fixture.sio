@@ -15,6 +15,8 @@ const ORDER_SLOTS: i64 = 4000
 const CASE_SPAN_MAX: i64 = 4096
 const FIXTURE_CASES: i64 = 4
 const REPLICATES: i64 = 1000
+const PROFILE_METRICS: i64 = 17
+const MAX_KMER_CODES: i64 = 65536
 
 const RNG_M1: i64 = 2147483563
 const RNG_M2: i64 = 2147483399
@@ -34,9 +36,18 @@ var IN_TREE: [bool; 4] = [false; 4]
 var ACTIVE_VERTEX: [bool; 4] = [false; 4]
 var INPUT_BASES: [i64; 1000] = [0; 1000]
 var OUTPUT_BASES: [i64; 1000] = [0; 1000]
+var KMER_COUNTS: [i64; 65536] = [0; 65536]
+var TOUCHED_CODES: [i64; 1000] = [0; 1000]
+var G_TOUCHED_COUNT: i64 = 0
+var PROFILE_NUMERATORS: [i64; 17] = [0; 17]
+var PROFILE_EFFECTIVE: [i64; 17] = [0; 17]
+var OBSERVED_NUMERATORS: [i64; 17] = [0; 17]
+var OBSERVED_EFFECTIVE: [i64; 17] = [0; 17]
+var NULL_NUMERATORS: [i64; 17000] = [0; 17000]
 var G_RNG1: i64 = 1
 var G_RNG2: i64 = 1
 var G_WINDOW_LENGTH: i64 = 0
+var G_PROFILE_MODE: bool = false
 
 fn span(text: string, start: i64, finish: i64) -> string with Mut, Panic, Div {
     if start < 0 || finish < start { return "" }
@@ -356,6 +367,285 @@ fn shuffle_window(seed_hi: i64, seed_lo: i64, replicate: i64) -> bool with Mut, 
     current == root
 }
 
+fn profile_complement(base: i64) -> i64 {
+    if base == 0 { return 3 }
+    if base == 1 { return 2 }
+    if base == 2 { return 1 }
+    if base == 3 { return 0 }
+    -1
+}
+
+fn profile_pow4(k: i64) -> i64 {
+    var value: i64 = 1
+    var i: i64 = 0
+    while i < k {
+        value = value * 4
+        i = i + 1
+    }
+    value
+}
+
+fn clear_touched_kmers() with Mut, Panic {
+    var i: i64 = 0
+    while i < G_TOUCHED_COUNT {
+        KMER_COUNTS[TOUCHED_CODES[i as usize] as usize] = 0
+        i = i + 1
+    }
+    G_TOUCHED_COUNT = 0
+}
+
+fn count_output_kmers(k: i64) -> i64 with Mut, Panic, Div {
+    clear_touched_kmers()
+    let modulus = profile_pow4(k)
+    var code: i64 = 0
+    var run: i64 = 0
+    var effective: i64 = 0
+    var i: i64 = 0
+    while i < G_WINDOW_LENGTH {
+        let base = OUTPUT_BASES[i as usize]
+        if base >= 0 && base <= 3 {
+            code = (code * 4 + base) % modulus
+            run = run + 1
+            if run >= k {
+                if KMER_COUNTS[code as usize] == 0 {
+                    if G_TOUCHED_COUNT >= MAX_BASES { return -1 }
+                    TOUCHED_CODES[G_TOUCHED_COUNT as usize] = code
+                    G_TOUCHED_COUNT = G_TOUCHED_COUNT + 1
+                }
+                KMER_COUNTS[code as usize] = KMER_COUNTS[code as usize] + 1
+                effective = effective + 1
+            }
+        } else {
+            code = 0
+            run = 0
+        }
+        i = i + 1
+    }
+    effective
+}
+
+fn profile_kmer_transform(code: i64, k: i64, complement: bool) -> i64 with Div {
+    var value = code
+    var out: i64 = 0
+    var i: i64 = 0
+    while i < k {
+        let base = value % 4
+        value = value / 4
+        let transformed = if complement { profile_complement(base) } else { base }
+        out = out * 4 + transformed
+        i = i + 1
+    }
+    out
+}
+
+fn profile_kmer_numerator(k: i64, complement: bool) -> i64 with Mut, Panic, Div {
+    var numerator: i64 = 0
+    var i: i64 = 0
+    while i < G_TOUCHED_COUNT {
+        let code = TOUCHED_CODES[i as usize]
+        let partner = profile_kmer_transform(code, k, complement)
+        let left = KMER_COUNTS[code as usize]
+        if code < partner {
+            let right = KMER_COUNTS[partner as usize]
+            if left >= right { numerator = numerator + left - right }
+            else { numerator = numerator + right - left }
+        } else if code > partner && KMER_COUNTS[partner as usize] == 0 {
+            numerator = numerator + left
+        }
+        i = i + 1
+    }
+    numerator
+}
+
+fn compute_profile_metrics() -> bool with Mut, Panic, Div {
+    var mismatches_r: i64 = 0
+    var mismatches_rc: i64 = 0
+    var i: i64 = 0
+    while i < G_WINDOW_LENGTH {
+        let opposite = OUTPUT_BASES[(G_WINDOW_LENGTH - 1 - i) as usize]
+        if OUTPUT_BASES[i as usize] != opposite { mismatches_r = mismatches_r + 1 }
+        if OUTPUT_BASES[i as usize] != profile_complement(opposite) {
+            mismatches_rc = mismatches_rc + 1
+        }
+        i = i + 1
+    }
+    PROFILE_NUMERATORS[0] = mismatches_r
+    PROFILE_EFFECTIVE[0] = G_WINDOW_LENGTH
+    PROFILE_NUMERATORS[1] = mismatches_rc
+    PROFILE_EFFECTIVE[1] = G_WINDOW_LENGTH
+
+    var k: i64 = 1
+    while k <= 8 {
+        let effective = count_output_kmers(k)
+        if effective <= 0 { return false }
+        if k >= 2 {
+            PROFILE_NUMERATORS[k as usize] = profile_kmer_numerator(k, false)
+            PROFILE_EFFECTIVE[k as usize] = effective
+        }
+        let rc_index = 8 + k
+        PROFILE_NUMERATORS[rc_index as usize] = profile_kmer_numerator(k, true)
+        PROFILE_EFFECTIVE[rc_index as usize] = effective
+        k = k + 1
+    }
+    clear_touched_kmers()
+    true
+}
+
+fn copy_input_to_output() with Mut, Panic {
+    var i: i64 = 0
+    while i < G_WINDOW_LENGTH {
+        OUTPUT_BASES[i as usize] = INPUT_BASES[i as usize]
+        i = i + 1
+    }
+}
+
+fn save_observed_profile() -> bool with Mut, Panic, Div {
+    copy_input_to_output()
+    if !compute_profile_metrics() { return false }
+    var metric: i64 = 0
+    while metric < PROFILE_METRICS {
+        OBSERVED_NUMERATORS[metric as usize] = PROFILE_NUMERATORS[metric as usize]
+        OBSERVED_EFFECTIVE[metric as usize] = PROFILE_EFFECTIVE[metric as usize]
+        metric = metric + 1
+    }
+    true
+}
+
+fn save_null_profile(replicate: i64) -> bool with Mut, Panic, Div {
+    if !compute_profile_metrics() { return false }
+    var metric: i64 = 0
+    while metric < PROFILE_METRICS {
+        if PROFILE_EFFECTIVE[metric as usize] != OBSERVED_EFFECTIVE[metric as usize] {
+            return false
+        }
+        let at = metric * REPLICATES + replicate - 1
+        NULL_NUMERATORS[at as usize] = PROFILE_NUMERATORS[metric as usize]
+        metric = metric + 1
+    }
+    true
+}
+
+fn sort_null_metric(metric: i64) with Mut, Panic {
+    let base = metric * REPLICATES
+    var i: i64 = 1
+    while i < REPLICATES {
+        let key = NULL_NUMERATORS[(base + i) as usize]
+        var j: i64 = i - 1
+        while j >= 0 && NULL_NUMERATORS[(base + j) as usize] > key {
+            NULL_NUMERATORS[(base + j + 1) as usize] = NULL_NUMERATORS[(base + j) as usize]
+            j = j - 1
+        }
+        NULL_NUMERATORS[(base + j + 1) as usize] = key
+        i = i + 1
+    }
+}
+
+fn print_exact_fraction(numerator: i64, denominator: i64) with IO {
+    print("{\"numerator\":")
+    print_int(numerator)
+    print(",\"denominator\":")
+    print_int(denominator)
+    print("}")
+}
+
+fn emit_null_summary(metric: i64) with IO, Mut, Panic, Div {
+    sort_null_metric(metric)
+    let base = metric * REPLICATES
+    let effective = OBSERVED_EFFECTIVE[metric as usize]
+    let observed = OBSERVED_NUMERATORS[metric as usize]
+    var sum: i64 = 0
+    var tail_lt: i64 = 0
+    var tail_eq: i64 = 0
+    var tail_gt: i64 = 0
+    var i: i64 = 0
+    while i < REPLICATES {
+        let value = NULL_NUMERATORS[(base + i) as usize]
+        sum = sum + value
+        if value < observed { tail_lt = tail_lt + 1 }
+        else if value == observed { tail_eq = tail_eq + 1 }
+        else { tail_gt = tail_gt + 1 }
+        i = i + 1
+    }
+    var mad_sum: i64 = 0
+    i = 0
+    while i < REPLICATES {
+        let value = NULL_NUMERATORS[(base + i) as usize]
+        let centered = REPLICATES * value - sum
+        if centered >= 0 { mad_sum = mad_sum + centered }
+        else { mad_sum = mad_sum - centered }
+        i = i + 1
+    }
+    let q025 = NULL_NUMERATORS[(base + (25 * (REPLICATES - 1)) / 100) as usize]
+    let q500 = NULL_NUMERATORS[(base + (500 * (REPLICATES - 1)) / 1000) as usize]
+    let q975 = NULL_NUMERATORS[(base + (975 * (REPLICATES - 1)) / 1000) as usize]
+    print("{\"n\":1000,\"mean\":")
+    print_exact_fraction(sum, REPLICATES * effective)
+    print(",\"mad\":")
+    print_exact_fraction(mad_sum, REPLICATES * REPLICATES * effective)
+    print(",\"q025\":")
+    print_exact_fraction(q025, effective)
+    print(",\"q500\":")
+    print_exact_fraction(q500, effective)
+    print(",\"q975\":")
+    print_exact_fraction(q975, effective)
+    print(",\"tail_lt\":")
+    print_int(tail_lt)
+    print(",\"tail_eq\":")
+    print_int(tail_eq)
+    print(",\"tail_gt\":")
+    print_int(tail_gt)
+    print(",\"reason_code\":null}")
+}
+
+fn emit_profile_observation(metric: i64, k: i64, include_k: bool) with IO, Mut, Panic, Div {
+    print("{")
+    if include_k {
+        print("\"k\":")
+        print_int(k)
+        print(",")
+    }
+    print("\"effective_count\":")
+    print_int(OBSERVED_EFFECTIVE[metric as usize])
+    print(",\"observed\":")
+    print_exact_fraction(OBSERVED_NUMERATORS[metric as usize], OBSERVED_EFFECTIVE[metric as usize])
+    print(",\"null_summary\":")
+    emit_null_summary(metric)
+    print(",\"reason_code\":null}")
+}
+
+fn emit_window_profile(accession: string, scale: i64, window_start: i64) with IO, Mut, Panic, Div {
+    print("{\"run_id\":\"u0-profile-fixture\",\"replicon_id\":\"")
+    print(accession)
+    print("\",\"window_size\":")
+    print_int(scale)
+    print(",\"window_index\":")
+    print_int(window_start / scale)
+    print(",\"window_start\":")
+    print_int(window_start)
+    print(",\"window_end\":")
+    print_int(window_start + scale)
+    print(",\"status\":\"eligible\",\"reason_code\":null,")
+    print("\"positional_r\":")
+    emit_profile_observation(0, 0, false)
+    print(",\"positional_rc\":")
+    emit_profile_observation(1, 0, false)
+    print(",\"kmer_r\":[")
+    var k: i64 = 2
+    while k <= 8 {
+        if k > 2 { print(",") }
+        emit_profile_observation(k, k, true)
+        k = k + 1
+    }
+    print("],\"kmer_rc\":[")
+    k = 1
+    while k <= 8 {
+        if k > 1 { print(",") }
+        emit_profile_observation(8 + k, k, true)
+        k = k + 1
+    }
+    print("]}\n")
+}
+
 fn print_base(base: i64) with IO {
     if base == 0 { print("A") }
     if base == 1 { print("C") }
@@ -415,12 +705,18 @@ fn process_case(line: string, index: i64, pass: i64) -> bool with IO, Mut, Panic
     let seed_hi = parse_hex8(seed64, 0)
     let seed_lo = parse_hex8(seed64, 8)
     if seed_hi < 0 || seed_lo < 0 { return false }
+    if G_PROFILE_MODE && !save_observed_profile() { return false }
     var replicate: i64 = 1
     while replicate <= REPLICATES {
         if !shuffle_window(seed_hi, seed_lo, replicate) { return false }
-        if pass == 2 { emit_draw(case_id, scale, replicate, seed64) }
+        if G_PROFILE_MODE {
+            if !save_null_profile(replicate) { return false }
+        } else if pass == 2 {
+            emit_draw(case_id, scale, replicate, seed64)
+        }
         replicate = replicate + 1
     }
+    if G_PROFILE_MODE && pass == 2 { emit_window_profile(accession, scale, window_start) }
     true
 }
 
@@ -460,9 +756,13 @@ fn run_cases(text: string, pass: i64) -> bool with IO, Mut, Panic, Div {
 }
 
 fn main() -> i64 with IO, Mut, Panic, Div {
-    if arg_count() != 1 {
-        println("usage: u0_dinucleotide_scale_fixture <cases.tsv>")
+    if arg_count() != 1 && arg_count() != 2 {
+        println("usage: u0_dinucleotide_scale_fixture <cases.tsv> [--profiles]")
         return 64
+    }
+    if arg_count() == 2 {
+        if !str_eq(get_arg(1), "--profiles") { return 64 }
+        G_PROFILE_MODE = true
     }
     let text = read_file(get_arg(0))
     if str_len(text) <= 0 || str_len(text) > 32768 { return 12 }
