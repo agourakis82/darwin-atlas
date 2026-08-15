@@ -133,7 +133,7 @@ jobs:
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-manifest-differential-fixture
 
-      - name: Validate bounded draws, nested v3 profiles, and manifest-FASTA resume suffix
+      - name: Validate bounded draws, nested v3 profiles, and multi-unit manifest shards/resume
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-dinucleotide-scale-fixture
 

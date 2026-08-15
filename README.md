@@ -24,13 +24,15 @@ researcher does not need to rerun 1000 shuffles.
 > Julia reconstructs both artifacts byte-exact. This proves the bounded
 > null-draw and analytical-row core at the four U0 scales; it is not the
 > manifest-directed U0 producer, a pilot payload, or a receipt. A separate
-> bounded work-unit composition fixture now binds canonical parameter bytes
-> plus one manifest row and an exact 48 bp FASTA to three prescribed
-> SHA-derived seeds, produces three complete profiles in Sounio, and is
-> independently reconstructed from the original manifest/FASTA bytes in
-> Julia. A resume shard beginning at window 1 is the byte-exact two-row suffix
-> of the full output. This is still synthetic and does not satisfy chromosome
-> streaming, pilot-wide execution or receipt coverage. A frozen
+> bounded work-unit composition fixture now selects two explicit manifest rows
+> and binds two exact 48 bp FASTAs to six prescribed SHA-derived seeds. Sounio
+> produces six complete profiles and Julia independently reconstructs them
+> from the original manifest/FASTA bytes. A resume shard beginning at window 1
+> is the byte-exact two-row suffix of the first full output. A deterministic
+> pre-execution planner closes four bounded case shards by hash while declaring
+> that no Sounio execution or scientific metric has occurred. This is still
+> synthetic and does not satisfy exclusion handling, chromosome streaming,
+> pilot-wide execution or receipt coverage. A frozen
 > miniature cohort of four complete
 > circular RefSeq replicons (two assemblies, official NCBI checksum closure)
 > is pinned in [`data/cohort/mini/`](data/cohort/mini/README.md); engineering

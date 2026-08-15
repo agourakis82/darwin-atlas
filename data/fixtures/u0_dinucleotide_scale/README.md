@@ -43,6 +43,11 @@ The two-row resume case/artifact hashes are
 `bfc95c21837aafdfae55be1e11828b5505421b8f713b400a4437527258ee31a3`
 and `2e8e45128ff50f65973af7c159180e074ea580009243f7b7e4e72043373e3900`;
 the resume artifact is byte-identical to rows 2-3 of the full artifact.
+An independently selected second work unit produces a three-row case ledger
+`ca2c8797d3ca1ae116a6f5f8ef9eb997d4f5ac3a8514ad18b788d471afcf6429`
+and deterministic Sounio artifact
+`4473a737412ec59805514038fc2a9737d1ec176d71a0a5010f4277f4956b6f20`,
+also recomputed byte-exact by Julia.
 
 Passing this fixture establishes neither U0, a manifest/FASTA-driven pilot
 executor, an integral pilot receipt, a RefSeq result, Parquet equivalence nor

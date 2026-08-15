@@ -49,7 +49,7 @@ help:
 	@echo "  u0-cli-integration     Exercise DuckDB/Zstd package, query and verify integration"
 	@echo "  u0-julia-contract      Run independent U0 manifest and secondary-gate validators"
 	@echo "  u0-manifest-differential-fixture  Pinned Sounio manifest boundary + independent Julia"
-	@echo "  u0-dinucleotide-scale-fixture  Draws + v3 profiles + bounded manifest/FASTA resume + Julia"
+	@echo "  u0-dinucleotide-scale-fixture  Draws + v3 profiles + multi-unit shards/resume + Julia"
 	@echo "  u0-gate                Fail-closed U0 evaluator; real promotion remains explicitly locked"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"
@@ -226,8 +226,10 @@ u0-contract:
 		scripts/run_u0_manifest_differential.sh \
 		scripts/generate_u0_dinucleotide_scale_cases.rb \
 		scripts/build_u0_work_unit_case.py \
+		scripts/plan_u0_eligible_work_shards.py \
 		scripts/run_u0_dinucleotide_scale_fixture.sh \
 		scripts/test_u0_work_unit.sh \
+		scripts/test_u0_work_shard_plan.sh \
 		scripts/validate_u0_window_profile_fixture.py \
 		cli/bin/dosa \
 		sounio/src/u0_manifest_fixture.sio \
@@ -244,9 +246,11 @@ u0-contract:
 	@test -s data/fixtures/u0_dinucleotide_scale/invalid_replicates.tsv
 	@test -s data/fixtures/u0_work_unit/u0_work_units.tsv
 	@test -s data/fixtures/u0_work_unit/fasta/NC_000001.1.fa
+	@test -s data/fixtures/u0_work_unit/fasta/NC_000002.1.fa
 	@for f in dosa_v3_common dosa_v3_parameters dosa_v3_source_manifest dosa_v3_source_index dosa_v3_replicon dosa_v3_run dosa_v3_window_profile dosa_v3_summary dosa_v3_exclusion dosa_v3_payload_manifest dosa_v3_receipt; do test -s "schemas/$$f.schema.json"; done
-	@bash -n scripts/freeze_u0_refseq_snapshot.sh scripts/run_u0_dinucleotide_scale_fixture.sh scripts/test_u0_work_unit.sh scripts/test_u0_selection.sh scripts/test_u0_control_review.sh scripts/test_u0_control_ledger.sh scripts/test_u0_source_manifest.sh scripts/test_u0_gate.sh scripts/test_u0_capacity.sh scripts/test_u0_operational.sh
+	@bash -n scripts/freeze_u0_refseq_snapshot.sh scripts/run_u0_dinucleotide_scale_fixture.sh scripts/test_u0_work_unit.sh scripts/test_u0_work_shard_plan.sh scripts/test_u0_selection.sh scripts/test_u0_control_review.sh scripts/test_u0_control_ledger.sh scripts/test_u0_source_manifest.sh scripts/test_u0_gate.sh scripts/test_u0_capacity.sh scripts/test_u0_operational.sh
 	@ruby -c scripts/generate_u0_dinucleotide_scale_cases.rb >/dev/null
+	@python3 -m py_compile scripts/build_u0_work_unit_case.py scripts/plan_u0_eligible_work_shards.py
 	@python3 -c 'p="scripts/validate_u0_window_profile_fixture.py"; compile(open(p,encoding="utf-8").read(),p,"exec")'
 	@tmp="$$(mktemp "$${TMPDIR:-/tmp}/dosa-u0-scale-cases.XXXXXX")"; ruby scripts/generate_u0_dinucleotide_scale_cases.rb data/v3/u0_parameters.json "$$tmp"; cmp data/fixtures/u0_dinucleotide_scale/cases.tsv "$$tmp"; rm -f "$$tmp"
 	@python3 -c 'import json,pathlib; files=list(pathlib.Path("schemas").glob("dosa_v3_*.schema.json"))+list(pathlib.Path("data/v3").glob("*.json"))+[pathlib.Path("toolchains/ncbi-datasets.lock.json")]; hook=lambda pairs: _pairs(pairs); ns={}; exec("def _pairs(pairs):\n d={}\n for k,v in pairs:\n  if k in d: raise ValueError(\"duplicate JSON key: \"+k)\n  d[k]=v\n return d",ns); [json.loads(p.read_text(),object_pairs_hook=ns["_pairs"]) for p in files]; print("DOSA_V3_JSON_NO_DUPLICATES_PASS files=%d"%len(files))'
@@ -258,6 +262,7 @@ u0-contract:
 	@bash scripts/test_u0_control_ledger.sh
 	@scripts/test_u0_source_manifest.sh
 	@scripts/test_u0_work_unit.sh
+	@scripts/test_u0_work_shard_plan.sh
 	@scripts/test_u0_gate.sh
 	@scripts/test_u0_operational.sh
 	@! rg -n 'reverse_kmer_imbalance_1|fixed_R|fixed_RC|orbit_ratio|orbit_size|dmin|p_value|q_value|parameters_sha256' schemas/dosa_v3_window_profile.schema.json

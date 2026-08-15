@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bind one U0 manifest row and FASTA to the strict Sounio case ledger."""
+"""Bind one selected U0 manifest row and FASTA to a strict Sounio case shard."""
 
 from __future__ import annotations
 
@@ -83,8 +83,68 @@ def parse_fasta(path: pathlib.Path, accession: str) -> tuple[bytes, str]:
     return raw, sequence
 
 
+def validated_manifest_rows(manifest: pathlib.Path, parameter_sha: str) -> list[dict[str, str]]:
+    raw_manifest = manifest.read_bytes()
+    if not raw_manifest.endswith(b"\n") or b"\r" in raw_manifest:
+        raise BindingError("manifest must be LF-only with terminal LF")
+    with manifest.open(encoding="ascii", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        if tuple(reader.fieldnames or ()) != HEADER:
+            raise BindingError("manifest header drift")
+        rows = list(reader)
+    if not rows:
+        raise BindingError("manifest must contain at least one work unit")
+    coordinates: set[tuple[str, int]] = set()
+    work_ids: set[str] = set()
+    ordering: list[tuple[str, int]] = []
+    for index, row in enumerate(rows, start=1):
+        if set(row) != set(HEADER) or any(row[field] is None for field in HEADER):
+            raise BindingError(f"manifest row {index} is incomplete")
+        accession = row["sequence_accession_version"]
+        assembly = row["assembly_accession_version"]
+        if ACCESSION_RE.fullmatch(accession) is None or ASSEMBLY_RE.fullmatch(assembly) is None:
+            raise BindingError(f"manifest row {index} has invalid accession.version")
+        try:
+            length = int(row["sequence_length"])
+            scale = int(row["scale"])
+            stride = int(row["stride"])
+        except ValueError as exc:
+            raise BindingError(f"manifest row {index} numeric field malformed") from exc
+        literals = {
+            "u0_manifest_version": "1.0.0", "work_unit_id": f"{accession}@{scale}",
+            "parameters_sha256": parameter_sha, "sequence_length": str(length),
+            "scale": str(scale), "stride": str(scale), "k_min": "1",
+            "k_max": "8", "null_model": "euler_wilson_fixed_endpoints_v1",
+            "null_replicates": "1000",
+        }
+        for field, expected in literals.items():
+            if row[field] != expected:
+                raise BindingError(f"manifest row {index} {field} drift")
+        if row["replicon_class"] not in ("chromosome", "plasmid"):
+            raise BindingError(f"manifest row {index} replicon_class drift")
+        if row["declared_alphabet"] not in ("acgt", "non_acgt"):
+            raise BindingError(f"manifest row {index} alphabet drift")
+        if scale not in SCALES or stride != scale or length < 1:
+            raise BindingError(f"manifest row {index} scale/stride/length contract drift")
+        if SHA_RE.fullmatch(row["source_file_sha256"]) is None or SHA_RE.fullmatch(row["sequence_sha256"]) is None:
+            raise BindingError(f"manifest row {index} SHA-256 field malformed")
+        relative = pathlib.PurePosixPath(row["source_locator"])
+        if relative.is_absolute() or not relative.parts or any(part in ("", ".", "..") for part in relative.parts):
+            raise BindingError(f"manifest row {index} source locator is unsafe")
+        coordinate = (accession, scale)
+        if coordinate in coordinates or row["work_unit_id"] in work_ids:
+            raise BindingError("manifest has duplicate work-unit identity")
+        coordinates.add(coordinate)
+        work_ids.add(row["work_unit_id"])
+        ordering.append(coordinate)
+    if ordering != sorted(ordering, key=lambda item: (item[0], SCALES.index(item[1]))):
+        raise BindingError("manifest work units are not in canonical accession/scale order")
+    return rows
+
+
 def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.Path,
-          output: pathlib.Path, start_window: int, window_count: int) -> None:
+          output: pathlib.Path, start_window: int, window_count: int,
+          work_unit_id: str | None = None) -> dict[str, int | str]:
     for path, label in ((parameters, "parameters"), (manifest, "manifest")):
         reject_symlink_components(path, label)
         if path.is_symlink() or not path.is_file():
@@ -96,42 +156,21 @@ def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib
     parameter_sha = sha256_bytes(parameters.read_bytes())
     if parameter_sha != "68343e046af24a997195eb2583532d3172234b0b9713f2e4296b9b12300bef94":
         raise BindingError("canonical U0 parameter bytes drifted")
-    raw_manifest = manifest.read_bytes()
-    if not raw_manifest.endswith(b"\n") or b"\r" in raw_manifest:
-        raise BindingError("manifest must be LF-only with terminal LF")
-    with manifest.open(encoding="ascii", newline="") as handle:
-        reader = csv.DictReader(handle, delimiter="\t")
-        if tuple(reader.fieldnames or ()) != HEADER:
-            raise BindingError("manifest header drift")
-        rows = list(reader)
-    if len(rows) != 1 or set(rows[0]) != set(HEADER) or any(rows[0][field] is None for field in HEADER):
-        raise BindingError("fixture requires exactly one complete work unit")
-    row = rows[0]
+    rows = validated_manifest_rows(manifest, parameter_sha)
+    if work_unit_id is None:
+        if len(rows) != 1:
+            raise BindingError("multi-unit manifest requires --work-unit-id")
+        row = rows[0]
+    else:
+        selected = [candidate for candidate in rows if candidate["work_unit_id"] == work_unit_id]
+        if len(selected) != 1:
+            raise BindingError("requested work_unit_id is absent or duplicated")
+        row = selected[0]
     accession = row["sequence_accession_version"]
-    assembly = row["assembly_accession_version"]
-    if ACCESSION_RE.fullmatch(accession) is None or ASSEMBLY_RE.fullmatch(assembly) is None:
-        raise BindingError("invalid accession.version")
-    try:
-        length = int(row["sequence_length"])
-        scale = int(row["scale"])
-        stride = int(row["stride"])
-    except ValueError as exc:
-        raise BindingError("manifest numeric field malformed") from exc
-    expected_literals = {
-        "u0_manifest_version": "1.0.0", "work_unit_id": f"{accession}@{scale}",
-        "declared_alphabet": "acgt", "parameters_sha256": parameter_sha,
-        "k_min": "1", "k_max": "8", "null_model": "euler_wilson_fixed_endpoints_v1",
-        "null_replicates": "1000",
-    }
-    for field, expected in expected_literals.items():
-        if row[field] != expected:
-            raise BindingError(f"manifest {field} drift")
-    if row["replicon_class"] not in ("chromosome", "plasmid"):
-        raise BindingError("manifest replicon_class drift")
-    if scale not in SCALES or stride != scale or length < scale:
-        raise BindingError("manifest scale/stride/length contract drift")
-    if SHA_RE.fullmatch(row["source_file_sha256"]) is None or SHA_RE.fullmatch(row["sequence_sha256"]) is None:
-        raise BindingError("manifest SHA-256 field malformed")
+    length = int(row["sequence_length"])
+    scale = int(row["scale"])
+    if row["declared_alphabet"] != "acgt":
+        raise BindingError("selected non-ACGT work unit requires reason-coded exclusion handling")
     fasta = safe_source(source_root, row["source_locator"])
     raw_fasta, sequence = parse_fasta(fasta, accession)
     if sha256_bytes(raw_fasta) != row["source_file_sha256"]:
@@ -158,7 +197,14 @@ def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib
         cases.append("\t".join(case))
     output.write_bytes(("\t".join(CASE_HEADER) + "\n" + "\n".join(cases) + "\n").encode("ascii"))
     next_window = stop_window if stop_window < total_windows else -1
-    print(f"U0_WORK_UNIT_CASE_BINDING_PASS work_units=1 windows={len(cases)} scale={scale} start_window={start_window} next_window={next_window}")
+    result: dict[str, int | str] = {
+        "work_unit_id": row["work_unit_id"], "accession_version": accession,
+        "scale": scale, "total_windows": total_windows, "start_window": start_window,
+        "stop_window": stop_window, "rows": len(cases), "next_window": next_window,
+        "sha256": sha256_bytes(output.read_bytes()), "size_bytes": output.stat().st_size,
+    }
+    print(f"U0_WORK_UNIT_CASE_BINDING_PASS work_unit_id={row['work_unit_id']} windows={len(cases)} scale={scale} start_window={start_window} next_window={next_window}")
+    return result
 
 
 def main() -> int:
@@ -167,12 +213,13 @@ def main() -> int:
     parser.add_argument("--manifest", type=pathlib.Path, required=True)
     parser.add_argument("--source-root", type=pathlib.Path, required=True)
     parser.add_argument("--output", type=pathlib.Path, required=True)
+    parser.add_argument("--work-unit-id")
     parser.add_argument("--start-window", type=int, default=0)
     parser.add_argument("--window-count", type=int, default=32)
     args = parser.parse_args()
     try:
         build(args.parameters, args.manifest, args.source_root, args.output,
-              args.start_window, args.window_count)
+              args.start_window, args.window_count, args.work_unit_id)
         return 0
     except (OSError, ValueError, BindingError) as exc:
         print(f"U0_WORK_UNIT_CASE_BINDING_FAIL: {exc}", file=sys.stderr)

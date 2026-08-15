@@ -17,7 +17,8 @@ end
 parameters = joinpath(ROOT, "data", "v3", "u0_parameters.json")
 fixture_root = joinpath(ROOT, "data", "fixtures", "u0_work_unit")
 manifest = joinpath(fixture_root, "u0_work_units.tsv")
-work = parse_work_unit(parameters, manifest, fixture_root)
+work1 = parse_work_unit(parameters, manifest, fixture_root, "NC_000001.1@16")
+work2 = parse_work_unit(parameters, manifest, fixture_root, "NC_000002.1@16")
 
 function expected_work_line(work, window_index)
     window_start = window_index * work.scale
@@ -31,17 +32,28 @@ end
 
 mktempdir() do temporary
     artifact = joinpath(temporary, "work-unit.jsonl")
-    expected = [expected_work_line(work, index) for index in 0:(work.total_windows - 1)]
+    expected = [expected_work_line(work1, index) for index in 0:(work1.total_windows - 1)]
     write(artifact, join(expected, "\n") * "\n")
-    passed, output = run_work_validator(parameters, manifest, fixture_root, artifact, "0", "3")
+    passed, output = run_work_validator(parameters, manifest, fixture_root, artifact, "0", "3", work1.work_id)
     require_work(passed && occursin("U0_WORK_UNIT_JULIA_DIFFERENTIAL_PASS", output),
                  "valid work-unit artifact failed: $output")
+    selected_without_id, missing_id_output = run_work_validator(
+        parameters, manifest, fixture_root, artifact, "0", "3")
+    require_work(!selected_without_id && occursin("multi-unit manifest requires", missing_id_output),
+                 "Julia accepted a multi-unit manifest without explicit selection")
 
     resumed = joinpath(temporary, "resumed.jsonl")
     write(resumed, join(expected[2:end], "\n") * "\n")
-    resume_passed, resume_output = run_work_validator(parameters, manifest, fixture_root, resumed, "1", "2")
+    resume_passed, resume_output = run_work_validator(parameters, manifest, fixture_root, resumed, "1", "2", work1.work_id)
     require_work(resume_passed && occursin("start_window=1", resume_output),
                  "valid resumed work-unit artifact failed: $resume_output")
+
+    artifact2 = joinpath(temporary, "work-unit-2.jsonl")
+    expected2 = [expected_work_line(work2, index) for index in 0:(work2.total_windows - 1)]
+    write(artifact2, join(expected2, "\n") * "\n")
+    passed2, output2 = run_work_validator(parameters, manifest, fixture_root, artifact2, "0", "3", work2.work_id)
+    require_work(passed2 && occursin("work_unit_id=$(work2.work_id)", output2),
+                 "second valid work-unit artifact failed: $output2")
 
     bytes = read(artifact)
     marker = Vector{UInt8}(codeunits("\"numerator\":"))
@@ -54,9 +66,9 @@ mktempdir() do temporary
     bytes[digit] = bytes[digit] == UInt8('9') ? UInt8('8') : bytes[digit] + 1
     perturbed = joinpath(temporary, "perturbed.jsonl")
     write(perturbed, bytes)
-    accepted, rejected_output = run_work_validator(parameters, manifest, fixture_root, perturbed)
+    accepted, rejected_output = run_work_validator(parameters, manifest, fixture_root, perturbed, "0", "3", work1.work_id)
     require_work(!accepted && occursin("byte mismatch", rejected_output),
                  "Julia accepted or misclassified a one-digit perturbation")
 end
 
-println("U0_WORK_UNIT_JULIA_TEST_PASS work_units=1 rows=3 resume_rows=2 metrics=17 perturbation_refused=true")
+println("U0_WORK_UNIT_JULIA_TEST_PASS work_units=2 rows=6 resume_rows=2 metrics=17 selector_refused=true perturbation_refused=true")

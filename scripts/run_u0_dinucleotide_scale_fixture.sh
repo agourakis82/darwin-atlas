@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pinned-Sounio runner for the non-scientific Euler/Wilson scale/profile and
-# one-work-unit composition fixtures.
+# bounded multi-work-unit composition fixtures.
 #
 # It does not create a U0 payload, receipt, source freeze, pilot-wide executor,
 # or promotion evidence.
@@ -18,6 +18,8 @@ readonly work_builder="${atlas_root}/scripts/build_u0_work_unit_case.py"
 readonly work_validator="${atlas_root}/julia/scripts/validate_u0_work_unit_fixture.jl"
 readonly work_fixture_dir="${atlas_root}/data/fixtures/u0_work_unit"
 readonly work_manifest="${work_fixture_dir}/u0_work_units.tsv"
+readonly work_id_one="NC_000001.1@16"
+readonly work_id_two="NC_000002.1@16"
 readonly schema_dir="${atlas_root}/schemas"
 readonly temp_dir="$(mktemp -d)"
 readonly julia_bin="${JULIA_BIN:-julia}"
@@ -109,10 +111,14 @@ work_cases="${temp_dir}/work-unit-cases.tsv"
 work_artifact="${temp_dir}/work-unit-profile.jsonl"
 work_resume_cases="${temp_dir}/work-unit-resume-cases.tsv"
 work_resume_artifact="${temp_dir}/work-unit-resume-profile.jsonl"
+work_two_cases="${temp_dir}/work-unit-two-cases.tsv"
+work_two_artifact="${temp_dir}/work-unit-two-profile.jsonl"
 python3 "${work_builder}" --parameters "${parameters_file}" --manifest "${work_manifest}" \
-  --source-root "${work_fixture_dir}" --output "${work_cases}"
+  --source-root "${work_fixture_dir}" --output "${work_cases}" --work-unit-id "${work_id_one}"
 python3 "${work_builder}" --parameters "${parameters_file}" --manifest "${work_manifest}" \
-  --source-root "${work_fixture_dir}" --output "${work_resume_cases}" --start-window 1
+  --source-root "${work_fixture_dir}" --output "${work_resume_cases}" --work-unit-id "${work_id_one}" --start-window 1
+python3 "${work_builder}" --parameters "${parameters_file}" --manifest "${work_manifest}" \
+  --source-root "${work_fixture_dir}" --output "${work_two_cases}" --work-unit-id "${work_id_two}"
 ruby -e 'lines=File.binread(ARGV[0]).lines; fields=lines.fetch(1).chomp.split("\t",-1); fields[3]="1"; lines[1]=fields.join("\t")+"\n"; File.binwrite(ARGV[1],lines.join)' \
   "${work_cases}" "${temp_dir}/invalid-work-start.tsv"
 
@@ -125,6 +131,7 @@ if [[ -n "${instance}" ]]; then
   limactl copy -y --backend=scp "${fixture_dir}/invalid_replicates.tsv" "${instance}:${guest_root}/invalid-grammar.tsv"
   limactl copy -y --backend=scp "${work_cases}" "${instance}:${guest_root}/work-unit.tsv"
   limactl copy -y --backend=scp "${work_resume_cases}" "${instance}:${guest_root}/work-unit-resume.tsv"
+  limactl copy -y --backend=scp "${work_two_cases}" "${instance}:${guest_root}/work-unit-two.tsv"
   limactl copy -y --backend=scp "${temp_dir}/invalid-work-start.tsv" "${instance}:${guest_root}/invalid-work-start.tsv"
   limactl copy -y --backend=scp "${temp_dir}/invalid-late.tsv" "${instance}:${guest_root}/invalid-late.tsv"
   limactl copy -y --backend=scp "${temp_dir}/invalid-parameters.tsv" "${instance}:${guest_root}/invalid-parameters.tsv"
@@ -158,6 +165,11 @@ test "$(wc -l < "${root}/work-unit-resume.jsonl")" -eq 2
 tail -n +2 "${root}/work-unit1.jsonl" > "${root}/work-unit-expected-resume.jsonl"
 cmp "${root}/work-unit-expected-resume.jsonl" "${root}/work-unit-resume.jsonl"
 echo "U0_GUEST_WORK_UNIT_RESUME_PASS rows=3 resume_rows=2 byte_suffix=1"
+"${root}/fixture.elf" "${root}/work-unit-two.tsv" --work-unit-profile > "${root}/work-unit-two1.jsonl"
+"${root}/fixture.elf" "${root}/work-unit-two.tsv" --work-unit-profile > "${root}/work-unit-two2.jsonl"
+cmp "${root}/work-unit-two1.jsonl" "${root}/work-unit-two2.jsonl"
+test "$(wc -l < "${root}/work-unit-two1.jsonl")" -eq 3
+echo "U0_GUEST_SECOND_WORK_UNIT_PASS rows=3 deterministic=1"
 for invalid in invalid-grammar invalid-late invalid-parameters invalid-missing-lf invalid-crlf; do
   set +e
   "${root}/fixture.elf" "${root}/${invalid}.tsv" > "${root}/${invalid}.out"
@@ -179,6 +191,7 @@ SOUNIO_RUN
   limactl copy -y --backend=scp "${instance}:${guest_root}/profiles1.jsonl" "${profile_artifact}"
   limactl copy -y --backend=scp "${instance}:${guest_root}/work-unit1.jsonl" "${work_artifact}"
   limactl copy -y --backend=scp "${instance}:${guest_root}/work-unit-resume.jsonl" "${work_resume_artifact}"
+  limactl copy -y --backend=scp "${instance}:${guest_root}/work-unit-two1.jsonl" "${work_two_artifact}"
 else
   readonly executable="${temp_dir}/fixture.elf"
   (
@@ -203,6 +216,10 @@ else
   [[ "$(wc -l < "${work_resume_artifact}")" -eq 2 ]]
   tail -n +2 "${work_artifact}" > "${temp_dir}/work-unit-expected-resume.jsonl"
   cmp "${temp_dir}/work-unit-expected-resume.jsonl" "${work_resume_artifact}"
+  "${executable}" "${work_two_cases}" --work-unit-profile > "${work_two_artifact}"
+  "${executable}" "${work_two_cases}" --work-unit-profile > "${temp_dir}/work-unit-two2.jsonl"
+  cmp "${work_two_artifact}" "${temp_dir}/work-unit-two2.jsonl"
+  [[ "$(wc -l < "${work_two_artifact}")" -eq 3 ]]
   for invalid in \
     "${fixture_dir}/invalid_replicates.tsv" \
     "${temp_dir}/invalid-late.tsv" \
@@ -231,11 +248,15 @@ python3 "${structure_validator}" "${profile_artifact}" --schema-dir "${schema_di
 python3 "${structure_validator}" "${work_artifact}" --schema-dir "${schema_dir}" \
   --expected-run-id u0-work-unit-fixture --expected-scales 16,16,16
 "${julia_bin}" --startup-file=no "${work_validator}" \
-  "${parameters_file}" "${work_manifest}" "${work_fixture_dir}" "${work_artifact}" 0 3
+  "${parameters_file}" "${work_manifest}" "${work_fixture_dir}" "${work_artifact}" 0 3 "${work_id_one}"
 python3 "${structure_validator}" "${work_resume_artifact}" --schema-dir "${schema_dir}" \
   --expected-run-id u0-work-unit-fixture --expected-scales 16,16
 "${julia_bin}" --startup-file=no "${work_validator}" \
-  "${parameters_file}" "${work_manifest}" "${work_fixture_dir}" "${work_resume_artifact}" 1 2
+  "${parameters_file}" "${work_manifest}" "${work_fixture_dir}" "${work_resume_artifact}" 1 2 "${work_id_one}"
+python3 "${structure_validator}" "${work_two_artifact}" --schema-dir "${schema_dir}" \
+  --expected-run-id u0-work-unit-fixture --expected-scales 16,16,16
+"${julia_bin}" --startup-file=no "${work_validator}" \
+  "${parameters_file}" "${work_manifest}" "${work_fixture_dir}" "${work_two_artifact}" 0 3 "${work_id_two}"
 
 echo "sounio_repository=${expected_repo}"
 echo "sounio_commit=${actual_commit}"
@@ -249,7 +270,9 @@ echo "work_unit_case_sha256=$(sha256_file "${work_cases}")"
 echo "work_unit_artifact_sha256=$(sha256_file "${work_artifact}")"
 echo "work_unit_resume_case_sha256=$(sha256_file "${work_resume_cases}")"
 echo "work_unit_resume_artifact_sha256=$(sha256_file "${work_resume_artifact}")"
+echo "work_unit_two_case_sha256=$(sha256_file "${work_two_cases}")"
+echo "work_unit_two_artifact_sha256=$(sha256_file "${work_two_artifact}")"
 echo "U0_SCALE_INVALID_REFUSAL_PASS cases=5 rc=12 bytes=0"
 echo "U0_DINUCLEOTIDE_SCALE_FIXTURE_PASS cases=4 scales=4 replicates=1000 draws=4000 tolerance=0"
 echo "U0_WINDOW_PROFILE_FIXTURE_PASS rows=4 metrics=17 null_replicates=1000 tolerance=0"
-echo "U0_WORK_UNIT_COMPOSITION_FIXTURE_PASS work_units=1 rows=3 resume_rows=2 metrics=17 null_replicates=1000 tolerance=0"
+echo "U0_WORK_UNIT_COMPOSITION_FIXTURE_PASS work_units=2 rows=6 resume_rows=2 metrics=17 null_replicates=1000 tolerance=0"
