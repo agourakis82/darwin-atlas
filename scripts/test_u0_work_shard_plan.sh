@@ -13,18 +13,23 @@ python3 "${planner}" --parameters "${parameters}" \
   --manifest "${fixture}/u0_work_units.tsv" --source-root "${fixture}" \
   --output-directory "${temporary}/valid" --shard-size 2 >/dev/null
 test "$(shasum -a 256 "${temporary}/valid/work_shard_plan.json" | awk '{print $1}')" = \
-  "081b45724b06b6955b6335bc7e14410e39b56730f2266e5247beb17375cccaf8"
+  "34fec0b7212dda6564ab771bcdaa3b5cfbc75c34c0f6d2a01fa62a92d50277cf"
 python3 - "${temporary}/valid" <<'PY'
 import hashlib, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 plan = json.loads((root / "work_shard_plan.json").read_text(encoding="utf-8"))
 assert plan["evidence_scope"] == "preexecution_only"
+assert plan["schema_version"] == "dosa-v3-u0-work-shard-plan-2"
 assert plan["scientific_metrics_computed"] is False
 assert plan["sounio_executed"] is False and plan["gate_u0_pass"] is False
-assert (plan["work_units_expected"], plan["shards_expected"], plan["rows_expected"]) == (2, 4, 6)
-assert [unit["expected_rows"] for unit in plan["work_units"]] == [3, 3]
-assert [shard["rows"] for shard in plan["shards"]] == [2, 1, 2, 1]
-assert [shard["start_window"] for shard in plan["shards"]] == [0, 2, 0, 2]
+assert (plan["work_units_expected"], plan["shards_expected"], plan["rows_expected"]) == (4, 6, 9)
+assert (plan["excluded_work_units"], plan["excluded_windows"]) == (1, 1)
+assert [unit["expected_rows"] for unit in plan["work_units"]] == [3, 3, 3, 0]
+assert [unit["status"] for unit in plan["work_units"]] == ["planned", "planned", "planned", "excluded"]
+assert [unit["reason_code"] for unit in plan["work_units"]] == [None, None, None, "PARTIAL_WINDOW"]
+assert [shard["rows"] for shard in plan["shards"]] == [2, 1, 2, 1, 2, 1]
+assert [shard["excluded_rows"] for shard in plan["shards"]] == [0, 0, 0, 0, 1, 0]
+assert [shard["start_window"] for shard in plan["shards"]] == [0, 2, 0, 2, 0, 2]
 for shard in plan["shards"]:
     target = root / shard["path"]
     data = target.read_bytes()
@@ -66,15 +71,15 @@ expect_refusal output-exists 'output directory already exists' python3 "${planne
   --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
   --source-root "${fixture}" --output-directory "${temporary}/occupied" --shard-size 2
 
-ruby -e 'bytes=File.binread(ARGV[0]); File.binwrite(ARGV[1],bytes.sub("\tacgt\t68343", "\tnon_acgt\t68343"))' \
+ruby -e 'lines=File.binread(ARGV[0]).lines; fields=lines[3].chomp.split("\t",-1); fields[9]="acgt"; lines[3]=fields.join("\t")+"\n"; File.binwrite(ARGV[1],lines.join)' \
   "${fixture}/u0_work_units.tsv" "${temporary}/non-acgt.tsv"
-expect_refusal non-acgt 'reason-coded non-ACGT exclusion planning' python3 "${planner}" \
+expect_refusal non-acgt 'declared alphabet does not match normalized FASTA' python3 "${planner}" \
   --parameters "${parameters}" --manifest "${temporary}/non-acgt.tsv" \
   --source-root "${fixture}" --output-directory "${temporary}/non-acgt-plan" --shard-size 2
 
-ruby -e 'lines=File.binread(ARGV[0]).lines; fields=lines[1].chomp.split("\t",-1); fields[8]="8"; lines[1]=fields.join("\t")+"\n"; File.binwrite(ARGV[1],lines.join)' \
+ruby -e 'lines=File.binread(ARGV[0]).lines; fields=lines[4].chomp.split("\t",-1); fields[8]="7"; lines[4]=fields.join("\t")+"\n"; File.binwrite(ARGV[1],lines.join)' \
   "${fixture}/u0_work_units.tsv" "${temporary}/partial.tsv"
-expect_refusal partial 'reason-coded partial-window exclusion planning' python3 "${planner}" \
+expect_refusal partial 'sequence length mismatch' python3 "${planner}" \
   --parameters "${parameters}" --manifest "${temporary}/partial.tsv" \
   --source-root "${fixture}" --output-directory "${temporary}/partial-plan" --shard-size 2
 
@@ -84,4 +89,4 @@ expect_refusal parent-symlink 'output parent path may not contain symlinks' pyth
   --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
   --source-root "${fixture}" --output-directory "${temporary}/linked-parent/plan" --shard-size 2
 
-echo "U0_ELIGIBLE_WORK_SHARD_PLAN_FIXTURE_PASS work_units=2 shards=4 rows=6 fail_closed_cases=7 preexecution_only=1"
+echo "U0_ELIGIBLE_WORK_SHARD_PLAN_FIXTURE_PASS work_units=4 shards=6 rows=9 excluded_work_units=1 excluded_windows=1 fail_closed_cases=7 preexecution_only=1"

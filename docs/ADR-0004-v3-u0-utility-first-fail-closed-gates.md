@@ -162,15 +162,16 @@ manifest-directed U0 executor: the profile rows are not derived from frozen
 RefSeq FASTA/work units and have no Parquet, execution receipts or pilot
 agreement. The current
 CLI verifier proves package/hash/footer integrity, not full v3 row semantics.
-An additional bounded work-unit fixture now selects two explicit manifest
-rows and composes immutable parameter, manifest and 48 bp FASTA bytes with
-host-derived, independently checked SHA-derived seed ledgers and six complete
-Sounio/Julia byte-exact profiles. A shard resumed at window 1 produces the
-exact two-row suffix of the first full artifact. A deterministic planner
-enumerates both units into hash-closed shards and explicitly remains
-pre-execution-only. Sounio consumes but does not internally derive the SHA-256
-seeds. The planner still refuses non-ACGT and zero-window units pending
-reason-coded exclusion handling, and each ledger is bounded to 32 windows.
+An additional bounded work-unit fixture now selects three executable manifest
+rows plus one zero-complete-window row and composes immutable parameter,
+manifest and FASTA bytes with host-derived, independently checked SHA-derived
+seed ledgers. Sounio and Julia agree byte-exact on eight eligible profiles and
+one canonical `NULL_INPUT_NOT_ACGT` excluded profile. A shard resumed at
+window 1 produces the exact two-row suffix of the first full artifact. A
+deterministic planner enumerates the executable units into six hash-closed
+shards, retains the 8 bp unit as `PARTIAL_WINDOW` with no shard, and explicitly
+remains pre-execution-only. Sounio consumes but does not internally derive the
+SHA-256 seeds, and each executable ledger is bounded to 32 windows.
 It therefore does not satisfy the missing chromosome-streaming executor, full
 work-unit coverage, output-manifest or receipt requirements.
 Parts of the real provenance validator are scaffolded, but the admission

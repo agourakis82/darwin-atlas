@@ -6,6 +6,8 @@ readonly fixture="${root}/data/fixtures/u0_work_unit"
 readonly builder="${root}/scripts/build_u0_work_unit_case.py"
 readonly parameters="${root}/data/v3/u0_parameters.json"
 readonly work_id="NC_000001.1@16"
+readonly ambiguous_work_id="NC_000003.1@16"
+readonly partial_work_id="NC_000004.1@16"
 readonly temporary="$(mktemp -d)"
 trap 'rm -rf -- "${temporary}"' EXIT
 
@@ -13,11 +15,17 @@ python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work
   --source-root "${fixture}" --output "${temporary}/valid.tsv" --work-unit-id "${work_id}" >/dev/null
 test "$(wc -l < "${temporary}/valid.tsv")" -eq 4
 test "$(shasum -a 256 "${temporary}/valid.tsv" | awk '{print $1}')" = \
-  "ebb071824c41015d70027b54716983ead2b12fa94854ede6392e5c7344bd66f8"
+  "bd6044e36a0c500578c25efdb3aa27be54db65fdacd9d022c7bc273faff35e43"
 python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
   --source-root "${fixture}" --output "${temporary}/resume.tsv" --work-unit-id "${work_id}" --start-window 1 >/dev/null
 test "$(shasum -a 256 "${temporary}/resume.tsv" | awk '{print $1}')" = \
-  "bfc95c21837aafdfae55be1e11828b5505421b8f713b400a4437527258ee31a3"
+  "23cc34e71db6f2632293f49788f0e4123be93ef1c86948d51a11a531160c402a"
+python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
+  --source-root "${fixture}" --output "${temporary}/ambiguous.tsv" --work-unit-id "${ambiguous_work_id}" >/dev/null
+test "$(wc -l < "${temporary}/ambiguous.tsv")" -eq 4
+test "$(shasum -a 256 "${temporary}/ambiguous.tsv" | awk '{print $1}')" = \
+  "ce0117e76b896e3c5ec37301fb6d6cc7a6387657ccc56c144cd33da35d6d1e0a"
+test "$(awk -F '\t' 'NR > 1 && $9 == "NULL_INPUT_NOT_ACGT" { count++ } END { print count + 0 }' "${temporary}/ambiguous.tsv")" -eq 1
 
 expect_refusal() {
   local name="$1"
@@ -70,4 +78,8 @@ expect_refusal missing-selector python3 "${builder}" --parameters "${parameters}
   --manifest "${fixture}/u0_work_units.tsv" --source-root "${fixture}" \
   --output "${temporary}/missing-selector.tsv"
 
-echo "U0_WORK_UNIT_BINDING_FAIL_CLOSED_PASS cases=7 resume_shard=2 multi_unit_selector=required"
+expect_refusal partial-window python3 "${builder}" --parameters "${parameters}" \
+  --manifest "${fixture}/u0_work_units.tsv" --source-root "${fixture}" \
+  --output "${temporary}/partial-window.tsv" --work-unit-id "${partial_work_id}"
+
+echo "U0_WORK_UNIT_BINDING_FAIL_CLOSED_PASS cases=8 resume_shard=2 ambiguous_reason_coded=1 partial_window_refused=1 multi_unit_selector=required"

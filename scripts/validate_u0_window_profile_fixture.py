@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stdlib structural validator for the four-row U0 profile fixture.
+"""Stdlib structural validator for bounded U0 profile fixtures.
 
 Scientific recomputation belongs to Julia. This companion parser ensures the
 byte-exact protocol is also strict JSON with the exact nested v3 field surface
@@ -60,7 +60,8 @@ def exact_fraction(value: Any, name: str) -> Fraction:
     )
 
 
-def validate_observation(value: Any, name: str, expected_k: int | None) -> None:
+def validate_observation(value: Any, name: str, expected_k: int | None,
+                         expected_reason: str | None) -> None:
     if not isinstance(value, dict):
         raise ProfileError(f"{name} must be an object")
     expected_keys = OBS_KEYS | ({"k"} if expected_k is not None else set())
@@ -68,6 +69,20 @@ def validate_observation(value: Any, name: str, expected_k: int | None) -> None:
         raise ProfileError(f"{name} field set drift")
     if expected_k is not None and value.get("k") != expected_k:
         raise ProfileError(f"{name}.k order drift")
+    null = value.get("null_summary")
+    if not isinstance(null, dict) or set(null) != NULL_KEYS:
+        raise ProfileError(f"{name}.null_summary field set drift")
+    if expected_reason is not None:
+        if nonnegative_integer(value.get("effective_count"), f"{name}.effective_count") != 0:
+            raise ProfileError(f"{name} unavailable effective count must be zero")
+        if value.get("observed") is not None or value.get("reason_code") != expected_reason:
+            raise ProfileError(f"{name} unavailable observation contract drift")
+        if null.get("n") != 0 or null.get("reason_code") != expected_reason:
+            raise ProfileError(f"{name}.null_summary unavailable reason drift")
+        for field in ("mean", "mad", "q025", "q500", "q975", "tail_lt", "tail_eq", "tail_gt"):
+            if null.get(field) is not None:
+                raise ProfileError(f"{name}.null_summary unavailable field {field} must be null")
+        return
     effective = positive_integer(value.get("effective_count"), f"{name}.effective_count")
     observed = value.get("observed")
     exact_fraction(observed, f"{name}.observed")
@@ -75,9 +90,6 @@ def validate_observation(value: Any, name: str, expected_k: int | None) -> None:
         raise ProfileError(f"{name} observed denominator/effective mismatch")
     if value.get("reason_code") is not None:
         raise ProfileError(f"{name} available observation has a reason")
-    null = value.get("null_summary")
-    if not isinstance(null, dict) or set(null) != NULL_KEYS:
-        raise ProfileError(f"{name}.null_summary field set drift")
     if null.get("n") != 1000 or null.get("reason_code") is not None:
         raise ProfileError(f"{name}.null_summary is not a complete n=1000 block")
     for field in ("mean", "mad", "q025", "q500", "q975"):
@@ -155,10 +167,14 @@ def validate(path: pathlib.Path, schema_dir: pathlib.Path | None = None,
         end = positive_integer(row.get("window_end"), f"row {ordinal}.window_end")
         if size != expected_scale or end - start != size or start != index * size:
             raise ProfileError(f"row {ordinal} coordinate contract drift")
-        if row.get("status") != "eligible" or row.get("reason_code") is not None:
+        if row.get("status") == "eligible" and row.get("reason_code") is None:
+            expected_reason = None
+        elif row.get("status") == "excluded" and row.get("reason_code") == "NULL_INPUT_NOT_ACGT":
+            expected_reason = "NULL_INPUT_NOT_ACGT"
+        else:
             raise ProfileError(f"row {ordinal} eligibility drift")
-        validate_observation(row.get("positional_r"), f"row {ordinal}.positional_r", None)
-        validate_observation(row.get("positional_rc"), f"row {ordinal}.positional_rc", None)
+        validate_observation(row.get("positional_r"), f"row {ordinal}.positional_r", None, expected_reason)
+        validate_observation(row.get("positional_rc"), f"row {ordinal}.positional_rc", None, expected_reason)
         kmer_r = row.get("kmer_r")
         kmer_rc = row.get("kmer_rc")
         if not isinstance(kmer_r, list) or len(kmer_r) != 7:
@@ -166,9 +182,9 @@ def validate(path: pathlib.Path, schema_dir: pathlib.Path | None = None,
         if not isinstance(kmer_rc, list) or len(kmer_rc) != 8:
             raise ProfileError(f"row {ordinal}.kmer_rc cardinality drift")
         for value, k in zip(kmer_r, range(2, 9), strict=True):
-            validate_observation(value, f"row {ordinal}.kmer_r[{k}]", k)
+            validate_observation(value, f"row {ordinal}.kmer_r[{k}]", k, expected_reason)
         for value, k in zip(kmer_rc, range(1, 9), strict=True):
-            validate_observation(value, f"row {ordinal}.kmer_rc[{k}]", k)
+            validate_observation(value, f"row {ordinal}.kmer_rc[{k}]", k, expected_reason)
     if schema_dir is not None:
         validate_schema(rows, schema_dir)
     print(f"U0_WINDOW_PROFILE_STRUCTURE_PASS rows={len(rows)} metrics=17 null_replicates=1000")

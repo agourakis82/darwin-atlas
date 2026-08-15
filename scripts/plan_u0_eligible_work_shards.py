@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Create deterministic hash-closed Sounio case shards for eligible U0 work units.
+"""Create deterministic hash-closed Sounio case shards for U0 work units.
 
 This is a pre-execution planner. It computes no scientific metric and emits no
-execution receipt. Non-ACGT and zero-complete-window units are refused until a
-separate reason-coded exclusion planner is implemented.
+execution receipt. Ambiguous windows are marked `NULL_INPUT_NOT_ACGT` in their
+case ledgers; zero-complete-window units are retained as `PARTIAL_WINDOW`.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ import sys
 from build_u0_work_unit_case import (
     BindingError,
     build,
+    inspect_selected_work_unit,
     reject_symlink_components,
     validated_manifest_rows,
 )
@@ -64,12 +65,6 @@ def plan(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.
     if parameters_sha != PARAMETERS_SHA256:
         raise PlanError("canonical U0 parameter bytes drifted")
     rows = validated_manifest_rows(manifest, parameters_sha)
-    for index, row in enumerate(rows, start=1):
-        if row["declared_alphabet"] != "acgt":
-            raise PlanError(f"work unit {index} requires reason-coded non-ACGT exclusion planning")
-        if int(row["sequence_length"]) // int(row["scale"]) < 1:
-            raise PlanError(f"work unit {index} requires reason-coded partial-window exclusion planning")
-
     temporary = pathlib.Path(tempfile.mkdtemp(prefix=f".{output_directory.name}.tmp-", dir=output_directory.parent))
     try:
         cases_directory = temporary / "cases"
@@ -80,6 +75,13 @@ def plan(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.
             work_unit_id = row["work_unit_id"]
             accession = row["sequence_accession_version"]
             scale = int(row["scale"])
+            inspected_row, sequence, inspected_parameters_sha = inspect_selected_work_unit(
+                parameters, manifest, source_root, work_unit_id,
+            )
+            if inspected_row != row or inspected_parameters_sha != parameters_sha:
+                raise PlanError("work-unit source inspection drifted from canonical manifest")
+            if len(sequence) != int(row["sequence_length"]):
+                raise PlanError("work-unit source inspection returned an unexpected sequence length")
             total_windows = int(row["sequence_length"]) // scale
             unit_shards: list[int] = []
             for start_window in range(0, total_windows, shard_size):
@@ -100,22 +102,25 @@ def plan(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.
                     "scale": scale,
                     "start_window": start_window,
                     "rows": metadata["rows"],
+                    "excluded_rows": metadata["excluded_rows"],
                     "path": relative.as_posix(),
                     "sha256": metadata["sha256"],
                     "size_bytes": metadata["size_bytes"],
                 })
                 unit_shards.append(shard_index)
+            status = "planned" if total_windows > 0 else "excluded"
+            reason_code = None if total_windows > 0 else "PARTIAL_WINDOW"
             work_units.append({
                 "work_unit_id": work_unit_id,
                 "sequence_accession_version": accession,
                 "scale": scale,
                 "expected_rows": total_windows,
-                "status": "planned",
-                "reason_code": None,
+                "status": status,
+                "reason_code": reason_code,
                 "shard_indices": unit_shards,
             })
         result: dict[str, object] = {
-            "schema_version": "dosa-v3-u0-eligible-work-shard-plan-1",
+            "schema_version": "dosa-v3-u0-work-shard-plan-2",
             "evidence_scope": "preexecution_only",
             "parameters_sha256": parameters_sha,
             "work_unit_manifest_sha256": sha256_file(manifest),
@@ -123,6 +128,8 @@ def plan(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.
             "work_units_expected": len(work_units),
             "rows_expected": sum(int(unit["expected_rows"]) for unit in work_units),
             "shards_expected": len(shards),
+            "excluded_work_units": sum(unit["status"] == "excluded" for unit in work_units),
+            "excluded_windows": sum(int(shard["excluded_rows"]) for shard in shards),
             "scientific_metrics_computed": False,
             "sounio_executed": False,
             "gate_u0_pass": False,

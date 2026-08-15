@@ -20,7 +20,7 @@ HEADER = (
 )
 CASE_HEADER = (
     "case_id", "parameters_sha256", "accession_version", "window_start",
-    "scale", "seed64", "bases", "replicates",
+    "scale", "seed64", "bases", "replicates", "reason_code",
 )
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 ACCESSION_RE = re.compile(r"^[A-Z]{1,8}_[0-9]+\.[0-9]+$")
@@ -78,8 +78,8 @@ def parse_fasta(path: pathlib.Path, accession: str) -> tuple[bytes, str]:
     if len(lines) < 2 or lines[0] != f">{accession}" or any(line.startswith(">") for line in lines[1:]):
         raise BindingError("FASTA must contain exactly the declared accession")
     sequence = "".join(lines[1:]).upper()
-    if not sequence or re.fullmatch(r"[ACGT]+", sequence) is None:
-        raise BindingError("fixture FASTA must contain only A/C/G/T")
+    if not sequence or re.fullmatch(r"[ACGTRYSWKMBDHVN]+", sequence) is None:
+        raise BindingError("fixture FASTA must contain only uppercase-normalizable IUPAC DNA")
     return raw, sequence
 
 
@@ -142,17 +142,14 @@ def validated_manifest_rows(manifest: pathlib.Path, parameter_sha: str) -> list[
     return rows
 
 
-def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.Path,
-          output: pathlib.Path, start_window: int, window_count: int,
-          work_unit_id: str | None = None) -> dict[str, int | str]:
+def inspect_selected_work_unit(parameters: pathlib.Path, manifest: pathlib.Path,
+                               source_root: pathlib.Path,
+                               work_unit_id: str | None = None) -> tuple[dict[str, str], str, str]:
+    """Validate and bind one manifest row to its exact normalized FASTA."""
     for path, label in ((parameters, "parameters"), (manifest, "manifest")):
         reject_symlink_components(path, label)
         if path.is_symlink() or not path.is_file():
             raise BindingError(f"{label} must be a regular non-symlink file")
-    if output.exists() or output.is_symlink():
-        raise BindingError("output already exists")
-    if output.parent.is_symlink() or not output.parent.is_dir():
-        raise BindingError("output parent must already be a real directory")
     parameter_sha = sha256_bytes(parameters.read_bytes())
     if parameter_sha != "68343e046af24a997195eb2583532d3172234b0b9713f2e4296b9b12300bef94":
         raise BindingError("canonical U0 parameter bytes drifted")
@@ -167,32 +164,51 @@ def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib
             raise BindingError("requested work_unit_id is absent or duplicated")
         row = selected[0]
     accession = row["sequence_accession_version"]
-    length = int(row["sequence_length"])
-    scale = int(row["scale"])
-    if row["declared_alphabet"] != "acgt":
-        raise BindingError("selected non-ACGT work unit requires reason-coded exclusion handling")
     fasta = safe_source(source_root, row["source_locator"])
     raw_fasta, sequence = parse_fasta(fasta, accession)
     if sha256_bytes(raw_fasta) != row["source_file_sha256"]:
         raise BindingError("raw FASTA SHA-256 mismatch")
     if sha256_bytes(sequence.encode("ascii")) != row["sequence_sha256"]:
         raise BindingError("normalized sequence SHA-256 mismatch")
-    if length != len(sequence):
+    if int(row["sequence_length"]) != len(sequence):
         raise BindingError("sequence length mismatch")
+    actual_alphabet = "acgt" if re.fullmatch(r"[ACGT]+", sequence) is not None else "non_acgt"
+    if row["declared_alphabet"] != actual_alphabet:
+        raise BindingError("declared alphabet does not match normalized FASTA")
+    return row, sequence, parameter_sha
+
+
+def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.Path,
+          output: pathlib.Path, start_window: int, window_count: int,
+          work_unit_id: str | None = None) -> dict[str, int | str]:
+    if output.exists() or output.is_symlink():
+        raise BindingError("output already exists")
+    if output.parent.is_symlink() or not output.parent.is_dir():
+        raise BindingError("output parent must already be a real directory")
+    row, sequence, parameter_sha = inspect_selected_work_unit(
+        parameters, manifest, source_root, work_unit_id,
+    )
+    accession = row["sequence_accession_version"]
+    length = int(row["sequence_length"])
+    scale = int(row["scale"])
     total_windows = length // scale
     if start_window < 0 or start_window >= total_windows or window_count < 1 or window_count > 32:
         raise BindingError("requested window shard is outside the work unit or exceeds 32")
     stop_window = min(total_windows, start_window + window_count)
     cases = []
+    excluded_rows = 0
     for window_index in range(start_window, stop_window):
         window_start = window_index * scale
         seed = hashlib.sha256(
             f"{parameter_sha}:{accession}:{window_start}".encode("ascii")
         ).hexdigest()[:16]
         bases = sequence[window_start:window_start + scale]
+        reason_code = "" if re.fullmatch(r"[ACGT]+", bases) is not None else "NULL_INPUT_NOT_ACGT"
+        if reason_code:
+            excluded_rows += 1
         case = (
             accession.replace(".", "_") + f"_{scale}_{window_index}", parameter_sha,
-            accession, str(window_start), str(scale), seed, bases, "1000",
+            accession, str(window_start), str(scale), seed, bases, "1000", reason_code,
         )
         cases.append("\t".join(case))
     output.write_bytes(("\t".join(CASE_HEADER) + "\n" + "\n".join(cases) + "\n").encode("ascii"))
@@ -201,6 +217,7 @@ def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib
         "work_unit_id": row["work_unit_id"], "accession_version": accession,
         "scale": scale, "total_windows": total_windows, "start_window": start_window,
         "stop_window": stop_window, "rows": len(cases), "next_window": next_window,
+        "excluded_rows": excluded_rows,
         "sha256": sha256_bytes(output.read_bytes()), "size_bytes": output.stat().st_size,
     }
     print(f"U0_WORK_UNIT_CASE_BINDING_PASS work_unit_id={row['work_unit_id']} windows={len(cases)} scale={scale} start_window={start_window} next_window={next_window}")

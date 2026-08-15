@@ -99,7 +99,7 @@ function parse_work_unit(parameters_path::String, manifest_path::String, source_
     alphabet = selected.alphabet
     scale = selected.scale
     relative = selected.relative
-    alphabet == "acgt" && length_bp >= scale || work_fail("selected work unit requires exclusion handling")
+    length_bp >= scale || work_fail("selected work unit has no complete window artifact")
     reject_work_symlink_components(source_root, "source root")
     root = realpath(source_root)
     isdir(root) && !islink(source_root) || work_fail("source root is invalid")
@@ -114,9 +114,21 @@ function parse_work_unit(parameters_path::String, manifest_path::String, source_
     length(fasta_lines) >= 2 && fasta_lines[1] == ">$accession" || work_fail("FASTA accession mismatch")
     all(line -> !startswith(line, ">"), fasta_lines[2:end]) || work_fail("FASTA contains multiple records")
     bases = uppercase(join(fasta_lines[2:end]))
-    occursin(r"^[ACGT]+$", bases) && ncodeunits(bases) == length_bp || work_fail("FASTA sequence contract drift")
+    occursin(r"^[ACGTRYSWKMBDHVN]+$", bases) && ncodeunits(bases) == length_bp || work_fail("FASTA sequence contract drift")
     bytes2hex(sha256(bases)) == sequence_sha || work_fail("normalized sequence SHA mismatch")
+    actual_alphabet = occursin(r"^[ACGT]+$", bases) ? "acgt" : "non_acgt"
+    actual_alphabet == alphabet || work_fail("declared alphabet does not match normalized FASTA")
     (; work_id, parameter_sha, accession, scale, bases, total_windows=div(length_bp, scale))
+end
+
+function expected_excluded_profile_line(work, window_index::Int)
+    reason = "NULL_INPUT_NOT_ACGT"
+    null_summary = "{\"n\":0,\"mean\":null,\"mad\":null,\"q025\":null,\"q500\":null,\"q975\":null,\"tail_lt\":null,\"tail_eq\":null,\"tail_gt\":null,\"reason_code\":\"$reason\"}"
+    observation = "{\"effective_count\":0,\"observed\":null,\"null_summary\":$null_summary,\"reason_code\":\"$reason\"}"
+    kmer_r = join(["{\"k\":$k,\"effective_count\":0,\"observed\":null,\"null_summary\":$null_summary,\"reason_code\":\"$reason\"}" for k in 2:8], ",")
+    kmer_rc = join(["{\"k\":$k,\"effective_count\":0,\"observed\":null,\"null_summary\":$null_summary,\"reason_code\":\"$reason\"}" for k in 1:8], ",")
+    window_start = window_index * work.scale
+    "{\"run_id\":\"u0-work-unit-fixture\",\"replicon_id\":\"$(work.accession)\",\"window_size\":$(work.scale),\"window_index\":$window_index,\"window_start\":$window_start,\"window_end\":$(window_start + work.scale),\"status\":\"excluded\",\"reason_code\":\"$reason\",\"positional_r\":$observation,\"positional_rc\":$observation,\"kmer_r\":[$kmer_r],\"kmer_rc\":[$kmer_rc]}"
 end
 
 function validate_work_unit(parameters_path::String, manifest_path::String,
@@ -137,11 +149,15 @@ function validate_work_unit(parameters_path::String, manifest_path::String,
         window_start = window_index * work.scale
         window_end = window_start + work.scale
         bases = work.bases[window_start + 1:window_end]
-        seed64 = bytes2hex(sha256("$(work.parameter_sha):$(work.accession):$window_start"))[1:16]
         case_id = replace(work.accession, "." => "_") * "_$(work.scale)_$window_index"
-        case = (; case_id, parameter_sha=work.parameter_sha, accession=work.accession,
-                window_start, scale=work.scale, seed64, bases)
-        expected = expected_profile_line(case; run_id="u0-work-unit-fixture")
+        if occursin(r"^[ACGT]+$", bases)
+            seed64 = bytes2hex(sha256("$(work.parameter_sha):$(work.accession):$window_start"))[1:16]
+            case = (; case_id, parameter_sha=work.parameter_sha, accession=work.accession,
+                    window_start, scale=work.scale, seed64, bases)
+            expected = expected_profile_line(case; run_id="u0-work-unit-fixture")
+        else
+            expected = expected_excluded_profile_line(work, window_index)
+        end
         actual == expected || work_fail("byte mismatch for $case_id")
     end
     println("U0_WORK_UNIT_JULIA_DIFFERENTIAL_PASS work_unit_id=$(work.work_id) rows=$(length(lines)) metrics=17 replicates=1000 start_window=$start_window tolerance=0")

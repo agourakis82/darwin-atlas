@@ -12,8 +12,8 @@ the separate dirty WIP were preserved before branch creation; see
 | Utility-first U0 contract, parameters, schemas and data dictionary | IMPLEMENTED / fixture-validated | U0 remains `NOT_YET_PASSED` |
 | Fresh RefSeq acquisition, deterministic pilot selector and source closure builder | IMPLEMENTED / acquisition not frozen | NCBI Datasets 18.35.0 is locally hash-pinned; pre-download control candidates are bound only after rehydration to an exact six-field ledger and independently proven from FASTA/GBFF/sequence-report bytes; the real candidates and fresh package remain pending |
 | `dosa query`, `dosa calibrate`, `dosa verify`, Parquet/Zstandard packager | IMPLEMENTED / synthetic integration | calibration requires a read-only hash-bound official-repository runner attestation but that attestation is non-semantic; verify currently proves transport/footer integrity, not full scientific row validity; no public shard exists yet |
-| Manifest-directed Sounio work-unit contract | IMPLEMENTED WITH CAPABILITY REFUSALS | the manifest fixture still refuses unbound pilot execution; a bounded composition fixture selects two explicit manifest rows plus exact 48 bp FASTAs, host-derives six seeds, emits six complete Sounio profiles, and proves a byte-exact two-row resume suffix; a pre-execution planner hash-closes four eligible shards but refuses exclusion-required units; there is no streaming chromosome executor, pilot-wide output manifest, execution receipt or pilot evidence |
-| Independent Julia manifest, multiscale-null and scientific secondary evaluators | IMPLEMENTED / synthetic fixtures | Julia independently regenerates 4000 exact Euler/Wilson draws and all 17 observed/null blocks in four multiscale rows, and independently returns to both manifest/FASTA inputs to re-derive seeds and validate six full composition rows plus the two-row resume artifact; held-out scientific scope remains explicit `REFUSE`; no real full-pilot Julia recomputation or scientific receipt exists |
+| Manifest-directed Sounio work-unit contract | IMPLEMENTED WITH CAPABILITY REFUSALS | the manifest fixture still refuses unbound pilot execution; a bounded composition fixture selects three executable 48 bp rows and one 8 bp partial row, emits eight eligible profiles plus one exact `NULL_INPUT_NOT_ACGT` exclusion, and proves a byte-exact two-row resume suffix; a pre-execution planner hash-closes six shards and retains the zero-window unit as `PARTIAL_WINDOW`; there is no streaming chromosome executor, pilot-wide output manifest, execution receipt or pilot evidence |
+| Independent Julia manifest, multiscale-null and scientific secondary evaluators | IMPLEMENTED / synthetic fixtures | Julia independently regenerates 4000 exact Euler/Wilson draws and all 17 observed/null blocks in four multiscale rows, and independently returns to manifest/FASTA inputs to re-derive seeds and validate all nine composition rows including the exclusion plus the two-row resume artifact; held-out scientific scope remains explicit `REFUSE`; no real full-pilot Julia recomputation or scientific receipt exists |
 | Operational gate evaluator, field-use audit and capacity projection | SCAFFOLDED / PROMOTION LOCKED | the implemented profile checks a 29-role evidence root, selection, controls, work units, logical rows, packages and capacity, but known source, package, operational-report, field-audit, Julia-runtime and held-out derivation closures are prerequisites to removing the explicit lock; no real PASS path is enabled |
 | Gate U0 | **BLOCKED** | `U0_PROMOTION_LOCKED` is raised before real-pilot evidence evaluation while the canonical executor, integral Julia validator and six held-out derivation roles are absent; independent regressions reject both operational and scientific fixture relabelling |
 | Full atlas, BioStudies upload, v3.0.0 tag and HDD purchase | **BLOCKED UNTIL U0** | no release or procurement claim |
@@ -63,13 +63,13 @@ proves deterministic repetition and five zero-byte rc=12 refusal paths,
 including a non-ACGT byte in the final case after the earlier cases have
 completed the dry run. This is synthetic analytical-core evidence only: it
 contains no RefSeq pilot manifest/FASTA execution, Parquet, execution receipt,
-full-pilot agreement or U0 promotion evidence; the separate two-unit fixture
+full-pilot agreement or U0 promotion evidence; the separate bounded work-unit fixture
 below is synthetic composition evidence only.
 At the official Sounio pin `37de2c9eefe68f3457a2c66004eff68bba5b4446`,
 the final source SHA-256 is
-`7c372d6c98d3960685da77fe9ee1518a9db0de395a8222d4a80e59c9294a917a`,
+`0eb048a7ffede2783936e1b78e9757370b2fc9ab2c0993eb25d1812a9fcf8fa6`,
 the compiled ELF is
-`810fa4453dbf5d0848e8b8c50c9e0265f9dfc0b0bde4f2c9051b9685a054df04`,
+`ffdfc50522f712a6bbb0454c068dc29b4c70898587cec380dcb41480b04edad1`,
 the cases are
 `b9b3c233179b84934bd24e1ac71c7b63255c9e0f626a5fe1c7246d9e12d66f79`,
 the unchanged deterministic 4000-line artifact is
@@ -77,25 +77,31 @@ the unchanged deterministic 4000-line artifact is
 and the deterministic four-row profile artifact is
 `f0b5ef9cabaf1e998f5851b6008936b3764f22c8718625cf31de0ac571424016`.
 The separately bound three-window work-unit ledger is
-`ebb071824c41015d70027b54716983ead2b12fa94854ede6392e5c7344bd66f8`
+`bd6044e36a0c500578c25efdb3aa27be54db65fdacd9d022c7bc273faff35e43`
 and its three-row Sounio artifact is
 `c0fc4086a191028f5d746e60d48303268f402744a95415d2185750be08ba9941`.
 The window-1 resume ledger is
-`bfc95c21837aafdfae55be1e11828b5505421b8f713b400a4437527258ee31a3`
+`23cc34e71db6f2632293f49788f0e4123be93ef1c86948d51a11a531160c402a`
 and its two-row artifact is
 `2e8e45128ff50f65973af7c159180e074ea580009243f7b7e4e72043373e3900`,
 byte-identical to the suffix of the full artifact. The seed ledger is derived
 at the host boundary and independently re-derived by Julia; Sounio validates
 the ledger grammar and coordinates but does not implement SHA-256 internally.
 The second-unit ledger is
-`ca2c8797d3ca1ae116a6f5f8ef9eb997d4f5ac3a8514ad18b788d471afcf6429`
+`b14d7ce1a937f94222743e13df2b71369382fb9385413014b5c51f45302258ba`
 and its three-row Sounio artifact is
 `4473a737412ec59805514038fc2a9737d1ec176d71a0a5010f4277f4956b6f20`.
-The two-unit, four-shard pre-execution plan at shard size 2 is
-`081b45724b06b6955b6335bc7e14410e39b56730f2266e5247beb17375cccaf8`;
-it binds six expected rows but explicitly records no execution, metric or U0
-PASS. Non-ACGT and zero-complete-window units remain refused until the
-reason-coded exclusion path is implemented.
+The third-unit ledger is
+`ce0117e76b896e3c5ec37301fb6d6cc7a6387657ccc56c144cd33da35d6d1e0a`;
+its three-row artifact is
+`4f263ed9a86c2275c502d6d75f50176a97048b80f063d5e4f6ea4537dd6e3ad7`,
+with one exact `NULL_INPUT_NOT_ACGT` exclusion and eight eligible metric rows
+across the three executable units. The four-unit, six-shard pre-execution plan
+at shard size 2 is
+`34fec0b7212dda6564ab771bcdaa3b5cfbc75c34c0f6d2a01fa62a92d50277cf`;
+it binds nine expected rows, records one excluded window, retains the 8 bp
+zero-complete-window unit as `PARTIAL_WINDOW`, and explicitly records no
+execution, metric or U0 PASS.
 
 **Observed:** 2026-08-15
 

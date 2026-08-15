@@ -19,10 +19,14 @@ fixture_root = joinpath(ROOT, "data", "fixtures", "u0_work_unit")
 manifest = joinpath(fixture_root, "u0_work_units.tsv")
 work1 = parse_work_unit(parameters, manifest, fixture_root, "NC_000001.1@16")
 work2 = parse_work_unit(parameters, manifest, fixture_root, "NC_000002.1@16")
+work3 = parse_work_unit(parameters, manifest, fixture_root, "NC_000003.1@16")
 
 function expected_work_line(work, window_index)
     window_start = window_index * work.scale
     bases = work.bases[window_start + 1:window_start + work.scale]
+    if !occursin(r"^[ACGT]+$", bases)
+        return expected_excluded_profile_line(work, window_index)
+    end
     seed64 = bytes2hex(sha256("$(work.parameter_sha):$(work.accession):$window_start"))[1:16]
     case_id = replace(work.accession, "." => "_") * "_$(work.scale)_$window_index"
     case = (; case_id, parameter_sha=work.parameter_sha, accession=work.accession,
@@ -55,6 +59,23 @@ mktempdir() do temporary
     require_work(passed2 && occursin("work_unit_id=$(work2.work_id)", output2),
                  "second valid work-unit artifact failed: $output2")
 
+    artifact3 = joinpath(temporary, "work-unit-3.jsonl")
+    expected3 = [expected_work_line(work3, index) for index in 0:(work3.total_windows - 1)]
+    write(artifact3, join(expected3, "\n") * "\n")
+    count(line -> occursin("\"status\":\"excluded\"", line), expected3) == 1 ||
+        error("ambiguous fixture must contain exactly one excluded row")
+    passed3, output3 = run_work_validator(parameters, manifest, fixture_root, artifact3, "0", "3", work3.work_id)
+    require_work(passed3 && occursin("work_unit_id=$(work3.work_id)", output3),
+                 "ambiguous work-unit artifact failed: $output3")
+
+    partial_refused = false
+    try
+        parse_work_unit(parameters, manifest, fixture_root, "NC_000004.1@16")
+    catch error
+        partial_refused = occursin("no complete window artifact", sprint(showerror, error))
+    end
+    require_work(partial_refused, "Julia did not classify the zero-window work unit")
+
     bytes = read(artifact)
     marker = Vector{UInt8}(codeunits("\"numerator\":"))
     offset = findfirst(==(marker[1]), bytes)
@@ -71,4 +92,4 @@ mktempdir() do temporary
                  "Julia accepted or misclassified a one-digit perturbation")
 end
 
-println("U0_WORK_UNIT_JULIA_TEST_PASS work_units=2 rows=6 resume_rows=2 metrics=17 selector_refused=true perturbation_refused=true")
+println("U0_WORK_UNIT_JULIA_TEST_PASS work_units=4 rows=9 excluded_rows=1 partial_work_units=1 resume_rows=2 metrics=17 selector_refused=true perturbation_refused=true")

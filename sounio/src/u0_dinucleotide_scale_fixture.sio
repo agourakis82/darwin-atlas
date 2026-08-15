@@ -201,9 +201,29 @@ fn work_scale_ok(scale: i64) -> bool {
     scale == 16 || scale == 100 || scale == 500 || scale == 1000
 }
 
+fn iupac_base_ok(ch: i64) -> bool {
+    ch == 65 || ch == 67 || ch == 71 || ch == 84 || ch == 82 || ch == 89
+        || ch == 83 || ch == 87 || ch == 75 || ch == 77 || ch == 66
+        || ch == 68 || ch == 72 || ch == 86 || ch == 78
+}
+
+fn work_reason_ok(reason_code: string, bases: string) -> bool with Mut, Panic, Div {
+    var ambiguous: bool = false
+    var i: i64 = 0
+    while i < str_len(bases) {
+        let ch = str_char_at(bases, i)
+        if !iupac_base_ok(ch) { return false }
+        if base_code(ch) < 0 { ambiguous = true }
+        i = i + 1
+    }
+    if str_len(reason_code) == 0 { return !ambiguous }
+    str_eq(reason_code, "NULL_INPUT_NOT_ACGT") && ambiguous
+}
+
 fn validate_work_unit_case(index: i64, case_id: string, parameters_sha: string, accession: string,
                            window_start: i64, scale: i64, seed64: string,
-                           bases: string, requested_replicates: i64) -> bool with Mut, Panic, Div {
+                           bases: string, requested_replicates: i64,
+                           reason_code: string) -> bool with Mut, Panic, Div {
     identifier_ok(case_id)
         && sha_ok(parameters_sha) && str_eq(parameters_sha, expected_parameter_sha())
         && identifier_ok(accession)
@@ -212,6 +232,7 @@ fn validate_work_unit_case(index: i64, case_id: string, parameters_sha: string, 
         && seed_ok(seed64)
         && str_len(bases) == scale
         && requested_replicates == REPLICATES
+        && work_reason_ok(reason_code, bases)
 }
 
 fn base_code(ch: i64) -> i64 {
@@ -667,6 +688,54 @@ fn emit_window_profile(accession: string, scale: i64, window_start: i64) with IO
     print("]}\n")
 }
 
+fn emit_unavailable_profile_observation(k: i64, include_k: bool) with IO {
+    print("{")
+    if include_k {
+        print("\"k\":")
+        print_int(k)
+        print(",")
+    }
+    print("\"effective_count\":0,\"observed\":null,")
+    print("\"null_summary\":{\"n\":0,\"mean\":null,\"mad\":null,")
+    print("\"q025\":null,\"q500\":null,\"q975\":null,")
+    print("\"tail_lt\":null,\"tail_eq\":null,\"tail_gt\":null,")
+    print("\"reason_code\":\"NULL_INPUT_NOT_ACGT\"},")
+    print("\"reason_code\":\"NULL_INPUT_NOT_ACGT\"}")
+}
+
+fn emit_excluded_window_profile(accession: string, scale: i64, window_start: i64) with IO {
+    print("{\"run_id\":\"u0-work-unit-fixture\",\"replicon_id\":\"")
+    print(accession)
+    print("\",\"window_size\":")
+    print_int(scale)
+    print(",\"window_index\":")
+    print_int(window_start / scale)
+    print(",\"window_start\":")
+    print_int(window_start)
+    print(",\"window_end\":")
+    print_int(window_start + scale)
+    print(",\"status\":\"excluded\",\"reason_code\":\"NULL_INPUT_NOT_ACGT\",")
+    print("\"positional_r\":")
+    emit_unavailable_profile_observation(0, false)
+    print(",\"positional_rc\":")
+    emit_unavailable_profile_observation(0, false)
+    print(",\"kmer_r\":[")
+    var k: i64 = 2
+    while k <= 8 {
+        if k > 2 { print(",") }
+        emit_unavailable_profile_observation(k, true)
+        k = k + 1
+    }
+    print("],\"kmer_rc\":[")
+    k = 1
+    while k <= 8 {
+        if k > 1 { print(",") }
+        emit_unavailable_profile_observation(k, true)
+        k = k + 1
+    }
+    print("]}\n")
+}
+
 fn print_base(base: i64) with IO {
     if base == 0 { print("A") }
     if base == 1 { print("C") }
@@ -696,7 +765,8 @@ fn emit_draw(case_id: string, scale: i64, replicate: i64, seed64: string) with I
 // emits the already-proven-reachable stream.  This is the no-partial-stdout
 // boundary for invalid/malformed cases, not a U0 run receipt.
 fn process_case(line: string, index: i64, pass: i64) -> bool with IO, Mut, Panic, Div {
-    if field_count(line) != 8 { return false }
+    let expected_fields = if G_WORK_UNIT_MODE { 9 } else { 8 }
+    if field_count(line) != expected_fields { return false }
     let case_id = field(line, 0)
     let parameters_sha = field(line, 1)
     let accession = field(line, 2)
@@ -705,9 +775,10 @@ fn process_case(line: string, index: i64, pass: i64) -> bool with IO, Mut, Panic
     let seed64 = field(line, 5)
     let bases = field(line, 6)
     let requested_replicates = decimal(field(line, 7))
+    let reason_code = if G_WORK_UNIT_MODE { field(line, 8) } else { "" }
     if G_WORK_UNIT_MODE {
         if !validate_work_unit_case(index, case_id, parameters_sha, accession,
-            window_start, scale, seed64, bases, requested_replicates) { return false }
+            window_start, scale, seed64, bases, requested_replicates, reason_code) { return false }
     } else {
         if !str_eq(case_id, expected_case_id(index)) || !sha_ok(parameters_sha)
             || !str_eq(parameters_sha, expected_parameter_sha())
@@ -719,6 +790,10 @@ fn process_case(line: string, index: i64, pass: i64) -> bool with IO, Mut, Panic
         }
     }
     if pass == 0 { return true }
+    if G_WORK_UNIT_MODE && str_len(reason_code) > 0 {
+        if pass == 2 { emit_excluded_window_profile(accession, scale, window_start) }
+        return true
+    }
 
     var i: i64 = 0
     while i < scale {
@@ -766,7 +841,12 @@ fn run_cases(text: string, pass: i64) -> bool with IO, Mut, Panic, Div {
         } else {
             let line = span(text, start, line_end)
             if logical_line == 0 {
-                if !str_eq(line, "case_id\tparameters_sha256\taccession_version\twindow_start\tscale\tseed64\tbases\treplicates") {
+                let expected_header = if G_WORK_UNIT_MODE {
+                    "case_id\tparameters_sha256\taccession_version\twindow_start\tscale\tseed64\tbases\treplicates\treason_code"
+                } else {
+                    "case_id\tparameters_sha256\taccession_version\twindow_start\tscale\tseed64\tbases\treplicates"
+                }
+                if !str_eq(line, expected_header) {
                     return false
                 }
             } else {

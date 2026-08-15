@@ -247,6 +247,8 @@ u0-contract:
 	@test -s data/fixtures/u0_work_unit/u0_work_units.tsv
 	@test -s data/fixtures/u0_work_unit/fasta/NC_000001.1.fa
 	@test -s data/fixtures/u0_work_unit/fasta/NC_000002.1.fa
+	@test -s data/fixtures/u0_work_unit/fasta/NC_000003.1.fa
+	@test -s data/fixtures/u0_work_unit/fasta/NC_000004.1.fa
 	@for f in dosa_v3_common dosa_v3_parameters dosa_v3_source_manifest dosa_v3_source_index dosa_v3_replicon dosa_v3_run dosa_v3_window_profile dosa_v3_summary dosa_v3_exclusion dosa_v3_payload_manifest dosa_v3_receipt; do test -s "schemas/$$f.schema.json"; done
 	@bash -n scripts/freeze_u0_refseq_snapshot.sh scripts/run_u0_dinucleotide_scale_fixture.sh scripts/test_u0_work_unit.sh scripts/test_u0_work_shard_plan.sh scripts/test_u0_selection.sh scripts/test_u0_control_review.sh scripts/test_u0_control_ledger.sh scripts/test_u0_source_manifest.sh scripts/test_u0_gate.sh scripts/test_u0_capacity.sh scripts/test_u0_operational.sh
 	@ruby -c scripts/generate_u0_dinucleotide_scale_cases.rb >/dev/null
