@@ -170,8 +170,13 @@ one canonical `NULL_INPUT_NOT_ACGT` excluded profile. A shard resumed at
 window 1 produces the exact two-row suffix of the first full artifact. A
 deterministic planner enumerates the executable units into six hash-closed
 shards, retains the 8 bp unit as `PARTIAL_WINDOW` with no shard, and explicitly
-remains pre-execution-only. Sounio consumes but does not internally derive the
-SHA-256 seeds, and each executable ledger is bounded to 32 windows.
+remains pre-execution-only. A distinct run-bound orchestration fixture executes
+all six Sounio shards, safely reuses them on a second pass, and lets Julia
+independently close every logical row and window coordinate. Sounio consumes
+but does not internally derive the SHA-256 seeds, and each executable ledger
+is bounded to 16 windows, which keeps the worst-case 1000 bp case ledger below
+the pinned executable's strict 32 KiB input ceiling. This still has no real-pilot output manifest,
+execution receipt, Parquet closure or integral Julia release receipt.
 It therefore does not satisfy the missing chromosome-streaming executor, full
 work-unit coverage, output-manifest or receipt requirements.
 Parts of the real provenance validator are scaffolded, but the admission

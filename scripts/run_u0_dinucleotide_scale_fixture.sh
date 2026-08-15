@@ -8,7 +8,7 @@ set -euo pipefail
 
 readonly atlas_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly lock_file="${atlas_root}/toolchains/sounio.lock.json"
-readonly source_file="${atlas_root}/sounio/src/u0_dinucleotide_scale_fixture.sio"
+readonly source_file="${atlas_root}/sounio/src/u0_work_shard_executor.sio"
 readonly fixture_dir="${atlas_root}/data/fixtures/u0_dinucleotide_scale"
 readonly parameters_file="${atlas_root}/data/v3/u0_parameters.json"
 readonly validator="${atlas_root}/julia/scripts/validate_u0_dinucleotide_scale_fixture.jl"
@@ -124,9 +124,9 @@ python3 "${work_builder}" --parameters "${parameters_file}" --manifest "${work_m
   --source-root "${work_fixture_dir}" --output "${work_two_cases}" --work-unit-id "${work_id_two}"
 python3 "${work_builder}" --parameters "${parameters_file}" --manifest "${work_manifest}" \
   --source-root "${work_fixture_dir}" --output "${work_three_cases}" --work-unit-id "${work_id_three}"
-ruby -e 'lines=File.binread(ARGV[0]).lines; fields=lines.fetch(1).chomp.split("\t",-1); fields[3]="1"; lines[1]=fields.join("\t")+"\n"; File.binwrite(ARGV[1],lines.join)' \
+ruby -e 'lines=File.binread(ARGV[0]).lines; fields=lines.fetch(1).chomp.split("\t",-1); fields[4]="1"; lines[1]=fields.join("\t")+"\n"; File.binwrite(ARGV[1],lines.join)' \
   "${work_cases}" "${temp_dir}/invalid-work-start.tsv"
-ruby -e 'lines=File.binread(ARGV[0]).lines; fields=lines.fetch(2).chomp.split("\t",-1); fields[8]=""; lines[2]=fields.join("\t")+"\n"; File.binwrite(ARGV[1],lines.join)' \
+ruby -e 'lines=File.binread(ARGV[0]).lines; fields=lines.fetch(2).chomp.split("\t",-1); fields[9]=""; lines[2]=fields.join("\t")+"\n"; File.binwrite(ARGV[1],lines.join)' \
   "${work_three_cases}" "${temp_dir}/invalid-work-reason.tsv"
 
 if [[ -n "${instance}" ]]; then
@@ -165,22 +165,22 @@ echo "U0_GUEST_DRAWS_PASS rows=4000 deterministic=1"
 cmp "${root}/profiles1.jsonl" "${root}/profiles2.jsonl"
 test "$(wc -l < "${root}/profiles1.jsonl")" -eq 4
 echo "U0_GUEST_PROFILES_PASS rows=4 deterministic=1"
-"${root}/fixture.elf" "${root}/work-unit.tsv" --work-unit-profile > "${root}/work-unit1.jsonl"
-"${root}/fixture.elf" "${root}/work-unit.tsv" --work-unit-profile > "${root}/work-unit2.jsonl"
+"${root}/fixture.elf" "${root}/work-unit.tsv" --work-unit-profile u0-work-unit-fixture > "${root}/work-unit1.jsonl"
+"${root}/fixture.elf" "${root}/work-unit.tsv" --work-unit-profile u0-work-unit-fixture > "${root}/work-unit2.jsonl"
 cmp "${root}/work-unit1.jsonl" "${root}/work-unit2.jsonl"
 test "$(wc -l < "${root}/work-unit1.jsonl")" -eq 3
-"${root}/fixture.elf" "${root}/work-unit-resume.tsv" --work-unit-profile 1 > "${root}/work-unit-resume.jsonl"
+"${root}/fixture.elf" "${root}/work-unit-resume.tsv" --work-unit-profile u0-work-unit-fixture 1 > "${root}/work-unit-resume.jsonl"
 test "$(wc -l < "${root}/work-unit-resume.jsonl")" -eq 2
 tail -n +2 "${root}/work-unit1.jsonl" > "${root}/work-unit-expected-resume.jsonl"
 cmp "${root}/work-unit-expected-resume.jsonl" "${root}/work-unit-resume.jsonl"
 echo "U0_GUEST_WORK_UNIT_RESUME_PASS rows=3 resume_rows=2 byte_suffix=1"
-"${root}/fixture.elf" "${root}/work-unit-two.tsv" --work-unit-profile > "${root}/work-unit-two1.jsonl"
-"${root}/fixture.elf" "${root}/work-unit-two.tsv" --work-unit-profile > "${root}/work-unit-two2.jsonl"
+"${root}/fixture.elf" "${root}/work-unit-two.tsv" --work-unit-profile u0-work-unit-fixture > "${root}/work-unit-two1.jsonl"
+"${root}/fixture.elf" "${root}/work-unit-two.tsv" --work-unit-profile u0-work-unit-fixture > "${root}/work-unit-two2.jsonl"
 cmp "${root}/work-unit-two1.jsonl" "${root}/work-unit-two2.jsonl"
 test "$(wc -l < "${root}/work-unit-two1.jsonl")" -eq 3
 echo "U0_GUEST_SECOND_WORK_UNIT_PASS rows=3 deterministic=1"
-"${root}/fixture.elf" "${root}/work-unit-three.tsv" --work-unit-profile > "${root}/work-unit-three1.jsonl"
-"${root}/fixture.elf" "${root}/work-unit-three.tsv" --work-unit-profile > "${root}/work-unit-three2.jsonl"
+"${root}/fixture.elf" "${root}/work-unit-three.tsv" --work-unit-profile u0-work-unit-fixture > "${root}/work-unit-three1.jsonl"
+"${root}/fixture.elf" "${root}/work-unit-three.tsv" --work-unit-profile u0-work-unit-fixture > "${root}/work-unit-three2.jsonl"
 cmp "${root}/work-unit-three1.jsonl" "${root}/work-unit-three2.jsonl"
 test "$(wc -l < "${root}/work-unit-three1.jsonl")" -eq 3
 test "$(grep -c '\"status\":\"excluded\"' "${root}/work-unit-three1.jsonl")" -eq 1
@@ -197,13 +197,19 @@ done
 echo "U0_GUEST_SCALE_REFUSALS_PASS cases=5"
 for invalid in invalid-work-start invalid-work-reason; do
   set +e
-  "${root}/fixture.elf" "${root}/${invalid}.tsv" --work-unit-profile > "${root}/${invalid}.out"
+  "${root}/fixture.elf" "${root}/${invalid}.tsv" --work-unit-profile u0-work-unit-fixture > "${root}/${invalid}.out"
   rc=$?
   set -e
   test "${rc}" -eq 12
   test ! -s "${root}/${invalid}.out"
 done
-echo "U0_GUEST_WORK_UNIT_REFUSAL_PASS cases=2"
+set +e
+"${root}/fixture.elf" "${root}/work-unit.tsv" --work-unit-profile wrong-run-id > "${root}/invalid-work-run-id.out"
+rc=$?
+set -e
+test "${rc}" -eq 12
+test ! -s "${root}/invalid-work-run-id.out"
+echo "U0_GUEST_WORK_UNIT_REFUSAL_PASS cases=3"
 SOUNIO_RUN
   limactl copy -y --backend=scp "${instance}:${guest_root}/run1.jsonl" "${artifact}"
   limactl copy -y --backend=scp "${instance}:${guest_root}/profiles1.jsonl" "${profile_artifact}"
@@ -227,20 +233,20 @@ else
   "${executable}" "${fixture_dir}/cases.tsv" --profiles > "${temp_dir}/profiles2.jsonl"
   cmp "${profile_artifact}" "${temp_dir}/profiles2.jsonl"
   [[ "$(wc -l < "${profile_artifact}")" -eq 4 ]]
-  "${executable}" "${work_cases}" --work-unit-profile > "${work_artifact}"
-  "${executable}" "${work_cases}" --work-unit-profile > "${temp_dir}/work-unit2.jsonl"
+  "${executable}" "${work_cases}" --work-unit-profile u0-work-unit-fixture > "${work_artifact}"
+  "${executable}" "${work_cases}" --work-unit-profile u0-work-unit-fixture > "${temp_dir}/work-unit2.jsonl"
   cmp "${work_artifact}" "${temp_dir}/work-unit2.jsonl"
   [[ "$(wc -l < "${work_artifact}")" -eq 3 ]]
-  "${executable}" "${work_resume_cases}" --work-unit-profile 1 > "${work_resume_artifact}"
+  "${executable}" "${work_resume_cases}" --work-unit-profile u0-work-unit-fixture 1 > "${work_resume_artifact}"
   [[ "$(wc -l < "${work_resume_artifact}")" -eq 2 ]]
   tail -n +2 "${work_artifact}" > "${temp_dir}/work-unit-expected-resume.jsonl"
   cmp "${temp_dir}/work-unit-expected-resume.jsonl" "${work_resume_artifact}"
-  "${executable}" "${work_two_cases}" --work-unit-profile > "${work_two_artifact}"
-  "${executable}" "${work_two_cases}" --work-unit-profile > "${temp_dir}/work-unit-two2.jsonl"
+  "${executable}" "${work_two_cases}" --work-unit-profile u0-work-unit-fixture > "${work_two_artifact}"
+  "${executable}" "${work_two_cases}" --work-unit-profile u0-work-unit-fixture > "${temp_dir}/work-unit-two2.jsonl"
   cmp "${work_two_artifact}" "${temp_dir}/work-unit-two2.jsonl"
   [[ "$(wc -l < "${work_two_artifact}")" -eq 3 ]]
-  "${executable}" "${work_three_cases}" --work-unit-profile > "${work_three_artifact}"
-  "${executable}" "${work_three_cases}" --work-unit-profile > "${temp_dir}/work-unit-three2.jsonl"
+  "${executable}" "${work_three_cases}" --work-unit-profile u0-work-unit-fixture > "${work_three_artifact}"
+  "${executable}" "${work_three_cases}" --work-unit-profile u0-work-unit-fixture > "${temp_dir}/work-unit-three2.jsonl"
   cmp "${work_three_artifact}" "${temp_dir}/work-unit-three2.jsonl"
   [[ "$(wc -l < "${work_three_artifact}")" -eq 3 ]]
   [[ "$(grep -c '\"status\":\"excluded\"' "${work_three_artifact}")" -eq 1 ]]
@@ -260,11 +266,16 @@ else
   done
   for invalid in invalid-work-start invalid-work-reason; do
     set +e
-    "${executable}" "${temp_dir}/${invalid}.tsv" --work-unit-profile > "${temp_dir}/${invalid}.out"
+    "${executable}" "${temp_dir}/${invalid}.tsv" --work-unit-profile u0-work-unit-fixture > "${temp_dir}/${invalid}.out"
     rc=$?
     set -e
     [[ "${rc}" -eq 12 && ! -s "${temp_dir}/${invalid}.out" ]]
   done
+  set +e
+  "${executable}" "${work_cases}" --work-unit-profile wrong-run-id > "${temp_dir}/invalid-work-run-id.out"
+  rc=$?
+  set -e
+  [[ "${rc}" -eq 12 && ! -s "${temp_dir}/invalid-work-run-id.out" ]]
 fi
 
 "${julia_bin}" --startup-file=no "${validator}" \

@@ -19,6 +19,7 @@ import sys
 
 from build_u0_work_unit_case import (
     BindingError,
+    ID_RE,
     build,
     inspect_selected_work_unit,
     reject_symlink_components,
@@ -46,9 +47,11 @@ def canonical_json_bytes(value: object) -> bytes:
 
 
 def plan(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.Path,
-         output_directory: pathlib.Path, shard_size: int) -> dict[str, object]:
-    if shard_size < 1 or shard_size > 32:
-        raise PlanError("shard size must be in 1:32")
+         output_directory: pathlib.Path, shard_size: int, run_id: str) -> dict[str, object]:
+    if shard_size < 1 or shard_size > 16:
+        raise PlanError("shard size must be in 1:16")
+    if ID_RE.fullmatch(run_id) is None or len(run_id) > 128:
+        raise PlanError("run_id must be a portable identifier of at most 128 bytes")
     for path, label in ((parameters, "parameters"), (manifest, "manifest")):
         reject_symlink_components(path, label)
         if path.is_symlink() or not path.is_file():
@@ -91,7 +94,7 @@ def plan(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.
                 target = temporary.joinpath(*relative.parts)
                 metadata = build(
                     parameters, manifest, source_root, target, start_window,
-                    shard_size, work_unit_id,
+                    shard_size, work_unit_id, run_id,
                 )
                 if metadata["rows"] != min(shard_size, total_windows - start_window):
                     raise PlanError("builder returned an unexpected shard row count")
@@ -120,8 +123,9 @@ def plan(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.
                 "shard_indices": unit_shards,
             })
         result: dict[str, object] = {
-            "schema_version": "dosa-v3-u0-work-shard-plan-2",
+            "schema_version": "dosa-v3-u0-work-shard-plan-3",
             "evidence_scope": "preexecution_only",
+            "run_id": run_id,
             "parameters_sha256": parameters_sha,
             "work_unit_manifest_sha256": sha256_file(manifest),
             "shard_size": shard_size,
@@ -156,10 +160,11 @@ def main() -> int:
     parser.add_argument("--manifest", type=pathlib.Path, required=True)
     parser.add_argument("--source-root", type=pathlib.Path, required=True)
     parser.add_argument("--output-directory", type=pathlib.Path, required=True)
-    parser.add_argument("--shard-size", type=int, default=32)
+    parser.add_argument("--shard-size", type=int, default=16)
+    parser.add_argument("--run-id", default="u0-work-unit-fixture")
     args = parser.parse_args()
     try:
-        plan(args.parameters, args.manifest, args.source_root, args.output_directory, args.shard_size)
+        plan(args.parameters, args.manifest, args.source_root, args.output_directory, args.shard_size, args.run_id)
         return 0
     except (OSError, ValueError, BindingError, PlanError) as exc:
         print(f"U0_ELIGIBLE_WORK_SHARD_PLAN_FAIL: {exc}", file=sys.stderr)

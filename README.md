@@ -32,8 +32,13 @@ researcher does not need to rerun 1000 shuffles.
 > window 1 is the byte-exact two-row suffix of the first full output. A
 > deterministic pre-execution planner closes six bounded case shards by hash
 > and retains the 8 bp unit as `PARTIAL_WINDOW` with no shard, while declaring
-> that no Sounio execution or scientific metric has occurred. This proves only
-> bounded reason-coded exclusion composition; it remains synthetic and does
+> that no Sounio execution or scientific metric has occurred. A separate
+> run-bound executor then consumes the complete six-shard plan: its first pass
+> executes all shards, its second pass verifies and reuses all six persisted
+> artifacts, and Julia independently recomputes all nine logical rows from the
+> manifest and FASTAs with exact coverage. This proves only resumable bounded
+> reason-coded logical execution; it remains synthetic, emits no pilot output
+> manifest/receipt or Parquet, and does
 > not satisfy chromosome streaming, pilot-wide execution or receipt coverage. A frozen
 > miniature cohort of four complete
 > circular RefSeq replicons (two assemblies, official NCBI checksum closure)

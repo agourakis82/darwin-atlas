@@ -19,12 +19,13 @@ HEADER = (
     "k_max", "null_model", "null_replicates",
 )
 CASE_HEADER = (
-    "case_id", "parameters_sha256", "accession_version", "window_start",
+    "case_id", "run_id", "parameters_sha256", "accession_version", "window_start",
     "scale", "seed64", "bases", "replicates", "reason_code",
 )
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 ACCESSION_RE = re.compile(r"^[A-Z]{1,8}_[0-9]+\.[0-9]+$")
 ASSEMBLY_RE = re.compile(r"^GC[AF]_[0-9]+\.[0-9]+$")
+ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 SCALES = (16, 100, 500, 1000)
 
 
@@ -180,11 +181,14 @@ def inspect_selected_work_unit(parameters: pathlib.Path, manifest: pathlib.Path,
 
 def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.Path,
           output: pathlib.Path, start_window: int, window_count: int,
-          work_unit_id: str | None = None) -> dict[str, int | str]:
+          work_unit_id: str | None = None,
+          run_id: str = "u0-work-unit-fixture") -> dict[str, int | str]:
     if output.exists() or output.is_symlink():
         raise BindingError("output already exists")
     if output.parent.is_symlink() or not output.parent.is_dir():
         raise BindingError("output parent must already be a real directory")
+    if ID_RE.fullmatch(run_id) is None or len(run_id) > 128:
+        raise BindingError("run_id must be a portable identifier of at most 128 bytes")
     row, sequence, parameter_sha = inspect_selected_work_unit(
         parameters, manifest, source_root, work_unit_id,
     )
@@ -192,8 +196,8 @@ def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib
     length = int(row["sequence_length"])
     scale = int(row["scale"])
     total_windows = length // scale
-    if start_window < 0 or start_window >= total_windows or window_count < 1 or window_count > 32:
-        raise BindingError("requested window shard is outside the work unit or exceeds 32")
+    if start_window < 0 or start_window >= total_windows or window_count < 1 or window_count > 16:
+        raise BindingError("requested window shard is outside the work unit or exceeds 16")
     stop_window = min(total_windows, start_window + window_count)
     cases = []
     excluded_rows = 0
@@ -207,14 +211,14 @@ def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib
         if reason_code:
             excluded_rows += 1
         case = (
-            accession.replace(".", "_") + f"_{scale}_{window_index}", parameter_sha,
+            accession.replace(".", "_") + f"_{scale}_{window_index}", run_id, parameter_sha,
             accession, str(window_start), str(scale), seed, bases, "1000", reason_code,
         )
         cases.append("\t".join(case))
     output.write_bytes(("\t".join(CASE_HEADER) + "\n" + "\n".join(cases) + "\n").encode("ascii"))
     next_window = stop_window if stop_window < total_windows else -1
     result: dict[str, int | str] = {
-        "work_unit_id": row["work_unit_id"], "accession_version": accession,
+        "work_unit_id": row["work_unit_id"], "run_id": run_id, "accession_version": accession,
         "scale": scale, "total_windows": total_windows, "start_window": start_window,
         "stop_window": stop_window, "rows": len(cases), "next_window": next_window,
         "excluded_rows": excluded_rows,
@@ -231,12 +235,13 @@ def main() -> int:
     parser.add_argument("--source-root", type=pathlib.Path, required=True)
     parser.add_argument("--output", type=pathlib.Path, required=True)
     parser.add_argument("--work-unit-id")
+    parser.add_argument("--run-id", default="u0-work-unit-fixture")
     parser.add_argument("--start-window", type=int, default=0)
-    parser.add_argument("--window-count", type=int, default=32)
+    parser.add_argument("--window-count", type=int, default=16)
     args = parser.parse_args()
     try:
         build(args.parameters, args.manifest, args.source_root, args.output,
-              args.start_window, args.window_count, args.work_unit_id)
+              args.start_window, args.window_count, args.work_unit_id, args.run_id)
         return 0
     except (OSError, ValueError, BindingError) as exc:
         print(f"U0_WORK_UNIT_CASE_BINDING_FAIL: {exc}", file=sys.stderr)

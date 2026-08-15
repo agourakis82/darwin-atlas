@@ -13,13 +13,14 @@ python3 "${planner}" --parameters "${parameters}" \
   --manifest "${fixture}/u0_work_units.tsv" --source-root "${fixture}" \
   --output-directory "${temporary}/valid" --shard-size 2 >/dev/null
 test "$(shasum -a 256 "${temporary}/valid/work_shard_plan.json" | awk '{print $1}')" = \
-  "34fec0b7212dda6564ab771bcdaa3b5cfbc75c34c0f6d2a01fa62a92d50277cf"
+  "c81b7b76034dfd3dabc836d9c09e64b745d4d4dc45df2c46cfe067c9f9cc03dd"
 python3 - "${temporary}/valid" <<'PY'
 import hashlib, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 plan = json.loads((root / "work_shard_plan.json").read_text(encoding="utf-8"))
 assert plan["evidence_scope"] == "preexecution_only"
-assert plan["schema_version"] == "dosa-v3-u0-work-shard-plan-2"
+assert plan["schema_version"] == "dosa-v3-u0-work-shard-plan-3"
+assert plan["run_id"] == "u0-work-unit-fixture"
 assert plan["scientific_metrics_computed"] is False
 assert plan["sounio_executed"] is False and plan["gate_u0_pass"] is False
 assert (plan["work_units_expected"], plan["shards_expected"], plan["rows_expected"]) == (4, 6, 9)
@@ -62,9 +63,9 @@ expect_refusal reordered 'canonical accession/scale order' python3 "${planner}" 
   --parameters "${parameters}" --manifest "${temporary}/reordered.tsv" \
   --source-root "${fixture}" --output-directory "${temporary}/reordered-plan" --shard-size 2
 
-expect_refusal shard-cap 'shard size must be in 1:32' python3 "${planner}" \
+expect_refusal shard-cap 'shard size must be in 1:16' python3 "${planner}" \
   --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
-  --source-root "${fixture}" --output-directory "${temporary}/cap-plan" --shard-size 33
+  --source-root "${fixture}" --output-directory "${temporary}/cap-plan" --shard-size 17
 
 mkdir "${temporary}/occupied"
 expect_refusal output-exists 'output directory already exists' python3 "${planner}" \
@@ -89,4 +90,9 @@ expect_refusal parent-symlink 'output parent path may not contain symlinks' pyth
   --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
   --source-root "${fixture}" --output-directory "${temporary}/linked-parent/plan" --shard-size 2
 
-echo "U0_ELIGIBLE_WORK_SHARD_PLAN_FIXTURE_PASS work_units=4 shards=6 rows=9 excluded_work_units=1 excluded_windows=1 fail_closed_cases=7 preexecution_only=1"
+expect_refusal invalid-run-id 'run_id must be a portable identifier' python3 "${planner}" \
+  --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
+  --source-root "${fixture}" --output-directory "${temporary}/invalid-run-id-plan" \
+  --shard-size 2 --run-id 'bad/run'
+
+echo "U0_ELIGIBLE_WORK_SHARD_PLAN_FIXTURE_PASS work_units=4 shards=6 rows=9 excluded_work_units=1 excluded_windows=1 fail_closed_cases=8 run_id_bound=1 preexecution_only=1"

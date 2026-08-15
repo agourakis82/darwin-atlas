@@ -121,27 +121,29 @@ function parse_work_unit(parameters_path::String, manifest_path::String, source_
     (; work_id, parameter_sha, accession, scale, bases, total_windows=div(length_bp, scale))
 end
 
-function expected_excluded_profile_line(work, window_index::Int)
+function expected_excluded_profile_line(work, window_index::Int;
+                                        run_id::String="u0-work-unit-fixture")
     reason = "NULL_INPUT_NOT_ACGT"
     null_summary = "{\"n\":0,\"mean\":null,\"mad\":null,\"q025\":null,\"q500\":null,\"q975\":null,\"tail_lt\":null,\"tail_eq\":null,\"tail_gt\":null,\"reason_code\":\"$reason\"}"
     observation = "{\"effective_count\":0,\"observed\":null,\"null_summary\":$null_summary,\"reason_code\":\"$reason\"}"
     kmer_r = join(["{\"k\":$k,\"effective_count\":0,\"observed\":null,\"null_summary\":$null_summary,\"reason_code\":\"$reason\"}" for k in 2:8], ",")
     kmer_rc = join(["{\"k\":$k,\"effective_count\":0,\"observed\":null,\"null_summary\":$null_summary,\"reason_code\":\"$reason\"}" for k in 1:8], ",")
     window_start = window_index * work.scale
-    "{\"run_id\":\"u0-work-unit-fixture\",\"replicon_id\":\"$(work.accession)\",\"window_size\":$(work.scale),\"window_index\":$window_index,\"window_start\":$window_start,\"window_end\":$(window_start + work.scale),\"status\":\"excluded\",\"reason_code\":\"$reason\",\"positional_r\":$observation,\"positional_rc\":$observation,\"kmer_r\":[$kmer_r],\"kmer_rc\":[$kmer_rc]}"
+    "{\"run_id\":\"$run_id\",\"replicon_id\":\"$(work.accession)\",\"window_size\":$(work.scale),\"window_index\":$window_index,\"window_start\":$window_start,\"window_end\":$(window_start + work.scale),\"status\":\"excluded\",\"reason_code\":\"$reason\",\"positional_r\":$observation,\"positional_rc\":$observation,\"kmer_r\":[$kmer_r],\"kmer_rc\":[$kmer_rc]}"
 end
 
 function validate_work_unit(parameters_path::String, manifest_path::String,
                             source_root::String, artifact_path::String,
                             start_window::Int=0, expected_rows::Int=-1,
-                            work_unit_id::String="")
+                            work_unit_id::String="",
+                            run_id::String="u0-work-unit-fixture")
     work = parse_work_unit(parameters_path, manifest_path, source_root, work_unit_id)
     0 <= start_window < work.total_windows || work_fail("start window outside work unit")
     isfile(artifact_path) && !islink(artifact_path) || work_fail("Sounio artifact is missing")
     bytes = read(artifact_path)
     !isempty(bytes) && bytes[end] == 0x0a && !(0x0d in bytes) || work_fail("artifact must be LF-only with terminal LF")
     lines = split(String(bytes[1:end-1]), '\n'; keepempty=true)
-    !isempty(lines) && length(lines) <= 32 || work_fail("artifact shard must contain 1:32 rows")
+    !isempty(lines) && length(lines) <= 16 || work_fail("artifact shard must contain 1:16 rows")
     expected_rows >= 0 && length(lines) != expected_rows && work_fail("artifact row count mismatch")
     start_window + length(lines) <= work.total_windows || work_fail("artifact exceeds work unit")
     for (offset, actual) in enumerate(lines)
@@ -154,9 +156,9 @@ function validate_work_unit(parameters_path::String, manifest_path::String,
             seed64 = bytes2hex(sha256("$(work.parameter_sha):$(work.accession):$window_start"))[1:16]
             case = (; case_id, parameter_sha=work.parameter_sha, accession=work.accession,
                     window_start, scale=work.scale, seed64, bases)
-            expected = expected_profile_line(case; run_id="u0-work-unit-fixture")
+            expected = expected_profile_line(case; run_id)
         else
-            expected = expected_excluded_profile_line(work, window_index)
+            expected = expected_excluded_profile_line(work, window_index; run_id)
         end
         actual == expected || work_fail("byte mismatch for $case_id")
     end
@@ -164,14 +166,15 @@ function validate_work_unit(parameters_path::String, manifest_path::String,
 end
 
 function main_work(args)
-    4 <= length(args) <= 7 || begin
-        println(stderr, "usage: validate_u0_work_unit_fixture.jl <parameters.json> <manifest.tsv> <source-root> <profiles.jsonl> [start-window [expected-rows [work-unit-id]]]")
+    4 <= length(args) <= 8 || begin
+        println(stderr, "usage: validate_u0_work_unit_fixture.jl <parameters.json> <manifest.tsv> <source-root> <profiles.jsonl> [start-window [expected-rows [work-unit-id [run-id]]]]")
         exit(2)
     end
     start_window = length(args) >= 5 ? parse_nonnegative_decimal(args[5], "start window") : 0
     expected_rows = length(args) >= 6 ? parse_positive_decimal(args[6], "expected rows") : -1
-    work_unit_id = length(args) == 7 ? args[7] : ""
-    validate_work_unit(args[1], args[2], args[3], args[4], start_window, expected_rows, work_unit_id)
+    work_unit_id = length(args) >= 7 ? args[7] : ""
+    run_id = length(args) == 8 ? args[8] : "u0-work-unit-fixture"
+    validate_work_unit(args[1], args[2], args[3], args[4], start_window, expected_rows, work_unit_id, run_id)
 end
 
 if abspath(PROGRAM_FILE) == abspath(@__FILE__)

@@ -15,17 +15,17 @@ python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work
   --source-root "${fixture}" --output "${temporary}/valid.tsv" --work-unit-id "${work_id}" >/dev/null
 test "$(wc -l < "${temporary}/valid.tsv")" -eq 4
 test "$(shasum -a 256 "${temporary}/valid.tsv" | awk '{print $1}')" = \
-  "bd6044e36a0c500578c25efdb3aa27be54db65fdacd9d022c7bc273faff35e43"
+  "9e14bd26a3c1081527d5294bee409338d4602f210f45fad86c71efbb857e3f00"
 python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
   --source-root "${fixture}" --output "${temporary}/resume.tsv" --work-unit-id "${work_id}" --start-window 1 >/dev/null
 test "$(shasum -a 256 "${temporary}/resume.tsv" | awk '{print $1}')" = \
-  "23cc34e71db6f2632293f49788f0e4123be93ef1c86948d51a11a531160c402a"
+  "11057fb07e5f8c740a6d3dd2737d8b984790a27797f0cea0e5341ea8a6ceb3c1"
 python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
   --source-root "${fixture}" --output "${temporary}/ambiguous.tsv" --work-unit-id "${ambiguous_work_id}" >/dev/null
 test "$(wc -l < "${temporary}/ambiguous.tsv")" -eq 4
 test "$(shasum -a 256 "${temporary}/ambiguous.tsv" | awk '{print $1}')" = \
-  "ce0117e76b896e3c5ec37301fb6d6cc7a6387657ccc56c144cd33da35d6d1e0a"
-test "$(awk -F '\t' 'NR > 1 && $9 == "NULL_INPUT_NOT_ACGT" { count++ } END { print count + 0 }' "${temporary}/ambiguous.tsv")" -eq 1
+  "9f696aa4a817fc37c396c5ea6c1dc619b593871bf62ab017510b0e0642f4bf83"
+test "$(awk -F '\t' 'NR > 1 && $10 == "NULL_INPUT_NOT_ACGT" { count++ } END { print count + 0 }' "${temporary}/ambiguous.tsv")" -eq 1
 
 expect_refusal() {
   local name="$1"
@@ -82,4 +82,8 @@ expect_refusal partial-window python3 "${builder}" --parameters "${parameters}" 
   --manifest "${fixture}/u0_work_units.tsv" --source-root "${fixture}" \
   --output "${temporary}/partial-window.tsv" --work-unit-id "${partial_work_id}"
 
-echo "U0_WORK_UNIT_BINDING_FAIL_CLOSED_PASS cases=8 resume_shard=2 ambiguous_reason_coded=1 partial_window_refused=1 multi_unit_selector=required"
+expect_refusal invalid-run-id python3 "${builder}" --parameters "${parameters}" \
+  --manifest "${fixture}/u0_work_units.tsv" --source-root "${fixture}" \
+  --output "${temporary}/invalid-run-id.tsv" --work-unit-id "${work_id}" --run-id 'bad/run'
+
+echo "U0_WORK_UNIT_BINDING_FAIL_CLOSED_PASS cases=9 resume_shard=2 run_id_bound=1 ambiguous_reason_coded=1 partial_window_refused=1 multi_unit_selector=required"

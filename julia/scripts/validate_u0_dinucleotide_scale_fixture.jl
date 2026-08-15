@@ -247,7 +247,7 @@ function shuffled_sequence(original::String, seed64::String, replicate::Int)::St
 end
 
 function expected_line(case, replicate::Int, draw::String)::String
-    # This property order is part of u0_dinucleotide_scale_fixture.sio's
+    # This property order is part of u0_work_shard_executor.sio's
     # fixture protocol.  Keep this serializer intentionally explicit rather
     # than accepting semantically equivalent JSON.
     "{\"case_id\":\"$(case.case_id)\",\"scale\":$(case.scale),\"replicate\":$replicate,\"seed64\":\"$(case.seed64)\",\"sequence\":\"$draw\"}"

@@ -137,6 +137,10 @@ jobs:
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-dinucleotide-scale-fixture
 
+      - name: Execute and resume the complete bounded work-shard set with independent Julia recomputation
+        working-directory: atlas
+        run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-work-shard-set-fixture
+
   cross-validation-boundary:
     name: Missing Sounio is blocked, never a pass
     runs-on: ubuntu-latest

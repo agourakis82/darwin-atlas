@@ -49,7 +49,8 @@ help:
 	@echo "  u0-cli-integration     Exercise DuckDB/Zstd package, query and verify integration"
 	@echo "  u0-julia-contract      Run independent U0 manifest and secondary-gate validators"
 	@echo "  u0-manifest-differential-fixture  Pinned Sounio manifest boundary + independent Julia"
-	@echo "  u0-dinucleotide-scale-fixture  Draws + v3 profiles + multi-unit shards/resume + Julia"
+	@echo "  u0-dinucleotide-scale-fixture  Draws + v3 profiles + bounded shard regression + Julia"
+	@echo "  u0-work-shard-set-fixture  Resumable run-bound Sounio shard set + full logical Julia"
 	@echo "  u0-gate                Fail-closed U0 evaluator; real promotion remains explicitly locked"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"
@@ -227,17 +228,20 @@ u0-contract:
 		scripts/generate_u0_dinucleotide_scale_cases.rb \
 		scripts/build_u0_work_unit_case.py \
 		scripts/plan_u0_eligible_work_shards.py \
+		scripts/execute_u0_work_shard_plan.py \
 		scripts/run_u0_dinucleotide_scale_fixture.sh \
+		scripts/run_u0_work_shard_set_fixture.sh \
 		scripts/test_u0_work_unit.sh \
 		scripts/test_u0_work_shard_plan.sh \
 		scripts/validate_u0_window_profile_fixture.py \
 		cli/bin/dosa \
 		sounio/src/u0_manifest_fixture.sio \
-		sounio/src/u0_dinucleotide_scale_fixture.sio \
+		sounio/src/u0_work_shard_executor.sio \
 		julia/scripts/validate_u0_manifest.jl \
 		julia/scripts/validate_u0_dinucleotide_scale_fixture.jl \
 		julia/scripts/validate_u0_window_profile_fixture.jl \
 		julia/scripts/validate_u0_work_unit_fixture.jl \
+		julia/scripts/validate_u0_work_shard_set.jl \
 		julia/test/test_u0_window_profile_fixture.jl \
 		julia/test/test_u0_work_unit_fixture.jl; do test -s "$$f"; done
 	@test -s data/v3/U0_CONTROL_LEDGER.md
@@ -250,9 +254,9 @@ u0-contract:
 	@test -s data/fixtures/u0_work_unit/fasta/NC_000003.1.fa
 	@test -s data/fixtures/u0_work_unit/fasta/NC_000004.1.fa
 	@for f in dosa_v3_common dosa_v3_parameters dosa_v3_source_manifest dosa_v3_source_index dosa_v3_replicon dosa_v3_run dosa_v3_window_profile dosa_v3_summary dosa_v3_exclusion dosa_v3_payload_manifest dosa_v3_receipt; do test -s "schemas/$$f.schema.json"; done
-	@bash -n scripts/freeze_u0_refseq_snapshot.sh scripts/run_u0_dinucleotide_scale_fixture.sh scripts/test_u0_work_unit.sh scripts/test_u0_work_shard_plan.sh scripts/test_u0_selection.sh scripts/test_u0_control_review.sh scripts/test_u0_control_ledger.sh scripts/test_u0_source_manifest.sh scripts/test_u0_gate.sh scripts/test_u0_capacity.sh scripts/test_u0_operational.sh
+	@bash -n scripts/freeze_u0_refseq_snapshot.sh scripts/run_u0_dinucleotide_scale_fixture.sh scripts/run_u0_work_shard_set_fixture.sh scripts/test_u0_work_unit.sh scripts/test_u0_work_shard_plan.sh scripts/test_u0_selection.sh scripts/test_u0_control_review.sh scripts/test_u0_control_ledger.sh scripts/test_u0_source_manifest.sh scripts/test_u0_gate.sh scripts/test_u0_capacity.sh scripts/test_u0_operational.sh
 	@ruby -c scripts/generate_u0_dinucleotide_scale_cases.rb >/dev/null
-	@python3 -m py_compile scripts/build_u0_work_unit_case.py scripts/plan_u0_eligible_work_shards.py
+	@python3 -m py_compile scripts/build_u0_work_unit_case.py scripts/plan_u0_eligible_work_shards.py scripts/execute_u0_work_shard_plan.py
 	@python3 -c 'p="scripts/validate_u0_window_profile_fixture.py"; compile(open(p,encoding="utf-8").read(),p,"exec")'
 	@tmp="$$(mktemp "$${TMPDIR:-/tmp}/dosa-u0-scale-cases.XXXXXX")"; ruby scripts/generate_u0_dinucleotide_scale_cases.rb data/v3/u0_parameters.json "$$tmp"; cmp data/fixtures/u0_dinucleotide_scale/cases.tsv "$$tmp"; rm -f "$$tmp"
 	@python3 -c 'import json,pathlib; files=list(pathlib.Path("schemas").glob("dosa_v3_*.schema.json"))+list(pathlib.Path("data/v3").glob("*.json"))+[pathlib.Path("toolchains/ncbi-datasets.lock.json")]; hook=lambda pairs: _pairs(pairs); ns={}; exec("def _pairs(pairs):\n d={}\n for k,v in pairs:\n  if k in d: raise ValueError(\"duplicate JSON key: \"+k)\n  d[k]=v\n return d",ns); [json.loads(p.read_text(),object_pairs_hook=ns["_pairs"]) for p in files]; print("DOSA_V3_JSON_NO_DUPLICATES_PASS files=%d"%len(files))'
@@ -298,6 +302,13 @@ u0-dinucleotide-scale-fixture:
 	@SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
 		JULIA_BIN="$$(printf '%s' "$(JULIA)" | awk '{print $$1}')" \
 		bash scripts/run_u0_dinucleotide_scale_fixture.sh
+
+# Executes and resumes all shards in the bounded development plan. It validates
+# the complete logical set in Julia but intentionally emits no pilot receipt.
+u0-work-shard-set-fixture:
+	@SOUNIO_REPO="$(SOUNIO_REPO)" SOUNIO_LIMA_INSTANCE="$(SOUNIO_LIMA_INSTANCE)" \
+		JULIA_BIN="$$(printf '%s' "$(JULIA)" | awk '{print $$1}')" \
+		bash scripts/run_u0_work_shard_set_fixture.sh
 
 u0-gate:
 	@for variable in U0_AGREEMENT_REPORT U0_QUERY_REPORT U0_SPEED_REPORT U0_CAPACITY_REPORT U0_FIELD_AUDIT_REPORT U0_ORIC_REPORT U0_MODEL_REPORT U0_ORIC_INPUT U0_MODEL_INPUT U0_PARAMETERS U0_SOURCE_MANIFEST U0_SOURCE_INTEGRITY U0_SOURCE_INDEX U0_PAYLOAD_MANIFEST U0_SOUNIO_ATTESTATION U0_SOUNIO_BUILD_RECEIPT U0_SOUNIO_EXECUTION_RECEIPT U0_SOUNIO_OUTPUT_MANIFEST U0_JULIA_RECEIPT U0_PILOT_PROVENANCE U0_SELECTION U0_CONTROL_CANDIDATES U0_CONTROL_LEDGER U0_CONTROL_BINDING_RECEIPT U0_CONTROL_VALIDATION_RECEIPT U0_SOURCE_FREEZE_RECEIPT U0_ASSEMBLY_REPORT U0_SEQUENCE_REPORT U0_FULL_REPLICON_INVENTORY U0_WORK_UNIT_MANIFEST U0_JULIA_BIN; do eval "value=\$$$$variable"; if [ -z "$$value" ] || [ ! -f "$$value" ]; then echo "BLOCKED: $$variable must name an immutable real U0 evidence artifact"; exit 2; fi; done

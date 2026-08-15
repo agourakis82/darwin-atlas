@@ -1,13 +1,14 @@
 //@ run-pass
 
-// Capacity fixture for the exact euler_wilson_fixed_endpoints_v1 null.
+// Bounded work-shard executor for the exact euler_wilson_fixed_endpoints_v1 null.
 //
-// This is intentionally separate from every historical FASTA/pipeline fixture
-// and from the still-unimplemented U0 producer.  It exercises fixed arrays at
-// 16/100/500/1000 bases and exactly 1000 draws per case, retaining the Fase L
-// generator semantics (including its sequential replicate jump) in a bounded,
-// synthetic fixture.  It emits only after a grammar pass and a full dry-run;
-// malformed input therefore exits 12 with zero stdout bytes.
+// It executes one host-bound shard of at most 16 complete windows at the U0
+// scales 16/100/500/1000 and exactly 1000 draws per eligible window, retaining
+// the Fase L generator semantics (including its sequential replicate jump).
+// The synthetic scale mode remains as a regression surface. It emits only
+// after a grammar pass and a full dry-run; malformed input therefore exits 12
+// with zero stdout bytes. Pilot-wide orchestration, receipts and Parquet are
+// deliberately outside this executable and remain promotion blockers.
 
 const MAX_BASES: i64 = 1000
 const MAX_EDGES: i64 = 999
@@ -17,7 +18,7 @@ const FIXTURE_CASES: i64 = 4
 const REPLICATES: i64 = 1000
 const PROFILE_METRICS: i64 = 17
 const MAX_KMER_CODES: i64 = 65536
-const MAX_WORK_CASES: i64 = 32
+const MAX_WORK_CASES: i64 = 16
 
 const RNG_M1: i64 = 2147483563
 const RNG_M2: i64 = 2147483399
@@ -51,6 +52,7 @@ var G_WINDOW_LENGTH: i64 = 0
 var G_PROFILE_MODE: bool = false
 var G_WORK_UNIT_MODE: bool = false
 var G_WORK_START_INDEX: i64 = 0
+var G_RUN_ID: string = ""
 
 fn span(text: string, start: i64, finish: i64) -> string with Mut, Panic, Div {
     if start < 0 || finish < start { return "" }
@@ -220,11 +222,12 @@ fn work_reason_ok(reason_code: string, bases: string) -> bool with Mut, Panic, D
     str_eq(reason_code, "NULL_INPUT_NOT_ACGT") && ambiguous
 }
 
-fn validate_work_unit_case(index: i64, case_id: string, parameters_sha: string, accession: string,
+fn validate_work_unit_case(index: i64, case_id: string, run_id: string,
+                           parameters_sha: string, accession: string,
                            window_start: i64, scale: i64, seed64: string,
                            bases: string, requested_replicates: i64,
                            reason_code: string) -> bool with Mut, Panic, Div {
-    identifier_ok(case_id)
+    identifier_ok(case_id) && identifier_ok(run_id) && str_eq(run_id, G_RUN_ID)
         && sha_ok(parameters_sha) && str_eq(parameters_sha, expected_parameter_sha())
         && identifier_ok(accession)
         && work_scale_ok(scale)
@@ -654,9 +657,10 @@ fn emit_profile_observation(metric: i64, k: i64, include_k: bool) with IO, Mut, 
     print(",\"reason_code\":null}")
 }
 
-fn emit_window_profile(accession: string, scale: i64, window_start: i64) with IO, Mut, Panic, Div {
-    if G_WORK_UNIT_MODE { print("{\"run_id\":\"u0-work-unit-fixture\",\"replicon_id\":\"") }
-    else { print("{\"run_id\":\"u0-profile-fixture\",\"replicon_id\":\"") }
+fn emit_window_profile(run_id: string, accession: string, scale: i64, window_start: i64) with IO, Mut, Panic, Div {
+    print("{\"run_id\":\"")
+    print(run_id)
+    print("\",\"replicon_id\":\"")
     print(accession)
     print("\",\"window_size\":")
     print_int(scale)
@@ -703,8 +707,10 @@ fn emit_unavailable_profile_observation(k: i64, include_k: bool) with IO {
     print("\"reason_code\":\"NULL_INPUT_NOT_ACGT\"}")
 }
 
-fn emit_excluded_window_profile(accession: string, scale: i64, window_start: i64) with IO {
-    print("{\"run_id\":\"u0-work-unit-fixture\",\"replicon_id\":\"")
+fn emit_excluded_window_profile(run_id: string, accession: string, scale: i64, window_start: i64) with IO {
+    print("{\"run_id\":\"")
+    print(run_id)
+    print("\",\"replicon_id\":\"")
     print(accession)
     print("\",\"window_size\":")
     print_int(scale)
@@ -765,19 +771,21 @@ fn emit_draw(case_id: string, scale: i64, replicate: i64, seed64: string) with I
 // emits the already-proven-reachable stream.  This is the no-partial-stdout
 // boundary for invalid/malformed cases, not a U0 run receipt.
 fn process_case(line: string, index: i64, pass: i64) -> bool with IO, Mut, Panic, Div {
-    let expected_fields = if G_WORK_UNIT_MODE { 9 } else { 8 }
+    let expected_fields = if G_WORK_UNIT_MODE { 10 } else { 8 }
     if field_count(line) != expected_fields { return false }
     let case_id = field(line, 0)
-    let parameters_sha = field(line, 1)
-    let accession = field(line, 2)
-    let window_start = decimal(field(line, 3))
-    let scale = decimal(field(line, 4))
-    let seed64 = field(line, 5)
-    let bases = field(line, 6)
-    let requested_replicates = decimal(field(line, 7))
-    let reason_code = if G_WORK_UNIT_MODE { field(line, 8) } else { "" }
+    let run_id = if G_WORK_UNIT_MODE { field(line, 1) } else { "u0-profile-fixture" }
+    let shift = if G_WORK_UNIT_MODE { 1 } else { 0 }
+    let parameters_sha = field(line, 1 + shift)
+    let accession = field(line, 2 + shift)
+    let window_start = decimal(field(line, 3 + shift))
+    let scale = decimal(field(line, 4 + shift))
+    let seed64 = field(line, 5 + shift)
+    let bases = field(line, 6 + shift)
+    let requested_replicates = decimal(field(line, 7 + shift))
+    let reason_code = if G_WORK_UNIT_MODE { field(line, 9) } else { "" }
     if G_WORK_UNIT_MODE {
-        if !validate_work_unit_case(index, case_id, parameters_sha, accession,
+        if !validate_work_unit_case(index, case_id, run_id, parameters_sha, accession,
             window_start, scale, seed64, bases, requested_replicates, reason_code) { return false }
     } else {
         if !str_eq(case_id, expected_case_id(index)) || !sha_ok(parameters_sha)
@@ -791,7 +799,7 @@ fn process_case(line: string, index: i64, pass: i64) -> bool with IO, Mut, Panic
     }
     if pass == 0 { return true }
     if G_WORK_UNIT_MODE && str_len(reason_code) > 0 {
-        if pass == 2 { emit_excluded_window_profile(accession, scale, window_start) }
+        if pass == 2 { emit_excluded_window_profile(run_id, accession, scale, window_start) }
         return true
     }
 
@@ -817,7 +825,7 @@ fn process_case(line: string, index: i64, pass: i64) -> bool with IO, Mut, Panic
         }
         replicate = replicate + 1
     }
-    if G_PROFILE_MODE && pass == 2 { emit_window_profile(accession, scale, window_start) }
+    if G_PROFILE_MODE && pass == 2 { emit_window_profile(run_id, accession, scale, window_start) }
     true
 }
 
@@ -842,7 +850,7 @@ fn run_cases(text: string, pass: i64) -> bool with IO, Mut, Panic, Div {
             let line = span(text, start, line_end)
             if logical_line == 0 {
                 let expected_header = if G_WORK_UNIT_MODE {
-                    "case_id\tparameters_sha256\taccession_version\twindow_start\tscale\tseed64\tbases\treplicates\treason_code"
+                    "case_id\trun_id\tparameters_sha256\taccession_version\twindow_start\tscale\tseed64\tbases\treplicates\treason_code"
                 } else {
                     "case_id\tparameters_sha256\taccession_version\twindow_start\tscale\tseed64\tbases\treplicates"
                 }
@@ -867,22 +875,28 @@ fn run_cases(text: string, pass: i64) -> bool with IO, Mut, Panic, Div {
 }
 
 fn main() -> i64 with IO, Mut, Panic, Div {
-    if arg_count() < 1 || arg_count() > 3 {
-        println("usage: u0_dinucleotide_scale_fixture <cases.tsv> [--profiles|--work-unit-profile [start-window]]")
+    if arg_count() < 1 || arg_count() > 4 {
+        println("usage: u0_work_shard_executor <cases.tsv> [--profiles|--work-unit-profile <run-id> [start-window]]")
         return 64
     }
     if arg_count() == 2 {
         if str_eq(get_arg(1), "--profiles") { G_PROFILE_MODE = true }
-        else if str_eq(get_arg(1), "--work-unit-profile") {
-            G_PROFILE_MODE = true
-            G_WORK_UNIT_MODE = true
-        } else { return 64 }
+        else { return 64 }
     }
     if arg_count() == 3 {
         if !str_eq(get_arg(1), "--work-unit-profile") { return 64 }
         G_PROFILE_MODE = true
         G_WORK_UNIT_MODE = true
-        G_WORK_START_INDEX = decimal(get_arg(2))
+        G_RUN_ID = get_arg(2)
+        if !identifier_ok(G_RUN_ID) { return 64 }
+    }
+    if arg_count() == 4 {
+        if !str_eq(get_arg(1), "--work-unit-profile") { return 64 }
+        G_PROFILE_MODE = true
+        G_WORK_UNIT_MODE = true
+        G_RUN_ID = get_arg(2)
+        if !identifier_ok(G_RUN_ID) { return 64 }
+        G_WORK_START_INDEX = decimal(get_arg(3))
         if G_WORK_START_INDEX < 0 { return 64 }
     }
     let text = read_file(get_arg(0))
