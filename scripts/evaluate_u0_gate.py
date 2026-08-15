@@ -2,9 +2,10 @@
 """Validate DOSA v3 U0 evidence under an explicit fail-closed promotion lock.
 
 Fixtures exercise structural and threshold checks but can never emit PASS.
-Real-scope adjudication is also locked until the canonical producer, integral
-validator and held-out derivation closure are implemented; deeper validators
-below are development scaffolding, not an enabled scientific admission path.
+The canonical shard-composed producer and integral validator are implemented;
+real-scope adjudication remains locked until the held-out derivation roles and
+real RefSeq evidence closure exist. Deeper validators below are development
+scaffolding, not an enabled scientific admission path.
 """
 from __future__ import annotations
 
@@ -40,7 +41,10 @@ PRIVATE_MARKERS = ("/users/", "/home/", "/private/", "localhost", ".local", "pro
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 ORIC_EVALUATOR = ROOT / "julia" / "scripts" / "evaluate_oric_terminus_gate.jl"
 MODEL_EVALUATOR = ROOT / "julia" / "scripts" / "evaluate_rc_equivariance_benchmark.jl"
-U0_SOUNIO_EXECUTOR = ROOT / "sounio" / "src" / "u0_pilot_executor.sio"
+# The canonical producer is intentionally shard-bounded. The manifest planner
+# and execution ledger compose any number of <=16-window Sounio invocations;
+# this avoids a second scientific kernel whose semantics could drift.
+U0_SOUNIO_EXECUTOR = ROOT / "sounio" / "src" / "u0_work_shard_executor.sio"
 U0_JULIA_FULL_VALIDATOR = ROOT / "julia" / "scripts" / "validate_u0_pilot.jl"
 # These roles are intentionally not part of PILOT_PROVENANCE_ROLES yet.  Their
 # absence is an explicit promotion lock: a held-out PASS is not admissible
@@ -903,7 +907,7 @@ def validate_real_pilot_artifacts(
     source_freeze: dict[str, Any],
 ) -> dict[str, Any]:
     if not U0_SOUNIO_EXECUTOR.is_file():
-        raise GateError("real U0 is blocked: canonical Sounio u0_pilot_executor.sio is not implemented")
+        raise GateError("real U0 is blocked: canonical Sounio work-shard executor is not implemented")
     if not U0_JULIA_FULL_VALIDATOR.is_file():
         raise GateError("real U0 is blocked: independent Julia validate_u0_pilot.jl is not implemented")
     documents: dict[str, dict[str, Any]] = {}
@@ -951,7 +955,7 @@ def validate_real_pilot_artifacts(
     require_value(build.get("status"), "PASS", "sounio_build_receipt.status")
     require_value(build.get("repository_url"), sounio_lock.get("repository"), "sounio_build_receipt.repository_url")
     require_value(build.get("source_commit"), sounio_lock.get("commit"), "sounio_build_receipt.source_commit")
-    require_value(build.get("source_path"), "sounio/src/u0_pilot_executor.sio", "sounio_build_receipt.source_path")
+    require_value(build.get("source_path"), "sounio/src/u0_work_shard_executor.sio", "sounio_build_receipt.source_path")
     require_value(build.get("source_sha256"), sha256_file(U0_SOUNIO_EXECUTOR), "sounio_build_receipt.source_sha256")
     require_value(build.get("build_exit_code"), 0, "sounio_build_receipt.build_exit_code")
     require_value(build.get("source_dirty"), False, "sounio_build_receipt.source_dirty")

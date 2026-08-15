@@ -12,6 +12,8 @@ readonly planner="${atlas_root}/scripts/plan_u0_eligible_work_shards.py"
 readonly validator="${atlas_root}/julia/scripts/validate_u0_work_shard_set.jl"
 readonly packager="${atlas_root}/scripts/package_u0_work_shard_set.py"
 readonly parquet_validator="${atlas_root}/julia/scripts/validate_u0_work_parquet_set.jl"
+readonly finalizer="${atlas_root}/scripts/finalize_u0_sounio_execution.py"
+readonly pilot_validator="${atlas_root}/julia/scripts/validate_u0_pilot.jl"
 readonly parameters="${atlas_root}/data/v3/u0_parameters.json"
 readonly common_schema="${atlas_root}/schemas/dosa_v3_common.schema.json"
 readonly window_schema="${atlas_root}/schemas/dosa_v3_window_profile.schema.json"
@@ -81,6 +83,7 @@ sha256sum "$root/executor.elf" | awk '{print "sounio_executable_sha256=" $1}'
 python3 "$root/execute.py" --plan-directory "$root/plan" --executor "$root/executor.elf" --output-directory "$root/execution"
 python3 "$root/execute.py" --plan-directory "$root/plan" --executor "$root/executor.elf" --output-directory "$root/execution"
 SOUNIO_RUN
+  limactl copy -y --backend=scp "${instance}:${guest_root}/executor.elf" "${local_elf}"
   mkdir -p "${temporary}/execution/artifacts"
   limactl copy -y --backend=scp "${instance}:${guest_root}/execution/execution_ledger.tsv" "${temporary}/execution/execution_ledger.tsv"
   while IFS= read -r name; do
@@ -107,6 +110,40 @@ python3 "${packager}" --parameters "${parameters}" --manifest "${manifest}" \
   --common-schema "${common_schema}"
 "${julia_bin}" --startup-file=no "${parquet_validator}" "${parameters}" "${manifest}" \
   "${fixture}" "${temporary}/parquet-set"
+
+# Close the exact Sounio build/execution bytes and make Julia independently
+# re-open both the full logical set and every Parquet payload. Fixture scope is
+# deliberate: these inputs are synthetic and cannot authorize Gate U0.
+python3 "${finalizer}" --parameters "${parameters}" --manifest "${manifest}" \
+  --source-manifest "${manifest}" --source-root "${fixture}" \
+  --plan-directory "${temporary}/plan" --execution-root "${temporary}/execution" \
+  --evidence-root "${temporary}" --sounio-source "${source_file}" \
+  --sounio-compiler "${SOUNIO_REPO}/bin/souc" --sounio-executable "${local_elf}" \
+  --sounio-commit "${actual_commit}" --repository-url "${expected_repo}" \
+  --evidence-scope fixture-only-nonpromotable --output-directory "${temporary}/receipts"
+set +e
+python3 "${finalizer}" --parameters "${parameters}" --manifest "${manifest}" \
+  --source-manifest "${manifest}" --source-root "${fixture}" \
+  --plan-directory "${temporary}/plan" --execution-root "${temporary}/execution" \
+  --evidence-root "${temporary}" --sounio-source "${source_file}" \
+  --sounio-compiler "${SOUNIO_REPO}/bin/souc" --sounio-executable "${local_elf}" \
+  --sounio-commit "${actual_commit}" --repository-url "${expected_repo}" \
+  --evidence-scope u0_pilot --output-directory "${temporary}/scope-relabel-receipts" \
+  >"${temporary}/scope-relabel.stdout" 2>"${temporary}/scope-relabel.stderr"
+scope_relabel_rc=$?
+set -e
+[[ "${scope_relabel_rc}" -eq 11 && ! -e "${temporary}/scope-relabel-receipts" ]] || {
+  echo "FAIL: synthetic source manifest escaped the u0_pilot scope guard" >&2; exit 1;
+}
+grep -q 'u0_pilot scope requires a distinct frozen source manifest' "${temporary}/scope-relabel.stderr"
+echo "U0_SOUNIO_EXECUTION_SCOPE_RELABEL_REFUSED_PASS"
+"${julia_bin}" --startup-file=no --project="${atlas_root}/julia" "${pilot_validator}" \
+  "${parameters}" "${manifest}" "${fixture}" "${temporary}/plan" \
+  "${temporary}/execution" "${temporary}/parquet-set" "${temporary}" "${manifest}" \
+  "${temporary}/parquet-set/source-index.json" "${temporary}/parquet-set/parquet_set_manifest.json" \
+  "${temporary}/receipts/sounio-execution-receipt.json" \
+  "${temporary}/receipts/sounio-output-manifest.json" fixture-only-nonpromotable \
+  "${temporary}/receipts/julia-validation-receipt.json"
 
 # A second independently written package must have the same logical, Parquet,
 # binding and closure bytes under the pinned transport implementation.
@@ -164,5 +201,8 @@ echo "execution_ledger_sha256=$(sha256_file "${temporary}/execution/execution_le
 echo "parquet_set_manifest_sha256=$(sha256_file "${temporary}/parquet-set/parquet_set_manifest.json")"
 echo "parquet_set_ledger_sha256=$(sha256_file "${temporary}/parquet-set/parquet_set_ledger.tsv")"
 echo "parquet_payload_ledger_sha256=$(sha256_file "${temporary}/parquet-set/parquet_payload_ledger.tsv")"
+echo "sounio_output_manifest_sha256=$(sha256_file "${temporary}/receipts/sounio-output-manifest.json")"
+echo "sounio_execution_receipt_sha256=$(sha256_file "${temporary}/receipts/sounio-execution-receipt.json")"
+echo "julia_validation_receipt_sha256=$(sha256_file "${temporary}/receipts/julia-validation-receipt.json")"
 echo "U0_WORK_SHARD_SET_DIFFERENTIAL_PASS work_units=7 shards=9 rows=12 excluded_work_units=1 resumed_shards=9 parquet_scales=4 roundtrip_byte_exact=1 tolerance=0 fixture_scope_nonpromotable=1"
 echo "U0_GATE_PASS=false"

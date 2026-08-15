@@ -40,9 +40,10 @@ byte-identical, and Julia recomputes all twelve reopened rows from parameters,
 manifest and FASTA. Independent Parquet-byte and round-trip-JSON alterations
 are refused.
 
-This remains bounded synthetic evidence. It does not emit the real multiscale
-U0 output manifest, execution receipt, public payload manifest, full-pilot
-Julia receipt, Gate U0 PASS or an HDD authorization.
+This remains bounded synthetic evidence. It emits exact-shaped Sounio output/
+execution receipts and an integral Julia receipt under
+`fixture-only-nonpromotable`; these are not a real multiscale U0 receipt,
+public payload manifest, Gate U0 PASS or HDD authorization.
 
 Observed at official Sounio commit
 `37de2c9eefe68f3457a2c66004eff68bba5b4446`:
@@ -68,4 +69,9 @@ Observed at official Sounio commit
 - deterministic Parquet-set manifest, set-ledger and payload-ledger SHA-256
   values `ce3b79d6f86a9075e8f3ffa8ae1b3e4e9534db64d8579182efb928eed2c96f5e`,
   `577bd3910988135e2bdd9edaa6667883580ca9513fc3b0c1afe58a14337cf8a9`
-  and `5d40e189fd8df9a86bcc00ebf9a0ecb976af339ea044356a96a66b4b3d319c1f`.
+  and `5d40e189fd8df9a86bcc00ebf9a0ecb976af339ea044356a96a66b4b3d319c1f`;
+- nonpromotable Sounio output manifest, execution receipt and integral Julia
+  receipt SHA-256 values
+  `dfecf6c11f879156b8904a64306bc8ca2946bda48abd05353ab56a42d5723421`,
+  `37ab330a0214e39811f063a55bd954d8e6c0f3f1567831b5af5fffaf8a8b6674`
+  and `eebdc3c96a7391e633b117a2c5df7f1c5fafa5c6c4b43f5154edd7858e9c91e7`.

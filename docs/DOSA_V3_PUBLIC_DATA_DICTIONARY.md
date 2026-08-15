@@ -197,10 +197,12 @@ the generated control ledger and its binding/semantic receipts, the source
 freeze receipt, and the exact replicon-by-scale work-unit manifest.
 
 That 29-role structure is a development scaffold, not an enabled promotion
-contract. Six additional held-out derivation roles (scientific cohort, split,
+contract. The shard-composed Sounio executor and Base-only integral Julia
+validator are implemented and produce nonpromotable fixture receipts. Six
+additional held-out derivation roles (scientific cohort, split,
 OriC ground truth and derivation receipt, injected-model manifest and model
-derivation receipt) are deliberately absent. Their absence, together with the
-missing full Sounio executor and Julia validator, keeps
+derivation receipt) are deliberately absent. Their absence and the missing
+real RefSeq evidence keep
 `U0_PROMOTION_LOCKED`; the two Julia evaluators also refuse held-out scope.
 
 | Field | Demonstrated use | Removal/change criterion |
@@ -258,6 +260,6 @@ analytic layer. Historical v2 artifacts remain byte-preserved under their own
 engineering boundary and cannot be relabelled as v3 evidence.
 
 The real U0 provenance profile is partially scaffolded and explicitly locked.
-No actual scale-100/500/1000 n=1000 Sounio executor/output closure,
-full-pilot Julia receipt, or held-out derivation closure exists, so this
-dictionary does not imply an enabled PASS path or U0 passage.
+The multiscale executor/output and integral Julia closure pass only on synthetic
+fixtures; no real-pilot receipt or held-out derivation closure exists. This
+dictionary therefore does not imply an enabled PASS path or U0 passage.

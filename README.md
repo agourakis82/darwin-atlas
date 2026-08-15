@@ -39,9 +39,12 @@ researcher does not need to rerun 1000 shuffles.
 > artifacts, and Julia independently recomputes all twelve logical rows from the
 > manifest and FASTAs with exact coverage. The stream is deterministically
 > packaged into six Zstandard Parquet payloads across all four U0 scales and
-> reopened byte-exactly before the same Julia recomputation. This remains
-> synthetic and emits no pilot output manifest or execution receipt; it does
-> not satisfy chromosome streaming, pilot-wide execution or receipt coverage. A frozen
+> reopened byte-exactly before the same Julia recomputation. A deterministic
+> finalizer now emits a Sounio build receipt, attestation, logical output
+> manifest and execution receipt; the Base-only integral Julia validator then
+> reopens all logical and Parquet rows and emits its own hash-closed receipt.
+> These receipts are explicitly `fixture-only-nonpromotable`: they do not
+> satisfy RefSeq pilot-wide execution or real-pilot receipt coverage. A frozen
 > miniature cohort of four complete
 > circular RefSeq replicons (two assemblies, official NCBI checksum closure)
 > is pinned in [`data/cohort/mini/`](data/cohort/mini/README.md); engineering
@@ -55,8 +58,9 @@ researcher does not need to rerun 1000 shuffles.
 > `release_state=u0_pilot_evidence`, a single exact evidence-root/provenance
 > closure, persisted Sounio execution/output artifacts plus independent full
 > Julia semantic recomputation/agreement, and bound source and scientific
-> inputs. The actual U0 executor, integral Julia validator, held-out
-> derivation contract and full receipts do not yet exist.
+> inputs. The canonical shard-composed U0 executor and integral Julia validator
+> now exist and are exercised synthetically; the frozen real pilot, held-out
+> derivation contract and promotable receipts do not yet exist.
 
 ## DOSA v3 utility surface
 
@@ -319,8 +323,9 @@ the twelve rows at 16/100/500/1000 bp as typed Zstandard Parquet partitioned by 
 DuckDB reopens the package byte-exactly, and Julia independently recomputes
 every reopened analytical row. A second package is byte-identical; separate
 Parquet-byte and round-trip-JSON perturbations are refused. The input sequences
-are synthetic and the result remains explicitly nonpromotable; it is not the
-RefSeq pilot, a pilot receipt, or a public shard.
+are synthetic and the result remains explicitly nonpromotable; the exact-shaped
+receipts prove the transport and validation contract, not a RefSeq pilot,
+promotable receipt, or public shard.
 
 For v3, `make u0-gate` is separately fail-closed until all real pilot paths are
 provided beneath `U0_EVIDENCE_ROOT`: the agreement, query, speed, capacity,
@@ -335,10 +340,10 @@ but is structurally unable to authorize the full atlas or an HDD purchase. A
 regression test rejects fixture reports whose scope labels and hashes are
 rewritten to resemble a pilot. An explicit `U0_PROMOTION_LOCKED` check runs
 before real evidence adjudication; the Julia scientific evaluators separately
-refuse held-out scope. The lock is not removable until the actual n=1000
-multiscale pilot executor, integral Sounio/Julia pilot receipts, held-out
-derivation roles, and the remaining source/package/report/runtime closures
-exist.
+refuse held-out scope. The executor and integral validator are implemented,
+but the lock is not removable until their real n=1000 RefSeq pilot receipts,
+the six held-out derivation roles, and the remaining source/package/report/
+runtime closures exist.
 
 Because the official Sounio repository moves rapidly, fixture runners accept
 only the clean commit pinned in `toolchains/sounio.lock.json`. Refresh that pin

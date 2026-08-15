@@ -12,10 +12,10 @@ the separate dirty WIP were preserved before branch creation; see
 | Utility-first U0 contract, parameters, schemas and data dictionary | IMPLEMENTED / fixture-validated | U0 remains `NOT_YET_PASSED` |
 | Fresh RefSeq acquisition, deterministic pilot selector and source closure builder | IMPLEMENTED / acquisition not frozen | NCBI Datasets 18.35.0 is locally hash-pinned; pre-download control candidates are bound only after rehydration to an exact six-field ledger and independently proven from FASTA/GBFF/sequence-report bytes; the real candidates and fresh package remain pending |
 | `dosa query`, `dosa calibrate`, `dosa verify`, Parquet/Zstandard packager | IMPLEMENTED / synthetic integration | the bounded Sounio set is now packaged and reopened byte-exactly as real Zstandard Parquet; calibration still requires a non-semantic official-runner attestation, no public shard or pilot package exists, and transport verification alone is not scientific validation |
-| Manifest-directed Sounio work-unit contract | IMPLEMENTED WITH CAPABILITY REFUSALS | the manifest fixture still refuses unbound pilot execution; the bounded work-shard executor binds `run_id`, emits eleven eligible profiles plus one exact `NULL_INPUT_NOT_ACGT` exclusion across 16/100/500/1000 bp, proves a byte-exact resume suffix, executes/reuses all nine planned shards and packages all four scales while retaining the zero-window unit as `PARTIAL_WINDOW`; there is no canonical RefSeq pilot executor, chromosome-scale run, pilot output manifest, execution receipt or pilot evidence |
-| Independent Julia manifest, multiscale-null and scientific secondary evaluators | IMPLEMENTED / synthetic fixtures | Julia independently regenerates 4000 exact Euler/Wilson draws and all 17 observed/null blocks in four multiscale rows, returns to manifest/FASTA inputs to validate all twelve composition rows and the resume artifact, closes the nine-shard logical set, and recomputes all twelve rows reextracted from Parquet; full-pilot validation is absent, held-out scientific scope remains explicit `REFUSE`, and no real scientific receipt exists |
+| Manifest-directed Sounio work-unit contract | IMPLEMENTED / synthetic receipt | the canonical shard-composed executor binds `run_id`, emits eleven eligible profiles plus one exact `NULL_INPUT_NOT_ACGT` exclusion across 16/100/500/1000 bp, executes/reuses all nine shards, packages all four scales and emits hash-closed build/execution receipts plus an output manifest; the receipt is fixture-only and no real RefSeq pilot execution exists |
+| Independent Julia manifest, multiscale-null and scientific secondary evaluators | IMPLEMENTED / synthetic integral receipt | Base-only Julia independently regenerates the exact draws and all 17 blocks, returns to manifest/FASTA inputs, closes all nine logical shards and recomputes all twelve rows reextracted from Parquet; it emits an integral fixture receipt with tolerance 0, while held-out scientific scope remains explicit `REFUSE` and no real-pilot receipt exists |
 | Operational gate evaluator, field-use audit and capacity projection | SCAFFOLDED / PROMOTION LOCKED | the implemented profile checks a 29-role evidence root, selection, controls, work units, logical rows, packages and capacity, but known source, package, operational-report, field-audit, Julia-runtime and held-out derivation closures are prerequisites to removing the explicit lock; no real PASS path is enabled |
-| Gate U0 | **BLOCKED** | `U0_PROMOTION_LOCKED` is raised before real-pilot evidence evaluation while the canonical executor, integral Julia validator and six held-out derivation roles are absent; independent regressions reject both operational and scientific fixture relabelling |
+| Gate U0 | **BLOCKED** | `U0_PROMOTION_LOCKED` is raised before real-pilot evidence evaluation because six held-out derivation roles and the real RefSeq evidence closure are absent; the executor and integral Julia validator are present, and regressions still reject operational and scientific fixture relabelling |
 | Full atlas, BioStudies upload, v3.0.0 tag and HDD purchase | **BLOCKED UNTIL U0** | no release or procurement claim |
 
 The remainder of this document is the pre-v3 engineering evidence snapshot.
@@ -25,9 +25,10 @@ U0 or a v3 public payload.
 The Gate U0 P0 adversarial audit reproduced operational and scientific
 scope-relabel promotion attempts against earlier aggregators. The current
 branch rejects both classes and additionally applies an explicit promotion
-lock before any real-scope evaluation. Removing that lock requires a code and
-contract change that adds the canonical Sounio executor, integral Julia
-validator, and frozen held-out derivation roles. The deeper real-evidence
+lock before any real-scope evaluation. The canonical Sounio executor and
+integral Julia validator are now implemented and fixture-tested; removing the
+lock still requires the frozen held-out derivation roles and real evidence.
+The deeper real-evidence
 checks remain scaffolded and unexercised; they are not represented as a
 complete admission proof. The intended provenance promise is integrity
 closure, explicitly not external authentication; external recovery remains a
@@ -121,8 +122,13 @@ SHA-256 values are respectively
 `ce3b79d6f86a9075e8f3ffa8ae1b3e4e9534db64d8579182efb928eed2c96f5e`,
 `577bd3910988135e2bdd9edaa6667883580ca9513fc3b0c1afe58a14337cf8a9`
 and `5d40e189fd8df9a86bcc00ebf9a0ecb976af339ea044356a96a66b4b3d319c1f`.
-These remain bounded fixture artifacts, not the gate's multiscale pilot output
-manifest, execution receipt, public payload or full-pilot Julia receipt.
+The nonpromotable Sounio output manifest, execution receipt and integral Julia
+receipt hashes are respectively
+`dfecf6c11f879156b8904a64306bc8ca2946bda48abd05353ab56a42d5723421`,
+`37ab330a0214e39811f063a55bd954d8e6c0f3f1567831b5af5fffaf8a8b6674`
+and `eebdc3c96a7391e633b117a2c5df7f1c5fafa5c6c4b43f5154edd7858e9c91e7`.
+These remain bounded fixture artifacts, not the gate's real multiscale pilot
+receipt or public payload.
 
 **Observed:** 2026-08-15
 

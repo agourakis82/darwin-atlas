@@ -174,10 +174,12 @@ promotion_rc=$?
 set -e
 [[ "$promotion_rc" -eq 2 ]] || { echo "incomplete real U0 escaped the promotion lock" >&2; exit 1; }
 grep -q 'U0_PROMOTION_LOCKED' "$work_dir/promotion-lock.stdout"
-grep -q 'CANONICAL_SOUNIO_U0_EXECUTOR_NOT_IMPLEMENTED' "$work_dir/promotion-lock.stdout"
-grep -q 'INDEPENDENT_JULIA_FULL_VALIDATOR_NOT_IMPLEMENTED' "$work_dir/promotion-lock.stdout"
+test -s "$atlas_root/sounio/src/u0_work_shard_executor.sio"
+test -s "$atlas_root/julia/scripts/validate_u0_pilot.jl"
+! grep -q 'CANONICAL_SOUNIO_U0_EXECUTOR_NOT_IMPLEMENTED' "$work_dir/promotion-lock.stdout"
+! grep -q 'INDEPENDENT_JULIA_FULL_VALIDATOR_NOT_IMPLEMENTED' "$work_dir/promotion-lock.stdout"
 grep -q 'HELD_OUT_SCIENTIFIC_DERIVATION_PROVENANCE_NOT_IMPLEMENTED' "$work_dir/promotion-lock.stdout"
-echo "U0_GATE_EXPLICIT_PROMOTION_LOCK_PASS"
+echo "U0_GATE_EXPLICIT_PROMOTION_LOCK_PASS executor_and_full_validator_present=1 held_out_derivations_pending=1"
 
 # A valid-shaped report with one changed core hash is also rejected.
 cp "$fixture/agreement.json" "$work_dir/hash-tampered-agreement.json"

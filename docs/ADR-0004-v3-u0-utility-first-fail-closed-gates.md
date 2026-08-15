@@ -102,8 +102,9 @@ receipt schema encodes the conjunction and the exact requirement identifiers.
 
 The present implementation has a second, explicit promotion lock. A
 real-scope invocation stops with `U0_PROMOTION_LOCKED` before evidence
-adjudication while the canonical multiscale Sounio executor, integral Julia
-validator, and six frozen held-out derivation roles are absent. Independently,
+adjudication while six frozen held-out derivation roles are absent. The
+canonical shard-composed Sounio executor and integral Julia validator now exist
+and have fixture receipts, but no real RefSeq pilot receipt exists. Independently,
 the two Julia secondary evaluators refuse `held_out_grouped_cohort` inputs
 until that derivation contract is implemented. This is intentional: fixture
 mathematics may be tested now, but no scope label can create scientific
@@ -157,11 +158,11 @@ The current manifest-directed fixture proves parsing, ordering, resume and
 explicit refusal behavior. The separate synthetic multiscale profile fixture
 binds the canonical parameter bytes and proves 1000 exact Euler/Wilson draws
 at each of 16, 100, 500 and 1000 bp plus complete v3 window-profile rows and
-null summaries against an independent Julia oracle. Neither fixture is the
-manifest-directed U0 executor: the profile rows are not derived from frozen
-RefSeq FASTA/work units and have no execution receipts or pilot
-agreement. The current
-CLI verifier proves package/hash/footer integrity, not full v3 row semantics.
+null summaries against an independent Julia oracle. The profile fixture alone
+is not the manifest-directed U0 executor because its rows are not derived from
+frozen RefSeq FASTA/work units. The CLI verifier proves package/hash/footer
+integrity; the integral Julia validator supplies independent full-row semantic
+recomputation.
 An additional bounded work-unit fixture now selects six executable manifest
 rows plus one zero-complete-window row and composes immutable parameter,
 manifest and FASTA bytes with host-derived, independently checked SHA-derived
@@ -180,15 +181,16 @@ Julia recompute all reopened rows; payload and round-trip tampering are refused.
 Sounio consumes
 but does not internally derive the SHA-256 seeds, and each executable ledger
 is bounded to 16 windows, which keeps the worst-case 1000 bp case ledger below
-the pinned executable's strict 32 KiB input ceiling. This still has no
-multiscale real-pilot output manifest, execution receipt, public-payload
-closure or integral Julia pilot receipt.
-It therefore does not satisfy the missing chromosome-streaming executor, full
-work-unit coverage, output-manifest or receipt requirements.
+the pinned executable's strict 32 KiB input ceiling. The finalizer emits
+exact-shaped Sounio build/execution receipts and an output manifest, and the
+Base-only integral Julia validator independently closes all logical and
+Parquet rows. Their scope is `fixture-only-nonpromotable`; this still has no
+multiscale real-pilot receipt or public-payload closure and does not satisfy
+real RefSeq work-unit coverage.
 Parts of the real provenance validator are scaffolded, but the admission
-profile is deliberately locked and has not been exercised end to end: no
-actual U0 Sounio executor/output manifest, execution receipt, full-pilot Julia
-recomputation receipt, or frozen scientific derivation closure exists. Known
+profile is deliberately locked and has not been exercised on the real pilot:
+no promotable Sounio/Julia receipt or frozen scientific derivation closure
+exists. Known
 deeper source/package/report/runtime closures must also be completed before
 the lock can be removed. These are blockers, not deferred claims.
 
