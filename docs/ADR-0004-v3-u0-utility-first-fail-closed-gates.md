@@ -162,11 +162,14 @@ manifest-directed U0 executor: the profile rows are not derived from frozen
 RefSeq FASTA/work units and have no Parquet, execution receipts or pilot
 agreement. The current
 CLI verifier proves package/hash/footer integrity, not full v3 row semantics.
-An additional one-work-unit fixture now composes immutable parameter,
-manifest and FASTA bytes with the SHA-derived seed ledger and a complete
-Sounio/Julia byte-exact profile. Because it is a single 16 bp synthetic unit,
-it does not satisfy the missing streaming executor, full work-unit coverage,
-output-manifest or receipt requirements.
+An additional bounded work-unit fixture now composes immutable parameter,
+manifest and 48 bp FASTA bytes with a host-derived, independently checked
+SHA-derived seed ledger and three complete Sounio/Julia byte-exact profiles.
+A shard resumed at window 1 produces the exact two-row suffix of the full
+artifact. Sounio consumes but does not internally derive the SHA-256 seeds.
+Because this remains one synthetic unit and is bounded to at most 32 windows
+per ledger, it does not satisfy the missing chromosome-streaming executor,
+full work-unit coverage, output-manifest or receipt requirements.
 Parts of the real provenance validator are scaffolded, but the admission
 profile is deliberately locked and has not been exercised end to end: no
 actual U0 Sounio executor/output manifest, execution receipt, full-pilot Julia

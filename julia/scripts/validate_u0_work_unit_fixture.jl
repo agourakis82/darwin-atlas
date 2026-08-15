@@ -49,14 +49,16 @@ function parse_work_unit(parameters_path::String, manifest_path::String, source_
     (manifest_version, work_id, assembly, accession, replicon_class, locator, raw_sha, sequence_sha,
      length_raw, alphabet, declared_parameter_sha, scale_raw, stride_raw,
      k_min_raw, k_max_raw, null_model, replicates_raw) = fields
-    manifest_version == "1.0.0" && work_id == "$accession@16" &&
-        assembly == "GCF_000000001.1" && accession == "NC_000001.1" ||
-        work_fail("work-unit identity drift")
-    locator == "fasta/NC_000001.1.fa" || work_fail("source locator drift")
-    replicon_class == "chromosome" && alphabet == "acgt" || work_fail("work-unit metadata drift")
+    occursin(r"^[A-Z]{1,8}_[0-9]+\.[0-9]+$", accession) || work_fail("sequence accession drift")
+    occursin(r"^GC[AF]_[0-9]+\.[0-9]+$", assembly) || work_fail("assembly accession drift")
+    scale = parse_positive_decimal(scale_raw, "work-unit scale")
+    length_bp = parse_positive_decimal(length_raw, "work-unit length")
+    stride = parse_positive_decimal(stride_raw, "work-unit stride")
+    manifest_version == "1.0.0" && work_id == "$accession@$scale" || work_fail("work-unit identity drift")
+    replicon_class in ("chromosome", "plasmid") && alphabet == "acgt" || work_fail("work-unit metadata drift")
     declared_parameter_sha == parameter_sha || work_fail("manifest parameter SHA mismatch")
-    (length_raw, scale_raw, stride_raw, k_min_raw, k_max_raw, replicates_raw) ==
-        ("16", "16", "16", "1", "8", "1000") || work_fail("numeric contract drift")
+    scale in SCALES && stride == scale && length_bp >= scale || work_fail("scale/stride/length drift")
+    (k_min_raw, k_max_raw, replicates_raw) == ("1", "8", "1000") || work_fail("numeric contract drift")
     null_model == "euler_wilson_fixed_endpoints_v1" || work_fail("null model drift")
     relative = split(locator, '/'; keepempty=true)
     !isempty(relative) && all(part -> !isempty(part) && part != "." && part != "..", relative) ||
@@ -75,32 +77,46 @@ function parse_work_unit(parameters_path::String, manifest_path::String, source_
     length(fasta_lines) >= 2 && fasta_lines[1] == ">$accession" || work_fail("FASTA accession mismatch")
     all(line -> !startswith(line, ">"), fasta_lines[2:end]) || work_fail("FASTA contains multiple records")
     bases = uppercase(join(fasta_lines[2:end]))
-    occursin(r"^[ACGT]+$", bases) && ncodeunits(bases) == 16 || work_fail("FASTA sequence contract drift")
+    occursin(r"^[ACGT]+$", bases) && ncodeunits(bases) == length_bp || work_fail("FASTA sequence contract drift")
     bytes2hex(sha256(bases)) == sequence_sha || work_fail("normalized sequence SHA mismatch")
-    seed64 = bytes2hex(sha256("$parameter_sha:$accession:0"))[1:16]
-    (; case_id="NC_000001_1_16_0", parameter_sha, accession,
-       window_start=0, scale=16, seed64, bases)
+    (; parameter_sha, accession, scale, bases, total_windows=div(length_bp, scale))
 end
 
 function validate_work_unit(parameters_path::String, manifest_path::String,
-                            source_root::String, artifact_path::String)
-    case = parse_work_unit(parameters_path, manifest_path, source_root)
+                            source_root::String, artifact_path::String,
+                            start_window::Int=0, expected_rows::Int=-1)
+    work = parse_work_unit(parameters_path, manifest_path, source_root)
+    0 <= start_window < work.total_windows || work_fail("start window outside work unit")
     isfile(artifact_path) && !islink(artifact_path) || work_fail("Sounio artifact is missing")
     bytes = read(artifact_path)
     !isempty(bytes) && bytes[end] == 0x0a && !(0x0d in bytes) || work_fail("artifact must be LF-only with terminal LF")
     lines = split(String(bytes[1:end-1]), '\n'; keepempty=true)
-    length(lines) == 1 || work_fail("artifact must contain exactly one row")
-    expected = expected_profile_line(case; run_id="u0-work-unit-fixture")
-    lines[1] == expected || work_fail("byte mismatch for $(case.case_id)")
-    println("U0_WORK_UNIT_JULIA_DIFFERENTIAL_PASS work_units=1 rows=1 metrics=17 replicates=1000 tolerance=0")
+    !isempty(lines) && length(lines) <= 32 || work_fail("artifact shard must contain 1:32 rows")
+    expected_rows >= 0 && length(lines) != expected_rows && work_fail("artifact row count mismatch")
+    start_window + length(lines) <= work.total_windows || work_fail("artifact exceeds work unit")
+    for (offset, actual) in enumerate(lines)
+        window_index = start_window + offset - 1
+        window_start = window_index * work.scale
+        window_end = window_start + work.scale
+        bases = work.bases[window_start + 1:window_end]
+        seed64 = bytes2hex(sha256("$(work.parameter_sha):$(work.accession):$window_start"))[1:16]
+        case_id = replace(work.accession, "." => "_") * "_$(work.scale)_$window_index"
+        case = (; case_id, parameter_sha=work.parameter_sha, accession=work.accession,
+                window_start, scale=work.scale, seed64, bases)
+        expected = expected_profile_line(case; run_id="u0-work-unit-fixture")
+        actual == expected || work_fail("byte mismatch for $case_id")
+    end
+    println("U0_WORK_UNIT_JULIA_DIFFERENTIAL_PASS work_units=1 rows=$(length(lines)) metrics=17 replicates=1000 start_window=$start_window tolerance=0")
 end
 
 function main_work(args)
-    length(args) == 4 || begin
-        println(stderr, "usage: validate_u0_work_unit_fixture.jl <parameters.json> <manifest.tsv> <source-root> <profiles.jsonl>")
+    4 <= length(args) <= 6 || begin
+        println(stderr, "usage: validate_u0_work_unit_fixture.jl <parameters.json> <manifest.tsv> <source-root> <profiles.jsonl> [start-window [expected-rows]]")
         exit(2)
     end
-    validate_work_unit(args...)
+    start_window = length(args) >= 5 ? parse_nonnegative_decimal(args[5], "start window") : 0
+    expected_rows = length(args) == 6 ? parse_positive_decimal(args[6], "expected rows") : -1
+    validate_work_unit(args[1], args[2], args[3], args[4], start_window, expected_rows)
 end
 
 if abspath(PROGRAM_FILE) == abspath(@__FILE__)

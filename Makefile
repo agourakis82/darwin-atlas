@@ -49,7 +49,7 @@ help:
 	@echo "  u0-cli-integration     Exercise DuckDB/Zstd package, query and verify integration"
 	@echo "  u0-julia-contract      Run independent U0 manifest and secondary-gate validators"
 	@echo "  u0-manifest-differential-fixture  Pinned Sounio manifest boundary + independent Julia"
-	@echo "  u0-dinucleotide-scale-fixture  Draws + v3 profiles + one manifest/FASTA work unit + Julia"
+	@echo "  u0-dinucleotide-scale-fixture  Draws + v3 profiles + bounded manifest/FASTA resume + Julia"
 	@echo "  u0-gate                Fail-closed U0 evaluator; real promotion remains explicitly locked"
 	@echo "  cross-validate          Fail-closed Sounio/Julia diagnostic comparison"
 	@echo "  pipeline                Canonical Sounio pipeline (blocked until implemented)"

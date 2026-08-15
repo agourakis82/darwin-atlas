@@ -10,9 +10,13 @@ trap 'rm -rf -- "${temporary}"' EXIT
 
 python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
   --source-root "${fixture}" --output "${temporary}/valid.tsv" >/dev/null
-test "$(wc -l < "${temporary}/valid.tsv")" -eq 2
+test "$(wc -l < "${temporary}/valid.tsv")" -eq 4
 test "$(shasum -a 256 "${temporary}/valid.tsv" | awk '{print $1}')" = \
-  "781326e35a9f32b874c8fa49c3b1249c330a05f1e5625bd9bff67b7a567f7457"
+  "ebb071824c41015d70027b54716983ead2b12fa94854ede6392e5c7344bd66f8"
+python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
+  --source-root "${fixture}" --output "${temporary}/resume.tsv" --start-window 1 >/dev/null
+test "$(shasum -a 256 "${temporary}/resume.tsv" | awk '{print $1}')" = \
+  "bfc95c21837aafdfae55be1e11828b5505421b8f713b400a4437527258ee31a3"
 
 expect_refusal() {
   local name="$1"
@@ -57,4 +61,8 @@ expect_refusal output-exists python3 "${builder}" --parameters "${parameters}" \
   --manifest "${fixture}/u0_work_units.tsv" --source-root "${fixture}" \
   --output "${temporary}/occupied.tsv"
 
-echo "U0_WORK_UNIT_BINDING_FAIL_CLOSED_PASS cases=5"
+expect_refusal bad-start python3 "${builder}" --parameters "${parameters}" \
+  --manifest "${fixture}/u0_work_units.tsv" --source-root "${fixture}" \
+  --output "${temporary}/bad-start.tsv" --start-window 3
+
+echo "U0_WORK_UNIT_BINDING_FAIL_CLOSED_PASS cases=6 resume_shard=2"

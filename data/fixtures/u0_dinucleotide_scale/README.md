@@ -28,16 +28,21 @@ checks the structural/cross-field invariants; the integration test also
 validates the rows against the public JSON Schema. At official Sounio commit
 `37de2c9eefe68f3457a2c66004eff68bba5b4446`, the observed evidence is:
 
-- Sounio source SHA-256 `0ba40491c0202e59d04e5c9ad03c58c33eac9e33681145b2914df88256bc92ee`;
-- compiled ELF SHA-256 `9a0b32cd4b90d7494b080b2545aa7aac73f759f56afcadadcc657479236cd023`;
+- Sounio source SHA-256 `7c372d6c98d3960685da77fe9ee1518a9db0de395a8222d4a80e59c9294a917a`;
+- compiled ELF SHA-256 `810fa4453dbf5d0848e8b8c50c9e0265f9dfc0b0bde4f2c9051b9685a054df04`;
 - unchanged 4000-draw artifact SHA-256 `726c2c9fd3f96a27b6ae18d35ad73f203c0cae94bae9f0094618b31db81f2463`;
 - four-row profile artifact SHA-256 `f0b5ef9cabaf1e998f5851b6008936b3764f22c8718625cf31de0ac571424016`.
 
-The same executable also accepts a separately pinned one-work-unit mode. Its
-host-derived case ledger SHA-256 is
-`781326e35a9f32b874c8fa49c3b1249c330a05f1e5625bd9bff67b7a567f7457`
-and its complete one-row profile artifact is
-`4a81aefafb99ef5beabc3c813cc8f265d52f21fd7df748be04e1dfce0074bea8`.
+The same executable also accepts a bounded work-unit shard mode (1 to 32
+windows) and an explicit start-window coordinate. The host derives the seed
+ledger; Sounio validates its grammar and coordinates and consumes it, while
+Julia independently re-derives the seeds from the immutable inputs. The
+three-row full case/artifact hashes are `ebb071824c41015d70027b54716983ead2b12fa94854ede6392e5c7344bd66f8`
+and `c0fc4086a191028f5d746e60d48303268f402744a95415d2185750be08ba9941`.
+The two-row resume case/artifact hashes are
+`bfc95c21837aafdfae55be1e11828b5505421b8f713b400a4437527258ee31a3`
+and `2e8e45128ff50f65973af7c159180e074ea580009243f7b7e4e72043373e3900`;
+the resume artifact is byte-identical to rows 2-3 of the full artifact.
 
 Passing this fixture establishes neither U0, a manifest/FASTA-driven pilot
 executor, an integral pilot receipt, a RefSeq result, Parquet equivalence nor

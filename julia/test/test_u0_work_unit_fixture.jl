@@ -6,8 +6,8 @@ include(VALIDATOR)
 
 require_work(condition::Bool, message::String) = condition || error(message)
 
-function run_work_validator(parameters, manifest, source_root, artifact)
-    command = `$(Base.julia_cmd()) --startup-file=no $VALIDATOR $parameters $manifest $source_root $artifact`
+function run_work_validator(parameters, manifest, source_root, artifact, extra...)
+    command = `$(Base.julia_cmd()) --startup-file=no $VALIDATOR $parameters $manifest $source_root $artifact $extra`
     captured = IOBuffer()
     process = run(pipeline(command; stdout=captured, stderr=captured); wait=false)
     wait(process)
@@ -17,14 +17,31 @@ end
 parameters = joinpath(ROOT, "data", "v3", "u0_parameters.json")
 fixture_root = joinpath(ROOT, "data", "fixtures", "u0_work_unit")
 manifest = joinpath(fixture_root, "u0_work_units.tsv")
-case = parse_work_unit(parameters, manifest, fixture_root)
+work = parse_work_unit(parameters, manifest, fixture_root)
+
+function expected_work_line(work, window_index)
+    window_start = window_index * work.scale
+    bases = work.bases[window_start + 1:window_start + work.scale]
+    seed64 = bytes2hex(sha256("$(work.parameter_sha):$(work.accession):$window_start"))[1:16]
+    case_id = replace(work.accession, "." => "_") * "_$(work.scale)_$window_index"
+    case = (; case_id, parameter_sha=work.parameter_sha, accession=work.accession,
+            window_start, scale=work.scale, seed64, bases)
+    expected_profile_line(case; run_id="u0-work-unit-fixture")
+end
 
 mktempdir() do temporary
     artifact = joinpath(temporary, "work-unit.jsonl")
-    write(artifact, expected_profile_line(case; run_id="u0-work-unit-fixture") * "\n")
-    passed, output = run_work_validator(parameters, manifest, fixture_root, artifact)
+    expected = [expected_work_line(work, index) for index in 0:(work.total_windows - 1)]
+    write(artifact, join(expected, "\n") * "\n")
+    passed, output = run_work_validator(parameters, manifest, fixture_root, artifact, "0", "3")
     require_work(passed && occursin("U0_WORK_UNIT_JULIA_DIFFERENTIAL_PASS", output),
                  "valid work-unit artifact failed: $output")
+
+    resumed = joinpath(temporary, "resumed.jsonl")
+    write(resumed, join(expected[2:end], "\n") * "\n")
+    resume_passed, resume_output = run_work_validator(parameters, manifest, fixture_root, resumed, "1", "2")
+    require_work(resume_passed && occursin("start_window=1", resume_output),
+                 "valid resumed work-unit artifact failed: $resume_output")
 
     bytes = read(artifact)
     marker = Vector{UInt8}(codeunits("\"numerator\":"))
@@ -42,4 +59,4 @@ mktempdir() do temporary
                  "Julia accepted or misclassified a one-digit perturbation")
 end
 
-println("U0_WORK_UNIT_JULIA_TEST_PASS work_units=1 rows=1 metrics=17 perturbation_refused=true")
+println("U0_WORK_UNIT_JULIA_TEST_PASS work_units=1 rows=3 resume_rows=2 metrics=17 perturbation_refused=true")

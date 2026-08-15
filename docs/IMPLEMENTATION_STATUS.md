@@ -12,8 +12,8 @@ the separate dirty WIP were preserved before branch creation; see
 | Utility-first U0 contract, parameters, schemas and data dictionary | IMPLEMENTED / fixture-validated | U0 remains `NOT_YET_PASSED` |
 | Fresh RefSeq acquisition, deterministic pilot selector and source closure builder | IMPLEMENTED / acquisition not frozen | NCBI Datasets 18.35.0 is locally hash-pinned; pre-download control candidates are bound only after rehydration to an exact six-field ledger and independently proven from FASTA/GBFF/sequence-report bytes; the real candidates and fresh package remain pending |
 | `dosa query`, `dosa calibrate`, `dosa verify`, Parquet/Zstandard packager | IMPLEMENTED / synthetic integration | calibration requires a read-only hash-bound official-repository runner attestation but that attestation is non-semantic; verify currently proves transport/footer integrity, not full scientific row validity; no public shard exists yet |
-| Manifest-directed Sounio work-unit contract | IMPLEMENTED WITH CAPABILITY REFUSALS | the manifest fixture still refuses unbound pilot execution; a separate composition fixture verifies one manifest row plus exact FASTA, derives the prescribed seed ledger, and emits one complete Sounio profile, but there is no streaming chromosome executor, pilot-wide output manifest, execution receipt or pilot evidence |
-| Independent Julia manifest, multiscale-null and scientific secondary evaluators | IMPLEMENTED / synthetic fixtures | Julia independently regenerates 4000 exact Euler/Wilson draws and all 17 observed/null blocks in four multiscale rows, and independently returns to manifest/FASTA bytes for the one-unit composition row; held-out scientific scope remains explicit `REFUSE`; no real full-pilot Julia recomputation or scientific receipt exists |
+| Manifest-directed Sounio work-unit contract | IMPLEMENTED WITH CAPABILITY REFUSALS | the manifest fixture still refuses unbound pilot execution; a bounded composition fixture verifies one manifest row plus exact 48 bp FASTA, host-derives a three-window seed ledger, emits three complete Sounio profiles, and proves a byte-exact two-row resume suffix; there is no streaming chromosome executor, pilot-wide output manifest, execution receipt or pilot evidence |
+| Independent Julia manifest, multiscale-null and scientific secondary evaluators | IMPLEMENTED / synthetic fixtures | Julia independently regenerates 4000 exact Euler/Wilson draws and all 17 observed/null blocks in four multiscale rows, and independently returns to manifest/FASTA bytes to re-derive seeds and validate the three-row full plus two-row resume composition artifacts; held-out scientific scope remains explicit `REFUSE`; no real full-pilot Julia recomputation or scientific receipt exists |
 | Operational gate evaluator, field-use audit and capacity projection | SCAFFOLDED / PROMOTION LOCKED | the implemented profile checks a 29-role evidence root, selection, controls, work units, logical rows, packages and capacity, but known source, package, operational-report, field-audit, Julia-runtime and held-out derivation closures are prerequisites to removing the explicit lock; no real PASS path is enabled |
 | Gate U0 | **BLOCKED** | `U0_PROMOTION_LOCKED` is raised before real-pilot evidence evaluation while the canonical executor, integral Julia validator and six held-out derivation roles are absent; independent regressions reject both operational and scientific fixture relabelling |
 | Full atlas, BioStudies upload, v3.0.0 tag and HDD purchase | **BLOCKED UNTIL U0** | no release or procurement claim |
@@ -67,21 +67,28 @@ full-pilot agreement or U0 promotion evidence; the separate one-unit fixture
 below is synthetic composition evidence only.
 At the official Sounio pin `37de2c9eefe68f3457a2c66004eff68bba5b4446`,
 the final source SHA-256 is
-`0ba40491c0202e59d04e5c9ad03c58c33eac9e33681145b2914df88256bc92ee`,
+`7c372d6c98d3960685da77fe9ee1518a9db0de395a8222d4a80e59c9294a917a`,
 the compiled ELF is
-`9a0b32cd4b90d7494b080b2545aa7aac73f759f56afcadadcc657479236cd023`,
+`810fa4453dbf5d0848e8b8c50c9e0265f9dfc0b0bde4f2c9051b9685a054df04`,
 the cases are
 `b9b3c233179b84934bd24e1ac71c7b63255c9e0f626a5fe1c7246d9e12d66f79`,
 the unchanged deterministic 4000-line artifact is
 `726c2c9fd3f96a27b6ae18d35ad73f203c0cae94bae9f0094618b31db81f2463`,
 and the deterministic four-row profile artifact is
 `f0b5ef9cabaf1e998f5851b6008936b3764f22c8718625cf31de0ac571424016`.
-The separately bound one-work-unit ledger is
-`781326e35a9f32b874c8fa49c3b1249c330a05f1e5625bd9bff67b7a567f7457`
-and its complete Sounio row is
-`4a81aefafb99ef5beabc3c813cc8f265d52f21fd7df748be04e1dfce0074bea8`.
+The separately bound three-window work-unit ledger is
+`ebb071824c41015d70027b54716983ead2b12fa94854ede6392e5c7344bd66f8`
+and its three-row Sounio artifact is
+`c0fc4086a191028f5d746e60d48303268f402744a95415d2185750be08ba9941`.
+The window-1 resume ledger is
+`bfc95c21837aafdfae55be1e11828b5505421b8f713b400a4437527258ee31a3`
+and its two-row artifact is
+`2e8e45128ff50f65973af7c159180e074ea580009243f7b7e4e72043373e3900`,
+byte-identical to the suffix of the full artifact. The seed ledger is derived
+at the host boundary and independently re-derived by Julia; Sounio validates
+the ledger grammar and coordinates but does not implement SHA-256 internally.
 
-**Observed:** 2026-08-14
+**Observed:** 2026-08-15
 
 **Base commit:** decision D1 on branch `codex/dinucleotide-window-null`, commit
 `f02038b65c94af5111e1d9921ce84fbb08205e19`, including the published Fase

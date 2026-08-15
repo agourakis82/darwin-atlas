@@ -17,6 +17,7 @@ const FIXTURE_CASES: i64 = 4
 const REPLICATES: i64 = 1000
 const PROFILE_METRICS: i64 = 17
 const MAX_KMER_CODES: i64 = 65536
+const MAX_WORK_CASES: i64 = 32
 
 const RNG_M1: i64 = 2147483563
 const RNG_M2: i64 = 2147483399
@@ -49,6 +50,7 @@ var G_RNG2: i64 = 1
 var G_WINDOW_LENGTH: i64 = 0
 var G_PROFILE_MODE: bool = false
 var G_WORK_UNIT_MODE: bool = false
+var G_WORK_START_INDEX: i64 = 0
 
 fn span(text: string, start: i64, finish: i64) -> string with Mut, Panic, Div {
     if start < 0 || finish < start { return "" }
@@ -195,15 +197,20 @@ fn expected_seed(index: i64) -> string {
     ""
 }
 
-fn validate_work_unit_case(case_id: string, parameters_sha: string, accession: string,
+fn work_scale_ok(scale: i64) -> bool {
+    scale == 16 || scale == 100 || scale == 500 || scale == 1000
+}
+
+fn validate_work_unit_case(index: i64, case_id: string, parameters_sha: string, accession: string,
                            window_start: i64, scale: i64, seed64: string,
                            bases: string, requested_replicates: i64) -> bool with Mut, Panic, Div {
-    str_eq(case_id, "NC_000001_1_16_0")
-        && str_eq(parameters_sha, expected_parameter_sha())
-        && str_eq(accession, "NC_000001.1")
-        && window_start == 0 && scale == 16
-        && str_eq(seed64, "435a2cbf24d69d3a")
-        && str_eq(bases, "ACGTTGCAACGTTGCA")
+    identifier_ok(case_id)
+        && sha_ok(parameters_sha) && str_eq(parameters_sha, expected_parameter_sha())
+        && identifier_ok(accession)
+        && work_scale_ok(scale)
+        && window_start == (G_WORK_START_INDEX + index) * scale
+        && seed_ok(seed64)
+        && str_len(bases) == scale
         && requested_replicates == REPLICATES
 }
 
@@ -699,7 +706,7 @@ fn process_case(line: string, index: i64, pass: i64) -> bool with IO, Mut, Panic
     let bases = field(line, 6)
     let requested_replicates = decimal(field(line, 7))
     if G_WORK_UNIT_MODE {
-        if index != 0 || !validate_work_unit_case(case_id, parameters_sha, accession,
+        if !validate_work_unit_case(index, case_id, parameters_sha, accession,
             window_start, scale, seed64, bases, requested_replicates) { return false }
     } else {
         if !str_eq(case_id, expected_case_id(index)) || !sha_ok(parameters_sha)
@@ -763,7 +770,7 @@ fn run_cases(text: string, pass: i64) -> bool with IO, Mut, Panic, Div {
                     return false
                 }
             } else {
-                let expected_cases = if G_WORK_UNIT_MODE { 1 } else { FIXTURE_CASES }
+                let expected_cases = if G_WORK_UNIT_MODE { MAX_WORK_CASES } else { FIXTURE_CASES }
                 if cases >= expected_cases || !process_case(line, cases, pass) { return false }
                 cases = cases + 1
             }
@@ -772,13 +779,16 @@ fn run_cases(text: string, pass: i64) -> bool with IO, Mut, Panic, Div {
         if finish >= n { break }
         start = finish + 1
     }
-    let expected_cases = if G_WORK_UNIT_MODE { 1 } else { FIXTURE_CASES }
-    logical_line == expected_cases + 1 && cases == expected_cases
+    if G_WORK_UNIT_MODE {
+        logical_line == cases + 1 && cases >= 1 && cases <= MAX_WORK_CASES
+    } else {
+        logical_line == FIXTURE_CASES + 1 && cases == FIXTURE_CASES
+    }
 }
 
 fn main() -> i64 with IO, Mut, Panic, Div {
-    if arg_count() != 1 && arg_count() != 2 {
-        println("usage: u0_dinucleotide_scale_fixture <cases.tsv> [--profiles|--work-unit-profile]")
+    if arg_count() < 1 || arg_count() > 3 {
+        println("usage: u0_dinucleotide_scale_fixture <cases.tsv> [--profiles|--work-unit-profile [start-window]]")
         return 64
     }
     if arg_count() == 2 {
@@ -787,6 +797,13 @@ fn main() -> i64 with IO, Mut, Panic, Div {
             G_PROFILE_MODE = true
             G_WORK_UNIT_MODE = true
         } else { return 64 }
+    }
+    if arg_count() == 3 {
+        if !str_eq(get_arg(1), "--work-unit-profile") { return 64 }
+        G_PROFILE_MODE = true
+        G_WORK_UNIT_MODE = true
+        G_WORK_START_INDEX = decimal(get_arg(2))
+        if G_WORK_START_INDEX < 0 { return 64 }
     }
     let text = read_file(get_arg(0))
     if str_len(text) <= 0 || str_len(text) > 32768 { return 12 }

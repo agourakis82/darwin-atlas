@@ -24,6 +24,8 @@ CASE_HEADER = (
 )
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 ACCESSION_RE = re.compile(r"^[A-Z]{1,8}_[0-9]+\.[0-9]+$")
+ASSEMBLY_RE = re.compile(r"^GC[AF]_[0-9]+\.[0-9]+$")
+SCALES = (16, 100, 500, 1000)
 
 
 class BindingError(RuntimeError):
@@ -82,7 +84,7 @@ def parse_fasta(path: pathlib.Path, accession: str) -> tuple[bytes, str]:
 
 
 def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib.Path,
-          output: pathlib.Path) -> None:
+          output: pathlib.Path, start_window: int, window_count: int) -> None:
     for path, label in ((parameters, "parameters"), (manifest, "manifest")):
         reject_symlink_components(path, label)
         if path.is_symlink() or not path.is_file():
@@ -106,21 +108,28 @@ def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib
         raise BindingError("fixture requires exactly one complete work unit")
     row = rows[0]
     accession = row["sequence_accession_version"]
-    if ACCESSION_RE.fullmatch(accession) is None:
+    assembly = row["assembly_accession_version"]
+    if ACCESSION_RE.fullmatch(accession) is None or ASSEMBLY_RE.fullmatch(assembly) is None:
         raise BindingError("invalid accession.version")
+    try:
+        length = int(row["sequence_length"])
+        scale = int(row["scale"])
+        stride = int(row["stride"])
+    except ValueError as exc:
+        raise BindingError("manifest numeric field malformed") from exc
     expected_literals = {
-        "u0_manifest_version": "1.0.0", "work_unit_id": f"{accession}@16",
-        "assembly_accession_version": "GCF_000000001.1",
-        "sequence_accession_version": "NC_000001.1",
-        "replicon_class": "chromosome", "declared_alphabet": "acgt",
-        "source_locator": "fasta/NC_000001.1.fa",
-        "parameters_sha256": parameter_sha, "scale": "16", "stride": "16",
+        "u0_manifest_version": "1.0.0", "work_unit_id": f"{accession}@{scale}",
+        "declared_alphabet": "acgt", "parameters_sha256": parameter_sha,
         "k_min": "1", "k_max": "8", "null_model": "euler_wilson_fixed_endpoints_v1",
         "null_replicates": "1000",
     }
     for field, expected in expected_literals.items():
         if row[field] != expected:
             raise BindingError(f"manifest {field} drift")
+    if row["replicon_class"] not in ("chromosome", "plasmid"):
+        raise BindingError("manifest replicon_class drift")
+    if scale not in SCALES or stride != scale or length < scale:
+        raise BindingError("manifest scale/stride/length contract drift")
     if SHA_RE.fullmatch(row["source_file_sha256"]) is None or SHA_RE.fullmatch(row["sequence_sha256"]) is None:
         raise BindingError("manifest SHA-256 field malformed")
     fasta = safe_source(source_root, row["source_locator"])
@@ -129,15 +138,27 @@ def build(parameters: pathlib.Path, manifest: pathlib.Path, source_root: pathlib
         raise BindingError("raw FASTA SHA-256 mismatch")
     if sha256_bytes(sequence.encode("ascii")) != row["sequence_sha256"]:
         raise BindingError("normalized sequence SHA-256 mismatch")
-    if int(row["sequence_length"]) != len(sequence) or len(sequence) != 16:
+    if length != len(sequence):
         raise BindingError("sequence length mismatch")
-    seed = hashlib.sha256(f"{parameter_sha}:{accession}:0".encode("ascii")).hexdigest()[:16]
-    case = (
-        accession.replace(".", "_") + "_16_0", parameter_sha, accession, "0",
-        "16", seed, sequence, "1000",
-    )
-    output.write_bytes(("\t".join(CASE_HEADER) + "\n" + "\t".join(case) + "\n").encode("ascii"))
-    print(f"U0_WORK_UNIT_CASE_BINDING_PASS work_units=1 windows=1 scale=16 seed64={seed}")
+    total_windows = length // scale
+    if start_window < 0 or start_window >= total_windows or window_count < 1 or window_count > 32:
+        raise BindingError("requested window shard is outside the work unit or exceeds 32")
+    stop_window = min(total_windows, start_window + window_count)
+    cases = []
+    for window_index in range(start_window, stop_window):
+        window_start = window_index * scale
+        seed = hashlib.sha256(
+            f"{parameter_sha}:{accession}:{window_start}".encode("ascii")
+        ).hexdigest()[:16]
+        bases = sequence[window_start:window_start + scale]
+        case = (
+            accession.replace(".", "_") + f"_{scale}_{window_index}", parameter_sha,
+            accession, str(window_start), str(scale), seed, bases, "1000",
+        )
+        cases.append("\t".join(case))
+    output.write_bytes(("\t".join(CASE_HEADER) + "\n" + "\n".join(cases) + "\n").encode("ascii"))
+    next_window = stop_window if stop_window < total_windows else -1
+    print(f"U0_WORK_UNIT_CASE_BINDING_PASS work_units=1 windows={len(cases)} scale={scale} start_window={start_window} next_window={next_window}")
 
 
 def main() -> int:
@@ -146,9 +167,12 @@ def main() -> int:
     parser.add_argument("--manifest", type=pathlib.Path, required=True)
     parser.add_argument("--source-root", type=pathlib.Path, required=True)
     parser.add_argument("--output", type=pathlib.Path, required=True)
+    parser.add_argument("--start-window", type=int, default=0)
+    parser.add_argument("--window-count", type=int, default=32)
     args = parser.parse_args()
     try:
-        build(args.parameters, args.manifest, args.source_root, args.output)
+        build(args.parameters, args.manifest, args.source_root, args.output,
+              args.start_window, args.window_count)
         return 0
     except (OSError, ValueError, BindingError) as exc:
         print(f"U0_WORK_UNIT_CASE_BINDING_FAIL: {exc}", file=sys.stderr)

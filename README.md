@@ -24,11 +24,13 @@ researcher does not need to rerun 1000 shuffles.
 > Julia reconstructs both artifacts byte-exact. This proves the bounded
 > null-draw and analytical-row core at the four U0 scales; it is not the
 > manifest-directed U0 producer, a pilot payload, or a receipt. A separate
-> one-work-unit composition fixture now binds canonical parameter bytes plus
-> one manifest row and an exact FASTA to the prescribed SHA-derived seed,
-> produces a complete profile in Sounio, and is independently reconstructed
-> from the original manifest/FASTA bytes in Julia. It is deliberately 16 bp
-> and does not satisfy pilot-wide execution or receipt coverage. A frozen
+> bounded work-unit composition fixture now binds canonical parameter bytes
+> plus one manifest row and an exact 48 bp FASTA to three prescribed
+> SHA-derived seeds, produces three complete profiles in Sounio, and is
+> independently reconstructed from the original manifest/FASTA bytes in
+> Julia. A resume shard beginning at window 1 is the byte-exact two-row suffix
+> of the full output. This is still synthetic and does not satisfy chromosome
+> streaming, pilot-wide execution or receipt coverage. A frozen
 > miniature cohort of four complete
 > circular RefSeq replicons (two assemblies, official NCBI checksum closure)
 > is pinned in [`data/cohort/mini/`](data/cohort/mini/README.md); engineering
@@ -201,7 +203,8 @@ SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux make sounio-fixture
 # exactly 1000 fixed-endpoint Euler/Wilson draws each. Pinned Sounio emits the
 # 4000-draw JSONL plus four complete v3 profile rows; independent Base-only
 # Julia regenerates every shuffle, metric, summary and complete row byte-exact.
-# The same runner also exercises one manifest/FASTA-composed work unit.
+# The same runner exercises a three-window manifest/FASTA shard and proves
+# that a two-window resumed run is the exact byte suffix of the full output.
 # This is engineering fixture evidence only and cannot unlock Gate U0.
 SOUNIO_REPO=/path/to/sounio SOUNIO_LIMA_INSTANCE=souc-linux \
   make u0-dinucleotide-scale-fixture
