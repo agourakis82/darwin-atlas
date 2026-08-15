@@ -20,6 +20,9 @@ manifest = joinpath(fixture_root, "u0_work_units.tsv")
 work1 = parse_work_unit(parameters, manifest, fixture_root, "NC_000001.1@16")
 work2 = parse_work_unit(parameters, manifest, fixture_root, "NC_000002.1@16")
 work3 = parse_work_unit(parameters, manifest, fixture_root, "NC_000003.1@16")
+work5 = parse_work_unit(parameters, manifest, fixture_root, "NC_000005.1@100")
+work6 = parse_work_unit(parameters, manifest, fixture_root, "NC_000006.1@500")
+work7 = parse_work_unit(parameters, manifest, fixture_root, "NC_000007.1@1000")
 
 function expected_work_line(work, window_index)
     window_start = window_index * work.scale
@@ -68,6 +71,16 @@ mktempdir() do temporary
     require_work(passed3 && occursin("work_unit_id=$(work3.work_id)", output3),
                  "ambiguous work-unit artifact failed: $output3")
 
+    for (ordinal, work) in zip(5:7, (work5, work6, work7))
+        work.total_windows == 1 || error("multiscale work unit must contain exactly one complete window")
+        artifact_scale = joinpath(temporary, "work-unit-$ordinal.jsonl")
+        write(artifact_scale, expected_work_line(work, 0) * "\n")
+        passed_scale, output_scale = run_work_validator(
+            parameters, manifest, fixture_root, artifact_scale, "0", "1", work.work_id)
+        require_work(passed_scale && occursin("work_unit_id=$(work.work_id)", output_scale),
+                     "multiscale work-unit artifact failed: $output_scale")
+    end
+
     partial_refused = false
     try
         parse_work_unit(parameters, manifest, fixture_root, "NC_000004.1@16")
@@ -92,4 +105,4 @@ mktempdir() do temporary
                  "Julia accepted or misclassified a one-digit perturbation")
 end
 
-println("U0_WORK_UNIT_JULIA_TEST_PASS work_units=4 rows=9 excluded_rows=1 partial_work_units=1 resume_rows=2 metrics=17 selector_refused=true perturbation_refused=true")
+println("U0_WORK_UNIT_JULIA_TEST_PASS work_units=7 rows=12 scales=4 excluded_rows=1 partial_work_units=1 resume_rows=2 metrics=17 selector_refused=true perturbation_refused=true")

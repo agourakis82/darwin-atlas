@@ -1,9 +1,11 @@
 # U0 manifest/FASTA work-shard composition fixture
 
-This fixture binds four canonical `replicon x scale` work units to immutable
-U0 parameter bytes and exact single-record FASTAs: three 48 bp sources and one
-8 bp source. The first two 48 bp sources are ACGT, the third contains one
-ambiguous window, and the 8 bp source has no complete 16 bp window.
+This fixture binds seven canonical `replicon x scale` work units to immutable
+U0 parameter bytes and exact single-record FASTAs: three 48 bp sources, one
+8 bp source, and one ACGT source of exactly 100, 500 and 1000 bp. The first two
+48 bp sources are ACGT, the third contains one ambiguous window, and the 8 bp
+source has no complete 16 bp window. Each added multiscale source contributes
+exactly one complete window, avoiding accidental weighting by sequence length.
 
 The host boundary verifies source and normalized SHA-256 identities and derives
 the 64-bit seed ledger prescribed by ADR-0003. Each case row also carries an
@@ -13,27 +15,28 @@ v3 analytical JSONL rows. It does not implement SHA-256 internally. Julia
 independently returns to parameters, manifest and FASTA bytes, re-derives every
 seed, and recomputes every draw, metric, summary and output byte.
 
-The three executable units contain three non-overlapping 16 bp windows each.
-They yield eight eligible profiles and one exact `NULL_INPUT_NOT_ACGT`
-excluded profile. The fourth unit remains in the plan as `PARTIAL_WINDOW` and
-has no shard. Multi-line manifests require explicit `work_unit_id` selection.
+The three original executable units contain three non-overlapping 16 bp windows
+each; the three added units contain one window at 100, 500 and 1000 bp. Together
+they yield eleven eligible profiles and one exact `NULL_INPUT_NOT_ACGT`
+excluded profile. The 8 bp unit remains in the plan as `PARTIAL_WINDOW` and has
+no shard. Multi-line manifests require explicit `work_unit_id` selection.
 The binder emits contiguous shards of at most 16 windows so a worst-case
 1000 bp ledger remains below the executor's 32 KiB input ceiling; the checked resume
 shard starts at window 1 and is the byte-exact suffix of the first full output.
 
 `plan_u0_eligible_work_shards.py` produces plan version 3 and binds `run_id`,
-six case ledgers, nine expected rows, one excluded window and one excluded work
+nine case ledgers, twelve expected rows, one excluded window and one excluded work
 unit. `execute_u0_work_shard_plan.py` executes missing shards with Sounio and,
 on restart, reopens and reuses only exact existing artifacts. The checked first
-pass executes 6/6 shards and the second reuses 6/6. The Base-only Julia set
-validator proves exact coverage of all nine complete windows and rejects a
+pass executes 9/9 shards and the second reuses 9/9. The Base-only Julia set
+validator proves exact coverage of all twelve complete windows and rejects a
 single-digit perturbation.
 
 The fixture runner then concatenates the canonical rows by scale, deposits the
-window and common schemas plus source/execution bindings, and writes three
-accession-bucketed Zstandard Parquet payloads for the only nonempty scale (16).
+window and common schemas plus source/execution bindings, and writes six
+accession-bucketed Zstandard Parquet payloads across all four U0 scales.
 Pinned DuckDB reopens the payloads to byte-identical JSONL, a second package is
-byte-identical, and Julia recomputes all nine reopened rows from parameters,
+byte-identical, and Julia recomputes all twelve reopened rows from parameters,
 manifest and FASTA. Independent Parquet-byte and round-trip-JSON alterations
 are refused.
 
@@ -58,11 +61,11 @@ Observed at official Sounio commit
   `4473a737412ec59805514038fc2a9737d1ec176d71a0a5010f4277f4956b6f20`
   and `4f263ed9a86c2275c502d6d75f50176a97048b80f063d5e4f6ea4537dd6e3ad7`;
 - default fixture plan SHA-256
-  `c81b7b76034dfd3dabc836d9c09e64b745d4d4dc45df2c46cfe067c9f9cc03dd`;
+  `aa000b69a865c26b84c5184d24bc040c57ed0e06ff694fd7879987f9ffe052b4`;
 - complete-set plan and execution-ledger SHA-256 values
-  `e5424121681e0120c871f0a50adf6193484f01913464b9450f63cb9ec9471263`
-  and `d37ec10cc91cda16754b95726417cbcf06dabe9e9c00e3ee90fbdc9f99e74cc3`;
+  `cdf4740244808a953924abfb6c5f6f10f4628a63396e3fdad45d05bcf40d24ec`
+  and `11388b5fd2aae1ca6973b524c444820a29446847446d3f84759d282b8292c5e1`;
 - deterministic Parquet-set manifest, set-ledger and payload-ledger SHA-256
-  values `e7669f8d3161cd0889aef10381d651e11790bfd62239229bf91540099bb55cf9`,
-  `aea3d36e0b79ca844724aeef50327d60ba4e67a7298e81390931411d9f17d86f`
-  and `3a3e90c4c9f07020d9da007f2698effb90c5158cfadcb2889bcfb238ac2b3349`.
+  values `ce3b79d6f86a9075e8f3ffa8ae1b3e4e9534db64d8579182efb928eed2c96f5e`,
+  `577bd3910988135e2bdd9edaa6667883580ca9513fc3b0c1afe58a14337cf8a9`
+  and `5d40e189fd8df9a86bcc00ebf9a0ecb976af339ea044356a96a66b4b3d319c1f`.

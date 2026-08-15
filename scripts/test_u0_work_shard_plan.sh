@@ -13,7 +13,7 @@ python3 "${planner}" --parameters "${parameters}" \
   --manifest "${fixture}/u0_work_units.tsv" --source-root "${fixture}" \
   --output-directory "${temporary}/valid" --shard-size 2 >/dev/null
 test "$(shasum -a 256 "${temporary}/valid/work_shard_plan.json" | awk '{print $1}')" = \
-  "c81b7b76034dfd3dabc836d9c09e64b745d4d4dc45df2c46cfe067c9f9cc03dd"
+  "aa000b69a865c26b84c5184d24bc040c57ed0e06ff694fd7879987f9ffe052b4"
 python3 - "${temporary}/valid" <<'PY'
 import hashlib, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
@@ -23,14 +23,14 @@ assert plan["schema_version"] == "dosa-v3-u0-work-shard-plan-3"
 assert plan["run_id"] == "u0-work-unit-fixture"
 assert plan["scientific_metrics_computed"] is False
 assert plan["sounio_executed"] is False and plan["gate_u0_pass"] is False
-assert (plan["work_units_expected"], plan["shards_expected"], plan["rows_expected"]) == (4, 6, 9)
+assert (plan["work_units_expected"], plan["shards_expected"], plan["rows_expected"]) == (7, 9, 12)
 assert (plan["excluded_work_units"], plan["excluded_windows"]) == (1, 1)
-assert [unit["expected_rows"] for unit in plan["work_units"]] == [3, 3, 3, 0]
-assert [unit["status"] for unit in plan["work_units"]] == ["planned", "planned", "planned", "excluded"]
-assert [unit["reason_code"] for unit in plan["work_units"]] == [None, None, None, "PARTIAL_WINDOW"]
-assert [shard["rows"] for shard in plan["shards"]] == [2, 1, 2, 1, 2, 1]
-assert [shard["excluded_rows"] for shard in plan["shards"]] == [0, 0, 0, 0, 1, 0]
-assert [shard["start_window"] for shard in plan["shards"]] == [0, 2, 0, 2, 0, 2]
+assert [unit["expected_rows"] for unit in plan["work_units"]] == [3, 3, 3, 0, 1, 1, 1]
+assert [unit["status"] for unit in plan["work_units"]] == ["planned", "planned", "planned", "excluded", "planned", "planned", "planned"]
+assert [unit["reason_code"] for unit in plan["work_units"]] == [None, None, None, "PARTIAL_WINDOW", None, None, None]
+assert [shard["rows"] for shard in plan["shards"]] == [2, 1, 2, 1, 2, 1, 1, 1, 1]
+assert [shard["excluded_rows"] for shard in plan["shards"]] == [0, 0, 0, 0, 1, 0, 0, 0, 0]
+assert [shard["start_window"] for shard in plan["shards"]] == [0, 2, 0, 2, 0, 2, 0, 0, 0]
 for shard in plan["shards"]:
     target = root / shard["path"]
     data = target.read_bytes()
@@ -95,4 +95,4 @@ expect_refusal invalid-run-id 'run_id must be a portable identifier' python3 "${
   --source-root "${fixture}" --output-directory "${temporary}/invalid-run-id-plan" \
   --shard-size 2 --run-id 'bad/run'
 
-echo "U0_ELIGIBLE_WORK_SHARD_PLAN_FIXTURE_PASS work_units=4 shards=6 rows=9 excluded_work_units=1 excluded_windows=1 fail_closed_cases=8 run_id_bound=1 preexecution_only=1"
+echo "U0_ELIGIBLE_WORK_SHARD_PLAN_FIXTURE_PASS work_units=7 shards=9 rows=12 excluded_work_units=1 excluded_windows=1 scales=4 fail_closed_cases=8 run_id_bound=1 preexecution_only=1"

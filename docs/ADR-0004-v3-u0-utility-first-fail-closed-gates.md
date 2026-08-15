@@ -162,18 +162,19 @@ manifest-directed U0 executor: the profile rows are not derived from frozen
 RefSeq FASTA/work units and have no execution receipts or pilot
 agreement. The current
 CLI verifier proves package/hash/footer integrity, not full v3 row semantics.
-An additional bounded work-unit fixture now selects three executable manifest
+An additional bounded work-unit fixture now selects six executable manifest
 rows plus one zero-complete-window row and composes immutable parameter,
 manifest and FASTA bytes with host-derived, independently checked SHA-derived
-seed ledgers. Sounio and Julia agree byte-exact on eight eligible profiles and
-one canonical `NULL_INPUT_NOT_ACGT` excluded profile. A shard resumed at
+seed ledgers. Three exact-length sources contribute one window at 100, 500 and
+1000 bp. Sounio and Julia agree byte-exact on eleven eligible profiles and one
+canonical `NULL_INPUT_NOT_ACGT` excluded profile. A shard resumed at
 window 1 produces the exact two-row suffix of the first full artifact. A
-deterministic planner enumerates the executable units into six hash-closed
+deterministic planner enumerates the executable units into nine hash-closed
 shards, retains the 8 bp unit as `PARTIAL_WINDOW` with no shard, and explicitly
 remains pre-execution-only. A distinct run-bound orchestration fixture executes
-all six Sounio shards, safely reuses them on a second pass, and lets Julia
+all nine Sounio shards, safely reuses them on a second pass, and lets Julia
 independently close every logical row and window coordinate. It additionally
-packages the nine scale-16 rows into three real Zstandard Parquet payloads,
+packages all twelve rows at 16/100/500/1000 bp into six real Zstandard Parquet payloads,
 reopens them byte-exactly, reproduces a byte-identical second package, and has
 Julia recompute all reopened rows; payload and round-trip tampering are refused.
 Sounio consumes

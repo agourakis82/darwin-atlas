@@ -24,21 +24,23 @@ researcher does not need to rerun 1000 shuffles.
 > Julia reconstructs both artifacts byte-exact. This proves the bounded
 > null-draw and analytical-row core at the four U0 scales; it is not the
 > manifest-directed U0 producer, a pilot payload, or a receipt. A separate
-> bounded work-unit composition fixture now selects three executable manifest
-> rows plus one zero-complete-window row, binding three exact 48 bp FASTAs and
-> one 8 bp FASTA. Sounio produces eight eligible profiles and one canonical
+> bounded work-unit composition fixture now selects six executable manifest
+> rows plus one zero-complete-window row, binding three exact 48 bp FASTAs,
+> one 8 bp FASTA and one-window FASTAs at 100, 500 and 1000 bp. Sounio produces
+> eleven eligible profiles and one canonical
 > `NULL_INPUT_NOT_ACGT` excluded profile; Julia independently reconstructs all
-> nine rows from the original manifest/FASTA bytes. A resume shard beginning at
+> twelve rows from the original manifest/FASTA bytes. A resume shard beginning at
 > window 1 is the byte-exact two-row suffix of the first full output. A
-> deterministic pre-execution planner closes six bounded case shards by hash
+> deterministic pre-execution planner closes nine bounded case shards by hash
 > and retains the 8 bp unit as `PARTIAL_WINDOW` with no shard, while declaring
 > that no Sounio execution or scientific metric has occurred. A separate
-> run-bound executor then consumes the complete six-shard plan: its first pass
-> executes all shards, its second pass verifies and reuses all six persisted
-> artifacts, and Julia independently recomputes all nine logical rows from the
-> manifest and FASTAs with exact coverage. This proves only resumable bounded
-> reason-coded logical execution; it remains synthetic, emits no pilot output
-> manifest/receipt or Parquet, and does
+> run-bound executor then consumes the complete nine-shard plan: its first pass
+> executes all shards, its second pass verifies and reuses all nine persisted
+> artifacts, and Julia independently recomputes all twelve logical rows from the
+> manifest and FASTAs with exact coverage. The stream is deterministically
+> packaged into six Zstandard Parquet payloads across all four U0 scales and
+> reopened byte-exactly before the same Julia recomputation. This remains
+> synthetic and emits no pilot output manifest or execution receipt; it does
 > not satisfy chromosome streaming, pilot-wide execution or receipt coverage. A frozen
 > miniature cohort of four complete
 > circular RefSeq replicons (two assemblies, official NCBI checksum closure)
@@ -312,13 +314,13 @@ named `make legacy-julia-pipeline` diagnostic target; its output is not release
 eligible.
 
 `make u0-work-shard-set-fixture` closes the bounded transport chain: official
-pinned Sounio produces and resumes six logical shards, the DOSA CLI packages
-the nine rows as typed Zstandard Parquet partitioned by accession SHA bucket,
+pinned Sounio produces and resumes nine logical shards, the DOSA CLI packages
+the twelve rows at 16/100/500/1000 bp as typed Zstandard Parquet partitioned by accession SHA bucket,
 DuckDB reopens the package byte-exactly, and Julia independently recomputes
 every reopened analytical row. A second package is byte-identical; separate
-Parquet-byte and round-trip-JSON perturbations are refused. This fixture has
-only nonempty scale-16 data and remains explicitly nonpromotable; it is not the
-multiscale RefSeq pilot, a pilot receipt, or a public shard.
+Parquet-byte and round-trip-JSON perturbations are refused. The input sequences
+are synthetic and the result remains explicitly nonpromotable; it is not the
+RefSeq pilot, a pilot receipt, or a public shard.
 
 For v3, `make u0-gate` is separately fail-closed until all real pilot paths are
 provided beneath `U0_EVIDENCE_ROOT`: the agreement, query, speed, capacity,

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Compile the bounded work-shard executor from the pinned official Sounio tree,
-# execute a six-shard resumable fixture, package its canonical stream as typed
+# execute a nine-shard resumable fixture, package its canonical stream as typed
 # Parquet/Zstandard, and independently recompute every reopened row in Julia.
 # This is fixture evidence, not Gate U0 or a release receipt.
 set -euo pipefail
@@ -164,5 +164,5 @@ echo "execution_ledger_sha256=$(sha256_file "${temporary}/execution/execution_le
 echo "parquet_set_manifest_sha256=$(sha256_file "${temporary}/parquet-set/parquet_set_manifest.json")"
 echo "parquet_set_ledger_sha256=$(sha256_file "${temporary}/parquet-set/parquet_set_ledger.tsv")"
 echo "parquet_payload_ledger_sha256=$(sha256_file "${temporary}/parquet-set/parquet_payload_ledger.tsv")"
-echo "U0_WORK_SHARD_SET_DIFFERENTIAL_PASS work_units=4 shards=6 rows=9 excluded_work_units=1 resumed_shards=6 parquet_scales=1 roundtrip_byte_exact=1 tolerance=0 fixture_scope_nonpromotable=1"
+echo "U0_WORK_SHARD_SET_DIFFERENTIAL_PASS work_units=7 shards=9 rows=12 excluded_work_units=1 resumed_shards=9 parquet_scales=4 roundtrip_byte_exact=1 tolerance=0 fixture_scope_nonpromotable=1"
 echo "U0_GATE_PASS=false"
