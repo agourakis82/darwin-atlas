@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Compile the bounded work-shard executor from the pinned official Sounio tree,
-# execute a six-shard resumable fixture, and independently recompute every row
-# in Julia. This is logical fixture evidence, not Gate U0 or a release receipt.
+# execute a six-shard resumable fixture, package its canonical stream as typed
+# Parquet/Zstandard, and independently recompute every reopened row in Julia.
+# This is fixture evidence, not Gate U0 or a release receipt.
 set -euo pipefail
 
 readonly atlas_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -9,7 +10,11 @@ readonly source_file="${atlas_root}/sounio/src/u0_work_shard_executor.sio"
 readonly executor_script="${atlas_root}/scripts/execute_u0_work_shard_plan.py"
 readonly planner="${atlas_root}/scripts/plan_u0_eligible_work_shards.py"
 readonly validator="${atlas_root}/julia/scripts/validate_u0_work_shard_set.jl"
+readonly packager="${atlas_root}/scripts/package_u0_work_shard_set.py"
+readonly parquet_validator="${atlas_root}/julia/scripts/validate_u0_work_parquet_set.jl"
 readonly parameters="${atlas_root}/data/v3/u0_parameters.json"
+readonly common_schema="${atlas_root}/schemas/dosa_v3_common.schema.json"
+readonly window_schema="${atlas_root}/schemas/dosa_v3_window_profile.schema.json"
 readonly fixture="${atlas_root}/data/fixtures/u0_work_unit"
 readonly manifest="${fixture}/u0_work_units.tsv"
 readonly lock_file="${atlas_root}/toolchains/sounio.lock.json"
@@ -37,6 +42,8 @@ blocked() { echo "BLOCKED: $*" >&2; exit 2; }
 
 [[ -n "${SOUNIO_REPO:-}" ]] || blocked "set SOUNIO_REPO to the pinned official Sounio checkout"
 for required in python3 ruby; do command -v "${required}" >/dev/null 2>&1 || blocked "missing ${required}"; done
+python3 -c 'import duckdb; assert duckdb.__version__ == "1.5.5", duckdb.__version__' \
+  >/dev/null 2>&1 || blocked "duckdb==1.5.5 is required for the Parquet differential"
 command -v "${julia_bin}" >/dev/null 2>&1 || blocked "missing Julia validator: ${julia_bin}"
 [[ -x "${SOUNIO_REPO}/bin/souc" ]] || blocked "invalid Sounio checkout"
 expected_commit="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("commit")' "${lock_file}")"
@@ -94,6 +101,43 @@ fi
 "${julia_bin}" --startup-file=no "${validator}" "${parameters}" "${manifest}" \
   "${fixture}" "${temporary}/plan" "${temporary}/execution"
 
+python3 "${packager}" --parameters "${parameters}" --manifest "${manifest}" \
+  --source-root "${fixture}" --execution-root "${temporary}/execution" \
+  --output "${temporary}/parquet-set" --window-schema "${window_schema}" \
+  --common-schema "${common_schema}"
+"${julia_bin}" --startup-file=no "${parquet_validator}" "${parameters}" "${manifest}" \
+  "${fixture}" "${temporary}/parquet-set"
+
+# A second independently written package must have the same logical, Parquet,
+# binding and closure bytes under the pinned transport implementation.
+python3 "${packager}" --parameters "${parameters}" --manifest "${manifest}" \
+  --source-root "${fixture}" --execution-root "${temporary}/execution" \
+  --output "${temporary}/parquet-set-second" --window-schema "${window_schema}" \
+  --common-schema "${common_schema}"
+diff -qr "${temporary}/parquet-set" "${temporary}/parquet-set-second" >/dev/null
+
+cp -R "${temporary}/parquet-set" "${temporary}/parquet-tampered"
+first_parquet="$(find "${temporary}/parquet-tampered" -type f -name '*.parquet' | sort | head -n 1)"
+ruby -e 'bytes=File.binread(ARGV[0]); i=bytes.length/2; bytes.setbyte(i,bytes.getbyte(i)^1); File.binwrite(ARGV[0],bytes)' "${first_parquet}"
+set +e
+"${julia_bin}" --startup-file=no "${parquet_validator}" "${parameters}" "${manifest}" \
+  "${fixture}" "${temporary}/parquet-tampered" >"${temporary}/parquet-tamper.log" 2>&1
+parquet_tamper_rc=$?
+set -e
+[[ "${parquet_tamper_rc}" -ne 0 ]] || { echo "FAIL: Julia accepted a perturbed Parquet payload" >&2; exit 1; }
+grep -q 'Parquet payload SHA-256 mismatch' "${temporary}/parquet-tamper.log"
+
+cp -R "${temporary}/parquet-set" "${temporary}/roundtrip-tampered"
+first_roundtrip="$(find "${temporary}/roundtrip-tampered/roundtrip" -type f -name '*.jsonl' | sort | head -n 1)"
+ruby -e 'bytes=File.binread(ARGV[0]); marker="\"numerator\":"; i=bytes.index(marker) or abort "marker missing"; j=i+marker.bytesize; bytes.setbyte(j,bytes.getbyte(j)==57 ? 56 : bytes.getbyte(j)+1); File.binwrite(ARGV[0],bytes)' "${first_roundtrip}"
+set +e
+"${julia_bin}" --startup-file=no "${parquet_validator}" "${parameters}" "${manifest}" \
+  "${fixture}" "${temporary}/roundtrip-tampered" >"${temporary}/roundtrip-tamper.log" 2>&1
+roundtrip_tamper_rc=$?
+set -e
+[[ "${roundtrip_tamper_rc}" -ne 0 ]] || { echo "FAIL: Julia accepted a perturbed Parquet round-trip" >&2; exit 1; }
+grep -Eq 'round-trip JSONL SHA-256 mismatch|Parquet round-trip differs' "${temporary}/roundtrip-tamper.log"
+
 first_artifact="$(find "${temporary}/execution/artifacts" -type f -name '*.jsonl' | sort | head -n 1)"
 ruby -e 'bytes=File.binread(ARGV[0]); marker="\"numerator\":"; i=bytes.index(marker) or abort "marker missing"; j=i+marker.bytesize; bytes.setbyte(j,bytes.getbyte(j)==57 ? 56 : bytes.getbyte(j)+1); File.binwrite(ARGV[1],bytes)' \
   "${first_artifact}" "${temporary}/perturbed.jsonl"
@@ -117,5 +161,8 @@ echo "sounio_commit=${actual_commit}"
 echo "sounio_source_sha256=${source_sha}"
 echo "plan_sha256=$(sha256_file "${temporary}/plan/work_shard_plan.json")"
 echo "execution_ledger_sha256=$(sha256_file "${temporary}/execution/execution_ledger.tsv")"
-echo "U0_WORK_SHARD_SET_DIFFERENTIAL_PASS work_units=4 shards=6 rows=9 excluded_work_units=1 resumed_shards=6 tolerance=0 fixture_scope_nonpromotable=1"
+echo "parquet_set_manifest_sha256=$(sha256_file "${temporary}/parquet-set/parquet_set_manifest.json")"
+echo "parquet_set_ledger_sha256=$(sha256_file "${temporary}/parquet-set/parquet_set_ledger.tsv")"
+echo "parquet_payload_ledger_sha256=$(sha256_file "${temporary}/parquet-set/parquet_payload_ledger.tsv")"
+echo "U0_WORK_SHARD_SET_DIFFERENTIAL_PASS work_units=4 shards=6 rows=9 excluded_work_units=1 resumed_shards=6 parquet_scales=1 roundtrip_byte_exact=1 tolerance=0 fixture_scope_nonpromotable=1"
 echo "U0_GATE_PASS=false"

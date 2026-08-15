@@ -114,8 +114,8 @@ jobs:
         with:
           version: '1.10'
 
-      - name: Install pinned public-schema validator
-        run: python3 -m pip install 'jsonschema==4.26.0'
+      - name: Install pinned U0 schema and Parquet dependencies
+        run: python3 -m pip install -r atlas/toolchains/u0-python-requirements.txt
 
       - name: Check, compile, execute, and independently validate the operator fixture
         working-directory: atlas
@@ -137,7 +137,7 @@ jobs:
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-dinucleotide-scale-fixture
 
-      - name: Execute and resume the complete bounded work-shard set with independent Julia recomputation
+      - name: Execute and resume the bounded Sounio set, round-trip Parquet, and independently recompute in Julia
         working-directory: atlas
         run: SOUNIO_REPO="$GITHUB_WORKSPACE/sounio-upstream" make u0-work-shard-set-fixture
 

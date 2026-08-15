@@ -203,6 +203,22 @@ class DosaV3Tests(unittest.TestCase):
         self.assertNotIn("readlines(", source)
         self.assertNotIn("json.loads(", source)
 
+    def test_schema_binding_accepts_nonempty_common_definitions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            definitions = root / "common.schema.json"
+            definitions.write_text(
+                '{"$schema":"https://json-schema.org/draft/2020-12/schema","$defs":{"id":{"type":"string"}}}',
+                encoding="utf-8",
+            )
+            core._validate_binding_document(definitions, "schema")
+            definitions.write_text(
+                '{"$schema":"https://json-schema.org/draft/2020-12/schema","$defs":{}}',
+                encoding="utf-8",
+            )
+            with self.assertRaises(core.DosaError):
+                core._validate_binding_document(definitions, "schema")
+
     def test_source_index_rejects_duplicate_accession_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             index = pathlib.Path(temp) / "duplicate-source-index.json"

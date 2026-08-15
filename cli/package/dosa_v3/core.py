@@ -170,8 +170,12 @@ def _validate_binding_document(path: pathlib.Path, kind: str) -> None:
         raise DosaError(f"{kind} binding must be a valid UTF-8 JSON document: {path}") from exc
     if not isinstance(value, dict):
         raise DosaError(f"{kind} binding root must be an object: {path}")
-    if kind == "schema" and not (isinstance(value.get("$schema"), str) and value.get("type") == "object"):
-        raise DosaError(f"schema binding lacks JSON Schema object markers: {path}")
+    if kind == "schema":
+        has_schema_marker = isinstance(value.get("$schema"), str)
+        is_object_schema = value.get("type") == "object"
+        is_definition_schema = isinstance(value.get("$defs"), dict) and bool(value["$defs"])
+        if not has_schema_marker or not (is_object_schema or is_definition_schema):
+            raise DosaError(f"schema binding lacks JSON Schema object/definition markers: {path}")
     if kind == "receipt" and not any(key in value for key in ("receipt_id", "receipt_kind", "run_id")):
         raise DosaError(f"receipt binding lacks a receipt identifier: {path}")
 

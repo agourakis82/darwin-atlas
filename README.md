@@ -311,6 +311,15 @@ The historical Julia-only pipeline is available only through the explicitly
 named `make legacy-julia-pipeline` diagnostic target; its output is not release
 eligible.
 
+`make u0-work-shard-set-fixture` closes the bounded transport chain: official
+pinned Sounio produces and resumes six logical shards, the DOSA CLI packages
+the nine rows as typed Zstandard Parquet partitioned by accession SHA bucket,
+DuckDB reopens the package byte-exactly, and Julia independently recomputes
+every reopened analytical row. A second package is byte-identical; separate
+Parquet-byte and round-trip-JSON perturbations are refused. This fixture has
+only nonempty scale-16 data and remains explicitly nonpromotable; it is not the
+multiscale RefSeq pilot, a pilot receipt, or a public shard.
+
 For v3, `make u0-gate` is separately fail-closed until all real pilot paths are
 provided beneath `U0_EVIDENCE_ROOT`: the agreement, query, speed, capacity,
 field-audit and scientific reports; their OriC/model inputs; parameters; source
@@ -325,8 +334,9 @@ regression test rejects fixture reports whose scope labels and hashes are
 rewritten to resemble a pilot. An explicit `U0_PROMOTION_LOCKED` check runs
 before real evidence adjudication; the Julia scientific evaluators separately
 refuse held-out scope. The lock is not removable until the actual n=1000
-multiscale executor, integral Sounio/Julia receipts, held-out derivation roles,
-and the remaining source/package/report/runtime closures exist.
+multiscale pilot executor, integral Sounio/Julia pilot receipts, held-out
+derivation roles, and the remaining source/package/report/runtime closures
+exist.
 
 Because the official Sounio repository moves rapidly, fixture runners accept
 only the clean commit pinned in `toolchains/sounio.lock.json`. Refresh that pin

@@ -29,9 +29,17 @@ pass executes 6/6 shards and the second reuses 6/6. The Base-only Julia set
 validator proves exact coverage of all nine complete windows and rejects a
 single-digit perturbation.
 
-This remains bounded synthetic logical evidence. It does not emit the real U0
-output manifest, execution receipt, Parquet payload, full-pilot Julia receipt,
-Gate U0 PASS or an HDD authorization.
+The fixture runner then concatenates the canonical rows by scale, deposits the
+window and common schemas plus source/execution bindings, and writes three
+accession-bucketed Zstandard Parquet payloads for the only nonempty scale (16).
+Pinned DuckDB reopens the payloads to byte-identical JSONL, a second package is
+byte-identical, and Julia recomputes all nine reopened rows from parameters,
+manifest and FASTA. Independent Parquet-byte and round-trip-JSON alterations
+are refused.
+
+This remains bounded synthetic evidence. It does not emit the real multiscale
+U0 output manifest, execution receipt, public payload manifest, full-pilot
+Julia receipt, Gate U0 PASS or an HDD authorization.
 
 Observed at official Sounio commit
 `37de2c9eefe68f3457a2c66004eff68bba5b4446`:
@@ -53,4 +61,8 @@ Observed at official Sounio commit
   `c81b7b76034dfd3dabc836d9c09e64b745d4d4dc45df2c46cfe067c9f9cc03dd`;
 - complete-set plan and execution-ledger SHA-256 values
   `e5424121681e0120c871f0a50adf6193484f01913464b9450f63cb9ec9471263`
-  and `d37ec10cc91cda16754b95726417cbcf06dabe9e9c00e3ee90fbdc9f99e74cc3`.
+  and `d37ec10cc91cda16754b95726417cbcf06dabe9e9c00e3ee90fbdc9f99e74cc3`;
+- deterministic Parquet-set manifest, set-ledger and payload-ledger SHA-256
+  values `e7669f8d3161cd0889aef10381d651e11790bfd62239229bf91540099bb55cf9`,
+  `aea3d36e0b79ca844724aeef50327d60ba4e67a7298e81390931411d9f17d86f`
+  and `3a3e90c4c9f07020d9da007f2698effb90c5158cfadcb2889bcfb238ac2b3349`.

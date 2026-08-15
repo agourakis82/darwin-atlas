@@ -159,7 +159,7 @@ binds the canonical parameter bytes and proves 1000 exact Euler/Wilson draws
 at each of 16, 100, 500 and 1000 bp plus complete v3 window-profile rows and
 null summaries against an independent Julia oracle. Neither fixture is the
 manifest-directed U0 executor: the profile rows are not derived from frozen
-RefSeq FASTA/work units and have no Parquet, execution receipts or pilot
+RefSeq FASTA/work units and have no execution receipts or pilot
 agreement. The current
 CLI verifier proves package/hash/footer integrity, not full v3 row semantics.
 An additional bounded work-unit fixture now selects three executable manifest
@@ -172,11 +172,16 @@ deterministic planner enumerates the executable units into six hash-closed
 shards, retains the 8 bp unit as `PARTIAL_WINDOW` with no shard, and explicitly
 remains pre-execution-only. A distinct run-bound orchestration fixture executes
 all six Sounio shards, safely reuses them on a second pass, and lets Julia
-independently close every logical row and window coordinate. Sounio consumes
+independently close every logical row and window coordinate. It additionally
+packages the nine scale-16 rows into three real Zstandard Parquet payloads,
+reopens them byte-exactly, reproduces a byte-identical second package, and has
+Julia recompute all reopened rows; payload and round-trip tampering are refused.
+Sounio consumes
 but does not internally derive the SHA-256 seeds, and each executable ledger
 is bounded to 16 windows, which keeps the worst-case 1000 bp case ledger below
-the pinned executable's strict 32 KiB input ceiling. This still has no real-pilot output manifest,
-execution receipt, Parquet closure or integral Julia release receipt.
+the pinned executable's strict 32 KiB input ceiling. This still has no
+multiscale real-pilot output manifest, execution receipt, public-payload
+closure or integral Julia pilot receipt.
 It therefore does not satisfy the missing chromosome-streaming executor, full
 work-unit coverage, output-manifest or receipt requirements.
 Parts of the real provenance validator are scaffolded, but the admission
