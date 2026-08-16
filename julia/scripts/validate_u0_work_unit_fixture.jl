@@ -57,7 +57,7 @@ function parse_work_unit(parameters_path::String, manifest_path::String, source_
         (manifest_version, work_id, assembly, accession, replicon_class, locator, raw_sha, sequence_sha,
          length_raw, alphabet, declared_parameter_sha, scale_raw, stride_raw,
          k_min_raw, k_max_raw, null_model, replicates_raw) = fields
-        occursin(r"^[A-Z]{1,8}_[0-9]+\.[0-9]+$", accession) || work_fail("sequence accession drift")
+        occursin(r"^[A-Z][A-Z0-9_]*[0-9]\.[0-9]+$", accession) || work_fail("sequence accession drift")
         occursin(r"^GC[AF]_[0-9]+\.[0-9]+$", assembly) || work_fail("assembly accession drift")
         scale = parse_positive_decimal(scale_raw, "work-unit scale")
         length_bp = parse_positive_decimal(length_raw, "work-unit length")
@@ -118,7 +118,7 @@ function parse_work_unit(parameters_path::String, manifest_path::String, source_
             current == accession && break
             header = split(line[2:end]; keepempty=false)
             isempty(header) && work_fail("FASTA header is not a versioned accession at line $line_no")
-            occursin(r"^[A-Z]{1,8}_[0-9]+\.[0-9]+$", header[1]) ||
+            occursin(r"^[A-Z][A-Z0-9_]*[0-9]\.[0-9]+$", header[1]) ||
                 work_fail("FASTA header is not a versioned accession at line $line_no")
             current = header[1]
             empty!(chunks)

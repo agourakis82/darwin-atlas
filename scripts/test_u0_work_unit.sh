@@ -36,6 +36,21 @@ python3 "${builder}" --parameters "${parameters}" --manifest "${ncbi_header}/u0_
   --source-root "${ncbi_header}" --output "${temporary}/ncbi-header.tsv" --work-unit-id "${work_id}" >/dev/null
 cmp "${temporary}/valid.tsv" "${temporary}/ncbi-header.tsv"
 echo "U0_WORK_UNIT_NCBI_DESCRIPTION_HEADER_PASS"
+python3 - "${root}/scripts" <<'PY'
+import importlib.util
+import pathlib
+import sys
+scripts = pathlib.Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("build_u0_work_unit_case", scripts / "build_u0_work_unit_case.py")
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+assert module.ACCESSION_RE.fullmatch("NC_000913.3")
+assert module.ACCESSION_RE.fullmatch("NZ_CP071516.2")
+assert module.ACCESSION_RE.fullmatch("NZ_ABACVG020000009.1")
+assert module.fasta_header_accession("NZ_CP071516.2 extra") == "NZ_CP071516.2"
+assert module.ACCESSION_RE.fullmatch("NC_000913") is None
+print("U0_WORK_UNIT_REFSEQ_NZ_ACCESSION_PASS")
+PY
 python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
   --source-root "${fixture}" --output "${temporary}/resume.tsv" --work-unit-id "${work_id}" --start-window 1 >/dev/null
 test "$(shasum -a 256 "${temporary}/resume.tsv" | awk '{print $1}')" = \

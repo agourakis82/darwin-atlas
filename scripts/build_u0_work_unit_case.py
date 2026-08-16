@@ -23,7 +23,7 @@ CASE_HEADER = (
     "scale", "seed64", "bases", "replicates", "reason_code",
 )
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
-ACCESSION_RE = re.compile(r"^[A-Z]{1,8}_[0-9]+\.[0-9]+$")
+ACCESSION_RE = re.compile(r"^[A-Z][A-Z0-9_]*[0-9]\.[0-9]+$")
 ASSEMBLY_RE = re.compile(r"^GC[AF]_[0-9]+\.[0-9]+$")
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 SCALES = (16, 100, 500, 1000)
