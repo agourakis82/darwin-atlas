@@ -113,13 +113,52 @@ def load_selection(path: pathlib.Path) -> tuple[set[str], int]:
     return assemblies, replicons
 
 
-def load_catalog(path: pathlib.Path) -> dict[str, dict[str, dict[str, Any]]]:
+def file_name(row: dict[str, Any]) -> str:
+    path = row.get("filePath")
+    if not isinstance(path, str) or not path:
+        return ""
+    return pathlib.PurePosixPath(path).name
+
+
+def pick_catalog_asset(assembly: str, files: list[dict[str, Any]], file_type: str) -> dict[str, Any] | None:
+    candidates = [row for row in files if row.get("fileType") == file_type]
+    if not candidates:
+        return None
+    if file_type == "SEQUENCE_REPORT":
+        matches = [row for row in candidates if file_name(row) == "sequence_report.jsonl"]
+        if len(matches) != 1:
+            raise EstimateError(f"catalog {assembly} does not have exactly one sequence_report.jsonl")
+        return matches[0]
+    if file_type == "GENOMIC_NUCLEOTIDE_FASTA":
+        matches = [
+            row for row in candidates
+            if (name := file_name(row)) == "genomic.fna" or (
+                name.endswith("_genomic.fna")
+                and "_cds_from_genomic.fna" not in name
+                and "_rna_from_genomic.fna" not in name
+            )
+        ]
+    elif file_type == "GENBANK_FLAT_FILE":
+        matches = [
+            row for row in candidates
+            if (name := file_name(row)) == "genomic.gbff" or name.endswith("_genomic.gbff")
+        ]
+    else:
+        matches = candidates
+    if len(matches) != 1:
+        raise EstimateError(
+            f"catalog {assembly} does not have exactly one canonical {file_type}: observed={len(matches)}"
+        )
+    return matches[0]
+
+
+def load_catalog(path: pathlib.Path) -> dict[str, list[dict[str, Any]]]:
     raw = regular(path, "dataset catalog").read_text(encoding="utf-8")
     catalog = strict_object(raw, "dataset catalog")
     rows = catalog.get("assemblies")
     if not isinstance(rows, list) or not rows:
         raise EstimateError("dataset catalog has no assemblies")
-    result: dict[str, dict[str, dict[str, Any]]] = {}
+    result: dict[str, list[dict[str, Any]]] = {}
     for index, item in enumerate(rows):
         if not isinstance(item, dict):
             raise EstimateError(f"dataset catalog assembly {index} is not an object")
@@ -131,19 +170,17 @@ def load_catalog(path: pathlib.Path) -> dict[str, dict[str, dict[str, Any]]]:
         files = item.get("files")
         if not isinstance(files, list):
             raise EstimateError(f"dataset catalog {accession} has invalid files")
-        by_type: dict[str, dict[str, Any]] = {}
+        normalized: list[dict[str, Any]] = []
         for file_index, file_row in enumerate(files):
             if not isinstance(file_row, dict):
                 raise EstimateError(f"dataset catalog {accession} file {file_index} is not an object")
             file_type = file_row.get("fileType")
             if not isinstance(file_type, str) or not file_type:
                 raise EstimateError(f"dataset catalog {accession} file {file_index} has no fileType")
-            if file_type in by_type:
-                raise EstimateError(f"dataset catalog {accession} has duplicate fileType {file_type}")
-            by_type[file_type] = file_row
+            normalized.append(file_row)
         if accession in result:
             raise EstimateError(f"dataset catalog has duplicate accession: {accession}")
-        result[accession] = by_type
+        result[accession] = normalized
     if not result:
         raise EstimateError("dataset catalog has no assembly accessions")
     return result
@@ -162,7 +199,7 @@ def estimate(args: argparse.Namespace) -> dict[str, Any]:
     for assembly in sorted(selected):
         files = catalog[assembly]
         for file_type in REQUIRED_TYPES:
-            row = files.get(file_type)
+            row = pick_catalog_asset(assembly, files, file_type)
             if row is None:
                 raise EstimateError(f"catalog {assembly} is missing {file_type}")
             size = row.get("uncompressedLengthBytes")
@@ -170,7 +207,7 @@ def estimate(args: argparse.Namespace) -> dict[str, Any]:
                 raise EstimateError(f"catalog {assembly} {file_type} has no uncompressedLengthBytes")
             bytes_by_type[file_type] += parse_size(size, f"{assembly} {file_type}")
         for file_type in OPTIONAL_TYPES:
-            row = files.get(file_type)
+            row = pick_catalog_asset(assembly, files, file_type)
             if row is None:
                 raise EstimateError(f"catalog {assembly} is missing {file_type}")
             size = row.get("uncompressedLengthBytes")

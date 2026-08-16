@@ -66,7 +66,9 @@ def main() -> int:
                         "accession": "GCF_000000001.1",
                         "files": [
                             {"filePath": "GCF_000000001.1/genomic.gbff", "fileType": "GENBANK_FLAT_FILE", "uncompressedLengthBytes": "100"},
+                            {"filePath": "GCF_000000001.1/GCF_000000001.1_cds_from_genomic.fna", "fileType": "GENOMIC_NUCLEOTIDE_FASTA", "uncompressedLengthBytes": "99999"},
                             {"filePath": "GCF_000000001.1/genomic.fna", "fileType": "GENOMIC_NUCLEOTIDE_FASTA", "uncompressedLengthBytes": 20},
+                            {"filePath": "GCF_000000001.1/GCF_000000001.1_rna_from_genomic.fna", "fileType": "GENOMIC_NUCLEOTIDE_FASTA", "uncompressedLengthBytes": "88888"},
                             {"filePath": "GCF_000000001.1/sequence_report.jsonl", "fileType": "SEQUENCE_REPORT"},
                         ],
                     },
@@ -76,6 +78,16 @@ def main() -> int:
                             {"filePath": "GCF_000000002.1/genomic.gbff", "fileType": "GENBANK_FLAT_FILE", "uncompressedLengthBytes": "5"},
                             {"filePath": "GCF_000000002.1/genomic.fna", "fileType": "GENOMIC_NUCLEOTIDE_FASTA", "uncompressedLengthBytes": "7"},
                             {"filePath": "GCF_000000002.1/sequence_report.jsonl", "fileType": "SEQUENCE_REPORT"},
+                        ],
+                    },
+                    {
+                        "accession": "GCF_000000099.1",
+                        "files": [
+                            {"filePath": "GCF_000000099.1/genomic.gbff", "fileType": "GENBANK_FLAT_FILE", "uncompressedLengthBytes": "1"},
+                            {"filePath": "GCF_000000099.1/a_cds_from_genomic.fna", "fileType": "GENOMIC_NUCLEOTIDE_FASTA", "uncompressedLengthBytes": "9"},
+                            {"filePath": "GCF_000000099.1/a_genomic.fna", "fileType": "GENOMIC_NUCLEOTIDE_FASTA", "uncompressedLengthBytes": "8"},
+                            {"filePath": "GCF_000000099.1/a_rna_from_genomic.fna", "fileType": "GENOMIC_NUCLEOTIDE_FASTA", "uncompressedLengthBytes": "7"},
+                            {"filePath": "GCF_000000099.1/sequence_report.jsonl", "fileType": "SEQUENCE_REPORT"},
                         ],
                     },
                 ],
