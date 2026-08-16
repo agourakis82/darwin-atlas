@@ -332,6 +332,18 @@ python3 "$rehydrate_completeness" \
   --package-root "$output_dir/package/rehydrated" \
   --receipt "$output_dir/reports/rehydrate_complete_receipt.json"
 
+if [[ -n "$resume_package" ]]; then
+  rm -f \
+    "$output_dir/control_ledger.tsv" \
+    "$output_dir/control_binding_receipt.json" \
+    "$output_dir/control_ledger_receipt.json" \
+    "$output_dir/SHA256SUMS" \
+    "$output_dir/source_manifest.json" \
+    "$output_dir/source_integrity_receipt.json" \
+    "$output_dir/source_index.json" \
+    "$output_dir/u0_work_units.tsv"
+fi
+
 # Bind the pre-download inclusion declarations to exact files only after the
 # selected package exists. The binding receipt remains explicitly unvalidated
 # until the independent semantic validator below proves every claim.

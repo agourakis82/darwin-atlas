@@ -128,6 +128,13 @@ def accession_tokens(text: str) -> set[str]:
     return {token for token in re.findall(r"[A-Z][A-Z0-9_]*[0-9]\.[0-9]+", text) if ACCESSION_RE.fullmatch(token)}
 
 
+def fasta_header_accession(text: str) -> str | None:
+    parts = text.split()
+    if not parts or ACCESSION_RE.fullmatch(parts[0]) is None:
+        return None
+    return parts[0]
+
+
 def prove_fasta(path: pathlib.Path, accession: str, category: str) -> dict[str, Any]:
     matches: list[bool] = []
     current_matches = False
@@ -138,10 +145,10 @@ def prove_fasta(path: pathlib.Path, accession: str, category: str) -> dict[str, 
             if line.startswith(">"):
                 if current_matches:
                     matches.append(current_has_ambiguity)
-                tokens = accession_tokens(line[1:])
-                if len(tokens) != 1:
+                header_accession = fasta_header_accession(line[1:])
+                if header_accession is None:
                     raise LedgerError(f"INVALID_FASTA_HEADER: {path}:{line_no}")
-                current_matches = next(iter(tokens)) == accession
+                current_matches = header_accession == accession
                 current_has_ambiguity = False
                 continue
             if not current_matches:

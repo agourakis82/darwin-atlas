@@ -189,6 +189,15 @@ def accession_tokens(text: str) -> set[str]:
     return {token for token in re.findall(r"[A-Z][A-Z0-9_]*[0-9]\.[0-9]+", text) if ACCESSION_RE.fullmatch(token)}
 
 
+def fasta_header_accession(text: str) -> str | None:
+    # NCBI FASTA uses the first whitespace-delimited token as accession.version.
+    # Descriptions often contain strain or plasmid labels that look like accessions.
+    parts = text.split()
+    if not parts or ACCESSION_RE.fullmatch(parts[0]) is None:
+        return None
+    return parts[0]
+
+
 def parse_fasta(path: pathlib.Path) -> dict[str, tuple[int, str, str]]:
     records: dict[str, tuple[int, str, str]] = {}
     current: str | None = None
@@ -202,10 +211,9 @@ def parse_fasta(path: pathlib.Path) -> dict[str, tuple[int, str, str]]:
                 if current is not None and digest is not None and canonical_digest is not None:
                     canonical_digest.update(b"\n")
                     records[current] = (length, digest.hexdigest(), canonical_digest.hexdigest())
-                tokens = accession_tokens(line[1:])
-                if len(tokens) != 1:
+                current = fasta_header_accession(line[1:])
+                if current is None:
                     raise SourceManifestError(f"INVALID_FASTA_HEADER: {path}:{line_no}")
-                current = next(iter(tokens))
                 if current in records:
                     raise SourceManifestError(f"DUPLICATE_FASTA_ACCESSION: {current}")
                 digest = hashlib.sha256()

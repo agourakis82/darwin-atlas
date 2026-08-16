@@ -88,6 +88,23 @@ assert indexed == {
 print("U0_SOURCE_MANIFEST_FIXTURE_PASS records=1 assets=3")
 PY
 
+ncbi_header="$tmp/ncbi-header"; prepare "$ncbi_header"
+python3 - "$ncbi_header/package/rehydrated/ncbi_dataset/data/GCF_000000001.1/GCF_000000001.1_genomic.fna" <<'PY'
+import pathlib, sys
+pathlib.Path(sys.argv[1]).write_text(
+    ">NC_000001.1 Escherichia coli plasmid pPG20180062.1-IncI2, complete sequence\nACGTACGT\n"
+)
+PY
+make_checksums "$ncbi_header"
+run_builder "$ncbi_header" > "$tmp/ncbi-header.json"
+python3 - "$ncbi_header" "$tmp/ncbi-header.json" <<'PY'
+import json, pathlib, sys
+snapshot, output = map(pathlib.Path, sys.argv[1:])
+summary = json.loads(output.read_text())
+assert summary["status"] == "built" and summary["records"] == 1
+print("U0_SOURCE_MANIFEST_NCBI_DESCRIPTION_HEADER_PASS")
+PY
+
 tampered="$tmp/tampered"; prepare "$tampered"
 printf 'N\n' >> "$tampered/package/rehydrated/ncbi_dataset/data/GCF_000000001.1/GCF_000000001.1_genomic.fna"
 expect_fail CHECKSUM_MISMATCH run_builder "$tampered"
