@@ -407,8 +407,43 @@ source_index_sha="$(sha256_file "$output_dir/source_index.json")"
 full_replicon_inventory_sha="$(sha256_file "$full_replicon_inventory")"
 work_unit_manifest="$output_dir/u0_work_units.tsv"
 python3 - "$output_dir" "$selection" "$output_dir/source_index.json" "$atlas_root/data/v3/u0_parameters.json" "$work_unit_manifest" <<'PY'
-import hashlib, json, pathlib, sys
+import hashlib, json, pathlib, re, sys
 snapshot, selection_path, index_path, parameters_path, output_path = map(pathlib.Path, sys.argv[1:])
+ACCESSION_RE = re.compile(r"^[A-Z][A-Z0-9_]*[0-9]\.[0-9]+$")
+FASTA_ALPHABET = frozenset("ACGTURYSWKMBDHVN")
+
+def fasta_header_accession(text: str):
+    parts = text.split()
+    if not parts or ACCESSION_RE.fullmatch(parts[0]) is None:
+        return None
+    return parts[0]
+
+def extract_selected_record(path: pathlib.Path, accession: str) -> str:
+    current = None
+    chunks = []
+    with path.open(encoding="ascii") as handle:
+        for line_no, raw in enumerate(handle, start=1):
+            line = raw.rstrip("\r\n")
+            if line.startswith(">"):
+                if current == accession:
+                    break
+                header = fasta_header_accession(line[1:])
+                if header is None:
+                    raise SystemExit(f"BLOCKED: invalid FASTA header for {accession} at {path}:{line_no}")
+                current = header
+                chunks = []
+                continue
+            if current != accession:
+                continue
+            sequence = "".join(line.split()).upper()
+            if not sequence or any(base not in FASTA_ALPHABET for base in sequence):
+                raise SystemExit(f"BLOCKED: invalid FASTA sequence for {accession} at {path}:{line_no}")
+            chunks.append(sequence)
+    sequence = "".join(chunks)
+    if current != accession or not sequence:
+        raise SystemExit(f"BLOCKED: selected accession missing from FASTA: {accession}")
+    return sequence
+
 selection = {}
 for line in selection_path.read_text(encoding="utf-8").splitlines():
     if not line:
@@ -445,14 +480,11 @@ for accession in sorted(selection):
         source.resolve(strict=True).relative_to(snapshot.resolve(strict=True))
     except ValueError as exc:
         raise SystemExit(f"BLOCKED: canonical FASTA escapes snapshot for {accession}") from exc
-    raw = source.read_bytes()
-    if hashlib.sha256(raw).hexdigest() != record["canonical_sequence_input_sha256"]:
-        raise SystemExit(f"BLOCKED: canonical FASTA hash mismatch for {accession}")
-    lines = raw.decode("ascii").splitlines()
-    if not lines or not lines[0].startswith(">") or accession not in lines[0] or any(not line for line in lines[1:]):
-        raise SystemExit(f"BLOCKED: canonical FASTA shape mismatch for {accession}")
-    sequence = "".join(lines[1:])
+    sequence = extract_selected_record(source, accession)
+    canonical_sha = hashlib.sha256(f">{accession}\n{sequence}\n".encode("ascii")).hexdigest()
     sequence_sha = hashlib.sha256(sequence.encode("ascii")).hexdigest()
+    if canonical_sha != record["canonical_sequence_input_sha256"]:
+        raise SystemExit(f"BLOCKED: canonical FASTA hash mismatch for {accession}")
     if sequence_sha != record["normalized_sequence_sha256"] or len(sequence) != selected["length_bp"]:
         raise SystemExit(f"BLOCKED: canonical sequence identity mismatch for {accession}")
     alphabet = "acgt" if all(base in "ACGT" for base in sequence) else "non_acgt"
