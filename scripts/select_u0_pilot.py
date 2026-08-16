@@ -87,12 +87,17 @@ def json_lines(path: pathlib.Path) -> Iterable[dict[str, Any]]:
 def load_assemblies(path: pathlib.Path) -> dict[str, tuple[int | None, str | None]]:
     result: dict[str, tuple[int | None, str | None]] = {}
     for row in json_lines(path):
-        accession = row.get("accession") or row.get("current_accession")
+        accession = row.get("accession")
+        if accession is None:
+            accession = report_field(row, "current_accession", "currentAccession")
         if not isinstance(accession, str) or not ACCESSION_RE.fullmatch(accession):
             raise SelectionError(f"assembly report has invalid accession: {accession!r}")
         organism = row.get("organism") or {}
-        taxid = organism.get("tax_id")
-        name = organism.get("organism_name")
+        if organism is not None and not isinstance(organism, dict):
+            raise SelectionError(f"assembly report has invalid organism object: {accession}")
+        organism = organism or {}
+        taxid = report_field(organism, "tax_id", "taxId")
+        name = report_field(organism, "organism_name", "organismName")
         value = (int(taxid) if taxid is not None else None, str(name) if name is not None else None)
         if accession in result and result[accession] != value:
             raise SelectionError(f"conflicting duplicate assembly row: {accession}")
@@ -103,9 +108,9 @@ def load_assemblies(path: pathlib.Path) -> dict[str, tuple[int | None, str | Non
 
 
 def classify_sequence(row: dict[str, Any]) -> str:
-    location = str(row.get("assigned_molecule_location_type", "")).strip().lower()
-    name = str(row.get("chr_name", "")).strip().lower()
-    sequence_name = str(row.get("sequence_name", "")).strip().lower()
+    location = str(report_field(row, "assigned_molecule_location_type", "assignedMoleculeLocationType") or "").strip().lower()
+    name = str(report_field(row, "chr_name", "chrName") or "").strip().lower()
+    sequence_name = str(report_field(row, "sequence_name", "sequenceName") or "").strip().lower()
     if "plasmid" in location or "plasmid" in name or "plasmid" in sequence_name:
         return "plasmid"
     if "chromosome" in location or "chromosome" in name:
@@ -113,11 +118,19 @@ def classify_sequence(row: dict[str, Any]) -> str:
     return "other"
 
 
+def report_field(row: dict[str, Any], snake: str, camel: str) -> Any:
+    snake_value = row.get(snake)
+    camel_value = row.get(camel)
+    if snake_value is not None and camel_value is not None and snake_value != camel_value:
+        raise SelectionError(f"sequence report has conflicting {snake}/{camel} values")
+    return snake_value if snake_value is not None else camel_value
+
+
 def load_replicons(path: pathlib.Path, assemblies: dict[str, tuple[int | None, str | None]]) -> dict[str, Replicon]:
     result: dict[str, Replicon] = {}
     for row in json_lines(path):
-        accession = row.get("refseq_accession")
-        assembly = row.get("assembly_accession")
+        accession = report_field(row, "refseq_accession", "refseqAccession")
+        assembly = report_field(row, "assembly_accession", "assemblyAccession")
         if not isinstance(accession, str) or not ACCESSION_RE.fullmatch(accession):
             raise SelectionError(f"sequence report has invalid RefSeq accession: {accession!r}")
         if not isinstance(assembly, str) or assembly not in assemblies:

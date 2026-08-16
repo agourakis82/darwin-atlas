@@ -27,7 +27,7 @@ from typing import Any, Iterable
 
 EXIT_INVALID = 11
 SOURCE_INDEX_VERSION = "dosa-v3-source-index-1"
-ACCESSION_RE = re.compile(r"^[A-Za-z]+_[0-9]+\.[0-9]+$")
+ACCESSION_RE = re.compile(r"^[A-Z][A-Z0-9_]*[0-9]\.[0-9]+$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 ASSEMBLY_DIR_RE = re.compile(r"^GCF_[0-9]+\.[0-9]+$")
 FASTA_ALPHABET = frozenset("ACGTURYSWKMBDHVN")
@@ -186,7 +186,7 @@ def asset_file(assembly_dir: pathlib.Path, suffix: str, label: str) -> pathlib.P
 
 
 def accession_tokens(text: str) -> set[str]:
-    return {token for token in re.findall(r"[A-Za-z]+_[0-9]+\.[0-9]+", text) if ACCESSION_RE.fullmatch(token)}
+    return {token for token in re.findall(r"[A-Z][A-Z0-9_]*[0-9]\.[0-9]+", text) if ACCESSION_RE.fullmatch(token)}
 
 
 def parse_fasta(path: pathlib.Path) -> dict[str, tuple[int, str, str]]:
@@ -250,8 +250,16 @@ def report_accessions(path: pathlib.Path, expected_assembly: str) -> set[str]:
                 row = json.loads(line)
             except json.JSONDecodeError as exc:
                 raise SourceManifestError(f"INVALID_SEQUENCE_REPORT_JSON: {path}:{line_no}") from exc
-            accession = row.get("refseq_accession")
-            assembly = row.get("assembly_accession")
+            snake_accession = row.get("refseq_accession")
+            camel_accession = row.get("refseqAccession")
+            snake_assembly = row.get("assembly_accession")
+            camel_assembly = row.get("assemblyAccession")
+            if snake_accession is not None and camel_accession is not None and snake_accession != camel_accession:
+                raise SourceManifestError(f"SEQUENCE_REPORT_ACCESSION_CONFLICT: {path}:{line_no}")
+            if snake_assembly is not None and camel_assembly is not None and snake_assembly != camel_assembly:
+                raise SourceManifestError(f"SEQUENCE_REPORT_ASSEMBLY_CONFLICT: {path}:{line_no}")
+            accession = snake_accession if snake_accession is not None else camel_accession
+            assembly = snake_assembly if snake_assembly is not None else camel_assembly
             if not isinstance(accession, str) or not ACCESSION_RE.fullmatch(accession):
                 raise SourceManifestError(f"INVALID_SEQUENCE_REPORT_ACCESSION: {path}:{line_no}")
             if assembly is not None and assembly != expected_assembly:

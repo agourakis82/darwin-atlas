@@ -1,0 +1,7 @@
+sequence_accession_version	assembly_accession_version	control_category
+NC_000913.3	GCF_000005845.2	topology_circular
+NC_003888.3	GCF_000203835.1	topology_linear
+NZ_CP071516.2	GCF_021398215.2	ambiguity_present
+NC_000913.3	GCF_000005845.2	ambiguity_absent
+NC_000913.3	GCF_000005845.2	replicon_chromosome
+NC_003903.1	GCF_000203835.1	replicon_plasmid

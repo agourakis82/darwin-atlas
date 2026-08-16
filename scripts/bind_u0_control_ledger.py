@@ -20,7 +20,7 @@ from typing import Any
 
 
 EXIT_INVALID = 11
-ACCESSION_RE = re.compile(r"^[A-Za-z]+_[0-9]+\.[0-9]+$")
+ACCESSION_RE = re.compile(r"^[A-Z][A-Z0-9_]*[0-9]\.[0-9]+$")
 ASSEMBLY_RE = re.compile(r"^GCF_[0-9]+\.[0-9]+$")
 REQUIRED_CONTROLS = frozenset(
     {
@@ -116,22 +116,45 @@ def load_candidates(path: pathlib.Path) -> list[tuple[str, str, str]]:
 
 
 def package_asset(root: pathlib.Path, assembly: str, kind: str) -> tuple[pathlib.Path, str]:
-    filename = {
-        "gbff": f"{assembly}_genomic.gbff",
-        "fasta": f"{assembly}_genomic.fna",
-        "sequence_report": "sequence_report.jsonl",
-    }[kind]
-    parts = ("ncbi_dataset", "data", assembly, filename)
-    candidate = root.joinpath(*parts)
+    directory_parts = ("ncbi_dataset", "data", assembly)
+    directory = root.joinpath(*directory_parts)
     cursor = root
-    for part in parts:
+    for part in directory_parts:
         cursor = cursor / part
         try:
             mode = cursor.lstat().st_mode
         except OSError as exc:
-            raise BindingError(f"MISSING_EXPECTED_ASSET: {'/'.join(parts)}") from exc
+            raise BindingError(f"MISSING_EXPECTED_ASSET_DIRECTORY: {'/'.join(directory_parts)}") from exc
         if stat.S_ISLNK(mode):
-            raise BindingError(f"SYMLINK_FORBIDDEN: package asset: {'/'.join(parts)}")
+            raise BindingError(f"SYMLINK_FORBIDDEN: package asset directory: {'/'.join(directory_parts)}")
+    if not directory.is_dir() or not stat.S_ISDIR(directory.stat().st_mode):
+        raise BindingError(f"MISSING_EXPECTED_ASSET_DIRECTORY: {'/'.join(directory_parts)}")
+
+    if kind == "sequence_report":
+        matches = [directory / "sequence_report.jsonl"]
+    else:
+        suffix = "_genomic.fna" if kind == "fasta" else "_genomic.gbff"
+        exact = "genomic.fna" if kind == "fasta" else "genomic.gbff"
+        matches = sorted(
+            (
+                entry for entry in directory.iterdir()
+                if entry.name == exact or entry.name.endswith(suffix)
+            ),
+            key=lambda entry: entry.name,
+        )
+        if len(matches) != 1:
+            raise BindingError(
+                f"MISSING_EXPECTED_ASSET: EXPECTED_EXACTLY_ONE_{kind.upper()}_ASSET: "
+                f"{'/'.join(directory_parts)}: observed={len(matches)}"
+            )
+    candidate = matches[0]
+    parts = (*directory_parts, candidate.name)
+    try:
+        mode = candidate.lstat().st_mode
+    except OSError as exc:
+        raise BindingError(f"MISSING_EXPECTED_ASSET: {'/'.join(parts)}") from exc
+    if stat.S_ISLNK(mode):
+        raise BindingError(f"SYMLINK_FORBIDDEN: package asset: {'/'.join(parts)}")
     if not candidate.is_file() or not stat.S_ISREG(candidate.stat().st_mode):
         raise BindingError(f"MISSING_EXPECTED_ASSET: {'/'.join(parts)}")
     try:

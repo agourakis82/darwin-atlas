@@ -4,6 +4,9 @@
 # Acquisition and routing only: this script never computes DOSA metrics.  It
 # refuses dirty source trees, tool drift, incomplete control candidates, output
 # overwrite, and a local pending bundle larger than the 200 GiB policy limit.
+#
+# --from-discovery continues from an authenticated dehydrated archive plus
+# rehydrated sequence reports. It does not rerun the universe download.
 set -euo pipefail
 
 atlas_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -13,15 +16,64 @@ selector="$atlas_root/scripts/select_u0_pilot.py"
 control_ledger_binder="$atlas_root/scripts/bind_u0_control_ledger.py"
 control_ledger_validator="$atlas_root/scripts/validate_u0_control_ledger.py"
 source_manifest_builder="$atlas_root/scripts/build_u0_source_manifest.py"
+sequence_report_merger="$atlas_root/scripts/merge_u0_package_sequence_reports.py"
+download_estimator="$atlas_root/scripts/estimate_u0_selected_download.py"
+DATASETS_WORKERS=30
+export GODEBUG="${GODEBUG:-http2client=0}"
 
 usage() {
   echo "usage: $0 OUTPUT_DIRECTORY CONTROL_CANDIDATES.tsv" >&2
+  echo "       $0 --from-discovery DISCOVERY_DIR --expected-dehydrated-sha256 HEX [--expected-assembly-count N] OUTPUT_DIRECTORY CONTROL_CANDIDATES.tsv" >&2
   exit 2
 }
 
-[[ "$#" -eq 2 ]] || usage
-output_dir="$1"
-control_candidates_source="$2"
+from_discovery=""
+expected_dehydrated_sha=""
+expected_assembly_count=""
+positional=()
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --from-discovery)
+      [[ "$#" -ge 2 ]] || usage
+      from_discovery="$2"
+      shift 2
+      ;;
+    --expected-dehydrated-sha256)
+      [[ "$#" -ge 2 ]] || usage
+      expected_dehydrated_sha="$2"
+      shift 2
+      ;;
+    --expected-assembly-count)
+      [[ "$#" -ge 2 ]] || usage
+      expected_assembly_count="$2"
+      shift 2
+      ;;
+    -*)
+      usage
+      ;;
+    *)
+      positional+=("$1")
+      shift
+      ;;
+  esac
+done
+
+[[ "${#positional[@]}" -eq 2 ]] || usage
+output_dir="${positional[0]}"
+control_candidates_source="${positional[1]}"
+
+if [[ -n "$from_discovery" ]]; then
+  [[ -n "$expected_dehydrated_sha" ]] || {
+    echo "BLOCKED: --from-discovery requires --expected-dehydrated-sha256" >&2
+    exit 2
+  }
+  [[ -n "$expected_assembly_count" ]] || expected_assembly_count=64971
+else
+  [[ -z "$expected_dehydrated_sha" && -z "$expected_assembly_count" ]] || {
+    echo "BLOCKED: discovery authentication flags require --from-discovery" >&2
+    exit 2
+  }
+fi
 
 datasets_bin="${DOSA_DATASETS_BIN:-$(command -v datasets || true)}"
 dataformat_bin="${DOSA_DATAFORMAT_BIN:-$(command -v dataformat || true)}"
@@ -64,46 +116,88 @@ cp "$control_candidates_source" "$output_dir/control_candidates.tsv"
 control_candidates="$output_dir/control_candidates.tsv"
 assembly_report="$output_dir/reports/assembly_data_report.jsonl"
 sequence_report="$output_dir/reports/sequence_data_report.jsonl"
+merge_receipt="$output_dir/reports/sequence_report_merge_receipt.json"
+discovery_catalog="$output_dir/reports/dataset_catalog.json"
 selection="$output_dir/u0_pilot_selection.jsonl"
 full_replicon_inventory="$output_dir/full_replicon_inventory.jsonl"
+estimate_receipt="$output_dir/selected_download_estimate.json"
 
-# The all-record streaming summary endpoint can terminate after a partial HTTP/2
-# stream. NCBI's documented large-package path is dehydrated download followed
-# by selective rehydration, which is also restartable. Discover the full frozen
-# universe that way and rehydrate only sequence reports before pilot selection.
-"$datasets_bin" download genome taxon bacteria \
-  --assembly-level complete \
-  --assembly-source RefSeq \
-  --assembly-version current \
-  --include genome,gbff,seq-report \
-  --dehydrated \
-  --no-progressbar \
-  --filename "$output_dir/discovery/refseq_complete_dehydrated.zip"
+if [[ -n "$from_discovery" ]]; then
+  freeze_mode="continue_from_discovery"
+  [[ -d "$from_discovery" && ! -L "$from_discovery" ]] || {
+    echo "BLOCKED: discovery directory is missing: $from_discovery" >&2
+    exit 2
+  }
+  discovery_zip="$from_discovery/refseq_complete_dehydrated.zip"
+  [[ -f "$discovery_zip" && ! -L "$discovery_zip" ]] || {
+    echo "BLOCKED: discovery archive is missing: $discovery_zip" >&2
+    exit 2
+  }
+  discovery_archive_sha="$(sha256_file "$discovery_zip")"
+  [[ "$discovery_archive_sha" == "$expected_dehydrated_sha" ]] || {
+    echo "BLOCKED: discovery archive SHA-256 drift" >&2
+    exit 2
+  }
+  discovery_data="$from_discovery/unpacked/ncbi_dataset/data"
+  [[ -d "$discovery_data" && ! -L "$discovery_data" ]] || {
+    echo "BLOCKED: discovery unpacked data root is missing" >&2
+    exit 2
+  }
+  [[ -f "$discovery_data/assembly_data_report.jsonl" && ! -L "$discovery_data/assembly_data_report.jsonl" ]] || {
+    echo "BLOCKED: discovery assembly report is missing" >&2
+    exit 2
+  }
+  [[ -f "$discovery_data/dataset_catalog.json" && ! -L "$discovery_data/dataset_catalog.json" ]] || {
+    echo "BLOCKED: discovery dataset catalog is missing" >&2
+    exit 2
+  }
+  if command -v sha256sum >/dev/null 2>&1; then
+    zip_assembly_sha="$(unzip -p "$discovery_zip" ncbi_dataset/data/assembly_data_report.jsonl | sha256sum | awk '{print $1}')"
+  else
+    zip_assembly_sha="$(unzip -p "$discovery_zip" ncbi_dataset/data/assembly_data_report.jsonl | shasum -a 256 | awk '{print $1}')"
+  fi
+  unpacked_assembly_sha="$(sha256_file "$discovery_data/assembly_data_report.jsonl")"
+  [[ "$zip_assembly_sha" == "$unpacked_assembly_sha" ]] || {
+    echo "BLOCKED: unpacked assembly report does not match the authenticated discovery archive" >&2
+    exit 2
+  }
+  cp "$discovery_zip" "$output_dir/discovery/refseq_complete_dehydrated.zip"
+  cp "$discovery_data/assembly_data_report.jsonl" "$assembly_report"
+  cp "$discovery_data/dataset_catalog.json" "$discovery_catalog"
+  python3 "$sequence_report_merger" \
+    --data-root "$discovery_data" \
+    --assembly-report "$assembly_report" \
+    --output "$sequence_report" \
+    --receipt "$merge_receipt" \
+    --expected-assembly-count "$expected_assembly_count"
+else
+  freeze_mode="full_discovery"
+  "$datasets_bin" download genome taxon bacteria \
+    --assembly-level complete \
+    --assembly-source RefSeq \
+    --assembly-version current \
+    --include genome,gbff,seq-report \
+    --dehydrated \
+    --no-progressbar \
+    --filename "$output_dir/discovery/refseq_complete_dehydrated.zip"
+  discovery_archive_sha="$(sha256_file "$output_dir/discovery/refseq_complete_dehydrated.zip")"
+  unzip -q "$output_dir/discovery/refseq_complete_dehydrated.zip" -d "$output_dir/discovery/unpacked"
+  cp "$output_dir/discovery/unpacked/ncbi_dataset/data/assembly_data_report.jsonl" "$assembly_report"
+  cp "$output_dir/discovery/unpacked/ncbi_dataset/data/dataset_catalog.json" "$discovery_catalog"
+  "$datasets_bin" rehydrate \
+    --directory "$output_dir/discovery/unpacked" \
+    --match sequence_report.jsonl \
+    --max-workers "$DATASETS_WORKERS" \
+    --no-progressbar
+  python3 "$sequence_report_merger" \
+    --data-root "$output_dir/discovery/unpacked/ncbi_dataset/data" \
+    --assembly-report "$assembly_report" \
+    --output "$sequence_report" \
+    --receipt "$merge_receipt"
+fi
 
-unzip -q "$output_dir/discovery/refseq_complete_dehydrated.zip" -d "$output_dir/discovery/unpacked"
-cp "$output_dir/discovery/unpacked/ncbi_dataset/data/assembly_data_report.jsonl" "$assembly_report"
-"$datasets_bin" rehydrate \
-  --directory "$output_dir/discovery/unpacked" \
-  --match sequence_report.jsonl \
-  --max-workers 10 \
-  --no-progressbar
-
-python3 - "$output_dir/discovery/unpacked/ncbi_dataset/data" "$sequence_report" <<'PY'
-import pathlib, sys
-root, target = map(pathlib.Path, sys.argv[1:])
-sources = sorted(root.glob("GCF_*/sequence_report.jsonl"))
-if not sources:
-    raise SystemExit("BLOCKED: dehydrated discovery produced no sequence reports")
-with target.open("x", encoding="utf-8", newline="\n") as output:
-    for source in sources:
-        text = source.read_text(encoding="utf-8")
-        output.write(text)
-        if text and not text.endswith("\n"):
-            output.write("\n")
-PY
-
-[[ -s "$assembly_report" && -s "$sequence_report" ]] || {
-  echo "BLOCKED: NCBI summary returned an empty report" >&2
+[[ -s "$assembly_report" && -s "$sequence_report" && -s "$merge_receipt" ]] || {
+  echo "BLOCKED: discovery reports were not materialized" >&2
   exit 2
 }
 
@@ -116,7 +210,11 @@ for line_number, line in enumerate(source.read_text(encoding="utf-8").splitlines
     if not line:
         continue
     row = json.loads(line)
-    accession = row.get("refseq_accession")
+    snake_accession = row.get("refseq_accession")
+    camel_accession = row.get("refseqAccession")
+    if snake_accession is not None and camel_accession is not None and snake_accession != camel_accession:
+        raise SystemExit(f"BLOCKED: conflicting RefSeq accession fields in sequence report line {line_number}")
+    accession = snake_accession if snake_accession is not None else camel_accession
     length = row.get("length")
     if not isinstance(accession, str) or accession_re.fullmatch(accession) is None:
         raise SystemExit(f"BLOCKED: invalid RefSeq accession in sequence report line {line_number}")
@@ -138,6 +236,21 @@ python3 "$selector" \
   --control-candidates "$control_candidates" \
   --output "$selection"
 
+python3 "$download_estimator" \
+  --selection "$selection" \
+  --catalog "$discovery_catalog" \
+  --output "$estimate_receipt"
+
+estimate_within="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("within_policy")' "$estimate_receipt")"
+estimate_bytes="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("estimated_uncompressed_bytes")' "$estimate_receipt")"
+selected_assemblies="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("selected_assemblies")' "$estimate_receipt")"
+selected_replicons="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("selected_replicons")' "$estimate_receipt")"
+[[ "$estimate_within" == "true" ]] || {
+  echo "BLOCKED: selected download estimate exceeds 200 GiB policy: $estimate_bytes" >&2
+  exit 2
+}
+echo "DOSA_U0_SELECTED_DOWNLOAD_ESTIMATE freeze_mode=$freeze_mode assemblies=$selected_assemblies replicons=$selected_replicons uncompressed_bytes=$estimate_bytes scientific_metrics_computed=false"
+
 python3 - "$selection" "$output_dir/assembly_accessions.txt" <<'PY'
 import json, pathlib, sys
 source, target = map(pathlib.Path, sys.argv[1:])
@@ -153,7 +266,10 @@ PY
   --filename "$output_dir/package/ncbi_dataset_dehydrated.zip"
 
 unzip -q "$output_dir/package/ncbi_dataset_dehydrated.zip" -d "$output_dir/package/rehydrated"
-"$datasets_bin" rehydrate --directory "$output_dir/package/rehydrated"
+"$datasets_bin" rehydrate \
+  --directory "$output_dir/package/rehydrated" \
+  --max-workers "$DATASETS_WORKERS" \
+  --no-progressbar
 
 # Bind the pre-download inclusion declarations to exact files only after the
 # selected package exists. The binding receipt remains explicitly unvalidated
@@ -187,6 +303,8 @@ control_candidates_sha="$(sha256_file "$control_candidates")"
 control_ledger_sha="$(sha256_file "$control_ledger")"
 control_binding_receipt_sha="$(sha256_file "$control_binding_receipt")"
 control_ledger_receipt_sha="$(sha256_file "$control_ledger_receipt")"
+merge_receipt_sha="$(sha256_file "$merge_receipt")"
+estimate_receipt_sha="$(sha256_file "$estimate_receipt")"
 
 catalog_count="$(find "$output_dir/package/rehydrated" -type f -name dataset_catalog.json | wc -l | tr -d '[:space:]')"
 [[ "$catalog_count" == "1" ]] || {
@@ -286,7 +404,7 @@ if (( pending_bytes > max_pending_bytes )); then
   exit 2
 fi
 
-python3 - "$output_dir/freeze_receipt.json" "$commit" "$actual_version" "$actual_datasets_sha" "$actual_dataformat_sha" "$query_sha" "$selection_sha" "$manifest_sha" "$control_candidates_sha" "$control_ledger_sha" "$control_binding_receipt_sha" "$control_ledger_receipt_sha" "$source_manifest_sha" "$source_integrity_sha" "$source_index_sha" "$full_replicon_inventory_sha" "$work_unit_manifest_sha" "$pending_bytes" <<'PY'
+python3 - "$output_dir/freeze_receipt.json" "$commit" "$actual_version" "$actual_datasets_sha" "$actual_dataformat_sha" "$query_sha" "$selection_sha" "$manifest_sha" "$control_candidates_sha" "$control_ledger_sha" "$control_binding_receipt_sha" "$control_ledger_receipt_sha" "$source_manifest_sha" "$source_integrity_sha" "$source_index_sha" "$full_replicon_inventory_sha" "$work_unit_manifest_sha" "$pending_bytes" "$freeze_mode" "$discovery_archive_sha" "$merge_receipt_sha" "$estimate_receipt_sha" "$estimate_bytes" "$selected_assemblies" "$selected_replicons" <<'PY'
 import datetime, json, pathlib, sys
 target = pathlib.Path(sys.argv[1])
 receipt = {
@@ -310,9 +428,16 @@ receipt = {
     "full_replicon_inventory_sha256": sys.argv[16],
     "work_unit_manifest_sha256": sys.argv[17],
     "pending_bytes": int(sys.argv[18]),
+    "freeze_mode": sys.argv[19],
+    "discovery_archive_sha256": sys.argv[20],
+    "sequence_report_merge_receipt_sha256": sys.argv[21],
+    "selected_download_estimate_sha256": sys.argv[22],
+    "selected_download_estimate_bytes": int(sys.argv[23]),
+    "selected_assemblies": int(sys.argv[24]),
+    "selected_replicons": int(sys.argv[25]),
     "scientific_metrics_computed": False,
 }
 target.write_text(json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
 PY
 
-echo "DOSA_U0_SOURCE_FREEZE_OK output=$output_dir receipt_sha256=$(sha256_file "$output_dir/freeze_receipt.json")"
+echo "DOSA_U0_SOURCE_FREEZE_OK output=$output_dir freeze_mode=$freeze_mode receipt_sha256=$(sha256_file "$output_dir/freeze_receipt.json") scientific_metrics_computed=false"

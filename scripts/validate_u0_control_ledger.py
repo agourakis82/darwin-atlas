@@ -20,7 +20,7 @@ from typing import Any
 
 
 EXIT_INVALID = 11
-ACCESSION_RE = re.compile(r"^[A-Za-z]+_[0-9]+\.[0-9]+$")
+ACCESSION_RE = re.compile(r"^[A-Z][A-Z0-9_]*[0-9]\.[0-9]+$")
 ASSEMBLY_RE = re.compile(r"^GCF_[0-9]+\.[0-9]+$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 FASTA_ALPHABET = frozenset("ACGTURYSWKMBDHVN")
@@ -125,7 +125,7 @@ def check_path_binding(package_path: pathlib.PurePosixPath, assembly: str, kind:
 
 
 def accession_tokens(text: str) -> set[str]:
-    return {token for token in re.findall(r"[A-Za-z]+_[0-9]+\.[0-9]+", text) if ACCESSION_RE.fullmatch(token)}
+    return {token for token in re.findall(r"[A-Z][A-Z0-9_]*[0-9]\.[0-9]+", text) if ACCESSION_RE.fullmatch(token)}
 
 
 def prove_fasta(path: pathlib.Path, accession: str, category: str) -> dict[str, Any]:
@@ -192,13 +192,25 @@ def prove_gbff(path: pathlib.Path, accession: str, category: str) -> dict[str, A
 
 
 def classify_sequence(row: dict[str, Any]) -> str:
-    fields = ("assigned_molecule_location_type", "chr_name", "sequence_name")
-    values = [str(row.get(field, "")).strip().lower() for field in fields]
+    fields = (
+        ("assigned_molecule_location_type", "assignedMoleculeLocationType"),
+        ("chr_name", "chrName"),
+        ("sequence_name", "sequenceName"),
+    )
+    values = [str(report_field(row, snake, camel) or "").strip().lower() for snake, camel in fields]
     if any("plasmid" in value for value in values):
         return "plasmid"
     if "chromosome" in values[0] or "chromosome" in values[1]:
         return "chromosome"
     return "other"
+
+
+def report_field(row: dict[str, Any], snake: str, camel: str) -> Any:
+    snake_value = row.get(snake)
+    camel_value = row.get(camel)
+    if snake_value is not None and camel_value is not None and snake_value != camel_value:
+        raise LedgerError(f"SEQUENCE_REPORT_FIELD_CONFLICT: {snake}/{camel}")
+    return snake_value if snake_value is not None else camel_value
 
 
 def prove_sequence_report(path: pathlib.Path, accession: str, assembly: str, category: str) -> dict[str, Any]:
@@ -213,8 +225,8 @@ def prove_sequence_report(path: pathlib.Path, accession: str, assembly: str, cat
                 raise LedgerError(f"INVALID_SEQUENCE_REPORT_JSON: {path}:{line_no}") from exc
             if not isinstance(row, dict):
                 raise LedgerError(f"INVALID_SEQUENCE_REPORT_ROW: {path}:{line_no}")
-            if row.get("refseq_accession") == accession:
-                if row.get("assembly_accession") != assembly:
+            if report_field(row, "refseq_accession", "refseqAccession") == accession:
+                if report_field(row, "assembly_accession", "assemblyAccession") != assembly:
                     raise LedgerError(f"SEQUENCE_REPORT_ASSEMBLY_MISMATCH: {accession}: {path}:{line_no}")
                 matches.append(classify_sequence(row))
     if len(matches) != 1:

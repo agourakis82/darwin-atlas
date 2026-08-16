@@ -49,6 +49,55 @@ cmp "$work_dir/one.jsonl" "$work_dir/ledger-mode.jsonl"
 grep -q '"control_input_kind":"declared_asset_ledger"' "$work_dir/ledger-mode.stdout"
 echo "U0_SELECTION_LEDGER_COMPATIBILITY_PASS"
 
+python3 - "$fixture/assemblies.jsonl" "$fixture/sequences.jsonl" "$work_dir/camel-assemblies.jsonl" "$work_dir/camel-sequences.jsonl" <<'PY'
+import json, pathlib, sys
+assemblies, sequences, out_a, out_s = map(pathlib.Path, sys.argv[1:])
+
+def dump(path, rows):
+    path.write_text("".join(json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n" for row in rows), encoding="utf-8")
+
+assembly_rows = []
+for line in assemblies.read_text(encoding="utf-8").splitlines():
+    row = json.loads(line)
+    organism = row["organism"]
+    assembly_rows.append({
+        "accession": row["accession"],
+        "currentAccession": row["accession"],
+        "organism": {"organismName": organism["organism_name"], "taxId": organism["tax_id"]},
+    })
+dump(out_a, assembly_rows)
+sequence_rows = []
+for line in sequences.read_text(encoding="utf-8").splitlines():
+    row = json.loads(line)
+    sequence_rows.append({
+        "assemblyAccession": row["assembly_accession"],
+        "assignedMoleculeLocationType": row["assigned_molecule_location_type"],
+        "chrName": row["chr_name"],
+        "length": row["length"],
+        "refseqAccession": row["refseq_accession"],
+        "sequenceName": row["sequence_name"],
+    })
+dump(out_s, sequence_rows)
+PY
+python3 "$atlas_root/scripts/select_u0_pilot.py" \
+  --assemblies "$work_dir/camel-assemblies.jsonl" \
+  --sequences "$work_dir/camel-sequences.jsonl" \
+  --control-candidates "$fixture/control_candidates.tsv" \
+  --largest 2 \
+  --output "$work_dir/camel.jsonl" > "$work_dir/camel.stdout"
+python3 - "$work_dir/one.jsonl" "$work_dir/camel.jsonl" <<'PY'
+import json, pathlib, sys
+left, right = map(pathlib.Path, sys.argv[1:])
+def rows(path):
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+a, b = rows(left), rows(right)
+assert [row["sequence_accession_version"] for row in a] == [row["sequence_accession_version"] for row in b]
+assert [row["taxid"] for row in a] == [row["taxid"] for row in b]
+assert [row["organism_name"] for row in a] == [row["organism_name"] for row in b]
+assert [row["replicon_class"] for row in a] == [row["replicon_class"] for row in b]
+print("U0_SELECTION_NCBI_18_35_CAMELCASE_PASS")
+PY
+
 set +e
 python3 "$atlas_root/scripts/select_u0_pilot.py" \
   --assemblies "$fixture/assemblies.jsonl" \
