@@ -7,6 +7,8 @@
 #
 # --from-discovery continues from an authenticated dehydrated archive plus
 # rehydrated sequence reports. It does not rerun the universe download.
+# --resume-package retries selected-package rehydrate in an existing snapshot
+# that has not yet written freeze_receipt.json.
 set -euo pipefail
 
 atlas_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -18,18 +20,20 @@ control_ledger_validator="$atlas_root/scripts/validate_u0_control_ledger.py"
 source_manifest_builder="$atlas_root/scripts/build_u0_source_manifest.py"
 sequence_report_merger="$atlas_root/scripts/merge_u0_package_sequence_reports.py"
 download_estimator="$atlas_root/scripts/estimate_u0_selected_download.py"
+rehydrate_completeness="$atlas_root/scripts/assert_u0_rehydrate_complete.py"
 DATASETS_WORKERS=30
 export GODEBUG="${GODEBUG:-http2client=0}"
 
 usage() {
   echo "usage: $0 OUTPUT_DIRECTORY CONTROL_CANDIDATES.tsv" >&2
-  echo "       $0 --from-discovery DISCOVERY_DIR --expected-dehydrated-sha256 HEX [--expected-assembly-count N] OUTPUT_DIRECTORY CONTROL_CANDIDATES.tsv" >&2
+  echo "       $0 --from-discovery DISCOVERY_DIR --expected-dehydrated-sha256 HEX [--expected-assembly-count N] [--resume-package] OUTPUT_DIRECTORY CONTROL_CANDIDATES.tsv" >&2
   exit 2
 }
 
 from_discovery=""
 expected_dehydrated_sha=""
 expected_assembly_count=""
+resume_package=""
 positional=()
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
@@ -47,6 +51,10 @@ while [[ "$#" -gt 0 ]]; do
       [[ "$#" -ge 2 ]] || usage
       expected_assembly_count="$2"
       shift 2
+      ;;
+    --resume-package)
+      resume_package="1"
+      shift
       ;;
     -*)
       usage
@@ -95,7 +103,22 @@ sha256_file() {
   echo "BLOCKED: control candidates are missing or empty: $control_candidates_source" >&2
   exit 2
 }
-[[ ! -e "$output_dir" ]] || { echo "BLOCKED: refusing to overwrite snapshot directory: $output_dir" >&2; exit 2; }
+if [[ -n "$resume_package" ]]; then
+  [[ -n "$from_discovery" ]] || {
+    echo "BLOCKED: --resume-package requires --from-discovery" >&2
+    exit 2
+  }
+  [[ -d "$output_dir" && ! -L "$output_dir" ]] || {
+    echo "BLOCKED: resume package directory is missing: $output_dir" >&2
+    exit 2
+  }
+  [[ ! -e "$output_dir/freeze_receipt.json" ]] || {
+    echo "BLOCKED: refusing to overwrite an existing freeze receipt: $output_dir/freeze_receipt.json" >&2
+    exit 2
+  }
+else
+  [[ ! -e "$output_dir" ]] || { echo "BLOCKED: refusing to overwrite snapshot directory: $output_dir" >&2; exit 2; }
+fi
 [[ -z "$(git -C "$atlas_root" status --porcelain)" ]] || {
   echo "BLOCKED: snapshot freeze requires a clean atlas source tree" >&2
   exit 2
@@ -161,16 +184,22 @@ if [[ -n "$from_discovery" ]]; then
     echo "BLOCKED: unpacked assembly report does not match the authenticated discovery archive" >&2
     exit 2
   }
-  cp "$discovery_zip" "$output_dir/discovery/refseq_complete_dehydrated.zip"
-  cp "$discovery_data/assembly_data_report.jsonl" "$assembly_report"
-  cp "$discovery_data/dataset_catalog.json" "$discovery_catalog"
-  python3 "$sequence_report_merger" \
-    --data-root "$discovery_data" \
-    --assembly-report "$assembly_report" \
-    --output "$sequence_report" \
-    --receipt "$merge_receipt" \
-    --expected-assembly-count "$expected_assembly_count"
+  if [[ -z "$resume_package" ]]; then
+    cp "$discovery_zip" "$output_dir/discovery/refseq_complete_dehydrated.zip"
+    cp "$discovery_data/assembly_data_report.jsonl" "$assembly_report"
+    cp "$discovery_data/dataset_catalog.json" "$discovery_catalog"
+    python3 "$sequence_report_merger" \
+      --data-root "$discovery_data" \
+      --assembly-report "$assembly_report" \
+      --output "$sequence_report" \
+      --receipt "$merge_receipt" \
+      --expected-assembly-count "$expected_assembly_count"
+  fi
 else
+  [[ -z "$resume_package" ]] || {
+    echo "BLOCKED: --resume-package requires --from-discovery" >&2
+    exit 2
+  }
   freeze_mode="full_discovery"
   "$datasets_bin" download genome taxon bacteria \
     --assembly-level complete \
@@ -196,11 +225,38 @@ else
     --receipt "$merge_receipt"
 fi
 
+if [[ -n "$resume_package" ]]; then
+  for required in \
+    "$output_dir/discovery/refseq_complete_dehydrated.zip" \
+    "$assembly_report" \
+    "$sequence_report" \
+    "$merge_receipt" \
+    "$discovery_catalog" \
+    "$selection" \
+    "$full_replicon_inventory" \
+    "$estimate_receipt" \
+    "$output_dir/assembly_accessions.txt" \
+    "$output_dir/package/ncbi_dataset_dehydrated.zip" \
+    "$output_dir/package/rehydrated/ncbi_dataset/fetch.txt"
+  do
+    [[ -f "$required" && ! -L "$required" && -s "$required" ]] || {
+      echo "BLOCKED: resume artifact missing or empty: $required" >&2
+      exit 2
+    }
+  done
+  output_discovery_sha="$(sha256_file "$output_dir/discovery/refseq_complete_dehydrated.zip")"
+  [[ "$output_discovery_sha" == "$expected_dehydrated_sha" ]] || {
+    echo "BLOCKED: snapshot discovery archive SHA-256 drift" >&2
+    exit 2
+  }
+fi
+
 [[ -s "$assembly_report" && -s "$sequence_report" && -s "$merge_receipt" ]] || {
   echo "BLOCKED: discovery reports were not materialized" >&2
   exit 2
 }
 
+if [[ -z "$resume_package" ]]; then
 python3 - "$sequence_report" "$full_replicon_inventory" <<'PY'
 import json, pathlib, re, sys
 source, target = map(pathlib.Path, sys.argv[1:])
@@ -241,16 +297,6 @@ python3 "$download_estimator" \
   --catalog "$discovery_catalog" \
   --output "$estimate_receipt"
 
-estimate_within="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("within_policy")' "$estimate_receipt")"
-estimate_bytes="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("estimated_uncompressed_bytes")' "$estimate_receipt")"
-selected_assemblies="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("selected_assemblies")' "$estimate_receipt")"
-selected_replicons="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("selected_replicons")' "$estimate_receipt")"
-[[ "$estimate_within" == "true" ]] || {
-  echo "BLOCKED: selected download estimate exceeds 200 GiB policy: $estimate_bytes" >&2
-  exit 2
-}
-echo "DOSA_U0_SELECTED_DOWNLOAD_ESTIMATE freeze_mode=$freeze_mode assemblies=$selected_assemblies replicons=$selected_replicons uncompressed_bytes=$estimate_bytes scientific_metrics_computed=false"
-
 python3 - "$selection" "$output_dir/assembly_accessions.txt" <<'PY'
 import json, pathlib, sys
 source, target = map(pathlib.Path, sys.argv[1:])
@@ -266,10 +312,25 @@ PY
   --filename "$output_dir/package/ncbi_dataset_dehydrated.zip"
 
 unzip -q "$output_dir/package/ncbi_dataset_dehydrated.zip" -d "$output_dir/package/rehydrated"
+fi
+
+estimate_within="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("within_policy")' "$estimate_receipt")"
+estimate_bytes="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("estimated_uncompressed_bytes")' "$estimate_receipt")"
+selected_assemblies="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("selected_assemblies")' "$estimate_receipt")"
+selected_replicons="$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0])).fetch("selected_replicons")' "$estimate_receipt")"
+[[ "$estimate_within" == "true" ]] || {
+  echo "BLOCKED: selected download estimate exceeds 200 GiB policy: $estimate_bytes" >&2
+  exit 2
+}
+echo "DOSA_U0_SELECTED_DOWNLOAD_ESTIMATE freeze_mode=$freeze_mode assemblies=$selected_assemblies replicons=$selected_replicons uncompressed_bytes=$estimate_bytes scientific_metrics_computed=false"
+
 "$datasets_bin" rehydrate \
   --directory "$output_dir/package/rehydrated" \
   --max-workers "$DATASETS_WORKERS" \
   --no-progressbar
+python3 "$rehydrate_completeness" \
+  --package-root "$output_dir/package/rehydrated" \
+  --receipt "$output_dir/reports/rehydrate_complete_receipt.json"
 
 # Bind the pre-download inclusion declarations to exact files only after the
 # selected package exists. The binding receipt remains explicitly unvalidated
