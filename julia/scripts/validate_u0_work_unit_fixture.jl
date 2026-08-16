@@ -107,14 +107,34 @@ function parse_work_unit(parameters_path::String, manifest_path::String, source_
     isfile(fasta_path) && !islink(fasta_path) || work_fail("source FASTA is invalid")
     startswith(realpath(fasta_path), root * Base.Filesystem.path_separator) || work_fail("source escapes root")
     fasta_bytes = read(fasta_path)
-    bytes2hex(sha256(fasta_bytes)) == raw_sha || work_fail("raw FASTA SHA mismatch")
     !isempty(fasta_bytes) && fasta_bytes[end] == 0x0a && !(0x0d in fasta_bytes) ||
         work_fail("FASTA must be LF-only with terminal LF")
-    fasta_lines = split(String(fasta_bytes[1:end-1]), '\n'; keepempty=true)
-    length(fasta_lines) >= 2 && fasta_lines[1] == ">$accession" || work_fail("FASTA accession mismatch")
-    all(line -> !startswith(line, ">"), fasta_lines[2:end]) || work_fail("FASTA contains multiple records")
-    bases = uppercase(join(fasta_lines[2:end]))
-    occursin(r"^[ACGTRYSWKMBDHVN]+$", bases) && ncodeunits(bases) == length_bp || work_fail("FASTA sequence contract drift")
+    fasta_text = String(fasta_bytes)
+    occursin('\0', fasta_text) && work_fail("FASTA must be ASCII")
+    current = ""
+    chunks = String[]
+    for (line_no, line) in enumerate(split(fasta_text[1:end-1], '\n'; keepempty=true))
+        if startswith(line, ">")
+            current == accession && break
+            header = split(line[2:end]; keepempty=false)
+            isempty(header) && work_fail("FASTA header is not a versioned accession at line $line_no")
+            occursin(r"^[A-Z]{1,8}_[0-9]+\.[0-9]+$", header[1]) ||
+                work_fail("FASTA header is not a versioned accession at line $line_no")
+            current = header[1]
+            empty!(chunks)
+            continue
+        end
+        current == accession || continue
+        sequence = uppercase(join(split(line)))
+        isempty(sequence) && work_fail("FASTA sequence contract drift")
+        occursin(r"^[ACGTRYSWKMBDHVN]+$", sequence) || work_fail("FASTA sequence contract drift")
+        push!(chunks, sequence)
+    end
+    bases = join(chunks)
+    current == accession && !isempty(bases) || work_fail("FASTA accession mismatch")
+    canonical = Vector{UInt8}(">$accession\n$bases\n")
+    bytes2hex(sha256(canonical)) == raw_sha || work_fail("raw FASTA SHA mismatch")
+    ncodeunits(bases) == length_bp || work_fail("FASTA sequence contract drift")
     bytes2hex(sha256(bases)) == sequence_sha || work_fail("normalized sequence SHA mismatch")
     actual_alphabet = occursin(r"^[ACGT]+$", bases) ? "acgt" : "non_acgt"
     actual_alphabet == alphabet || work_fail("declared alphabet does not match normalized FASTA")

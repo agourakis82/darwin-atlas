@@ -68,20 +68,44 @@ def safe_source(root: pathlib.Path, locator: str) -> pathlib.Path:
     return resolved
 
 
+def fasta_header_accession(text: str) -> str | None:
+    parts = text.split()
+    if not parts or ACCESSION_RE.fullmatch(parts[0]) is None:
+        return None
+    return parts[0]
+
+
 def parse_fasta(path: pathlib.Path, accession: str) -> tuple[bytes, str]:
     raw = path.read_bytes()
     if not raw.endswith(b"\n") or b"\r" in raw or b"\x00" in raw:
         raise BindingError("FASTA must be LF-only ASCII with terminal LF")
     try:
-        lines = raw.decode("ascii").splitlines()
+        text = raw.decode("ascii")
     except UnicodeDecodeError as exc:
         raise BindingError("FASTA must be ASCII") from exc
-    if len(lines) < 2 or lines[0] != f">{accession}" or any(line.startswith(">") for line in lines[1:]):
+    current = None
+    chunks: list[str] = []
+    for line_no, line in enumerate(text.splitlines(), start=1):
+        if line.startswith(">"):
+            if current == accession:
+                break
+            header = fasta_header_accession(line[1:])
+            if header is None:
+                raise BindingError(f"FASTA header is not a versioned accession at line {line_no}")
+            current = header
+            chunks = []
+            continue
+        if current != accession:
+            continue
+        sequence = "".join(line.split()).upper()
+        if not sequence or re.fullmatch(r"[ACGTRYSWKMBDHVN]+", sequence) is None:
+            raise BindingError("fixture FASTA must contain only uppercase-normalizable IUPAC DNA")
+        chunks.append(sequence)
+    sequence = "".join(chunks)
+    if current != accession or not sequence:
         raise BindingError("FASTA must contain exactly the declared accession")
-    sequence = "".join(lines[1:]).upper()
-    if not sequence or re.fullmatch(r"[ACGTRYSWKMBDHVN]+", sequence) is None:
-        raise BindingError("fixture FASTA must contain only uppercase-normalizable IUPAC DNA")
-    return raw, sequence
+    canonical = f">{accession}\n{sequence}\n".encode("ascii")
+    return canonical, sequence
 
 
 def validated_manifest_rows(manifest: pathlib.Path, parameter_sha: str) -> list[dict[str, str]]:

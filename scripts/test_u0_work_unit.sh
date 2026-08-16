@@ -8,7 +8,8 @@ readonly parameters="${root}/data/v3/u0_parameters.json"
 readonly work_id="NC_000001.1@16"
 readonly ambiguous_work_id="NC_000003.1@16"
 readonly partial_work_id="NC_000004.1@16"
-readonly temporary="$(mktemp -d)"
+readonly physical_temp_root="$(python3 -c 'import os,tempfile; print(os.path.realpath(tempfile.gettempdir()))')"
+readonly temporary="$(mktemp -d "${physical_temp_root}/dosa-u0-work-unit.XXXXXX")"
 trap 'rm -rf -- "${temporary}"' EXIT
 
 python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
@@ -16,6 +17,25 @@ python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work
 test "$(wc -l < "${temporary}/valid.tsv")" -eq 4
 test "$(shasum -a 256 "${temporary}/valid.tsv" | awk '{print $1}')" = \
   "9e14bd26a3c1081527d5294bee409338d4602f210f45fad86c71efbb857e3f00"
+
+ncbi_header="${temporary}/ncbi-header"
+mkdir -p "${ncbi_header}/fasta"
+cp "${fixture}/u0_work_units.tsv" "${ncbi_header}/u0_work_units.tsv"
+python3 - "${fixture}/fasta/NC_000001.1.fa" "${ncbi_header}/fasta/NC_000001.1.fa" <<'PY'
+import pathlib, sys
+source, target = map(pathlib.Path, sys.argv[1:])
+sequence = "".join(source.read_text().splitlines()[1:])
+target.write_text(
+    ">NC_000001.1 Escherichia coli plasmid pPG20180062.1-IncI2, complete sequence\n"
+    + sequence + "\n"
+    + ">NC_999999.1 decoy\nACGTACGTACGTACGT\n",
+    encoding="ascii",
+)
+PY
+python3 "${builder}" --parameters "${parameters}" --manifest "${ncbi_header}/u0_work_units.tsv" \
+  --source-root "${ncbi_header}" --output "${temporary}/ncbi-header.tsv" --work-unit-id "${work_id}" >/dev/null
+cmp "${temporary}/valid.tsv" "${temporary}/ncbi-header.tsv"
+echo "U0_WORK_UNIT_NCBI_DESCRIPTION_HEADER_PASS"
 python3 "${builder}" --parameters "${parameters}" --manifest "${fixture}/u0_work_units.tsv" \
   --source-root "${fixture}" --output "${temporary}/resume.tsv" --work-unit-id "${work_id}" --start-window 1 >/dev/null
 test "$(shasum -a 256 "${temporary}/resume.tsv" | awk '{print $1}')" = \
